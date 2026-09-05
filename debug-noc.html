@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Debug NOC</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e293b; color: #e2e8f0; }
+    button { padding: 10px 20px; margin: 10px; background: #3b82f6; color: white; border: none; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #2563eb; }
+    pre { background: #0f172a; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #334155; }
+    .success { color: #10b981; }
+    .error { color: #ef4444; }
+    h2 { color: #60a5fa; border-bottom: 2px solid #334155; padding-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>🔍 Debug NOC - Maintenance Troubleshoot</h1>
+  
+  <div>
+    <button onclick="test1()">1. Cek User Login (currentUser)</button>
+    <button onclick="test2()">2. Query Semua WO (tanpa filter)</button>
+    <button onclick="test3()">3. Query WO status=NOC</button>
+    <button onclick="test4()">4. Cek Element #noc-task-list</button>
+    <button onclick="test5()">5. Test buildNavigation()</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://pasmdewdganfgdnntwam.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc21kZXdkZ2FuZmdkbm50d2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Njc3OTgsImV4cCI6MjEwMzU0Mzc5OH0.3NKjbhz0IzVAjMGOGlnvyWptDyNPejzrbIYD1QNT-2U';
+    const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function log(title, data, type = 'info') {
+      const el = document.getElementById('result');
+      const color = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+      el.innerHTML += `<h2>${title}</h2><pre class="${color}">${JSON.stringify(data, null, 2)}</pre>`;
+    }
+
+    async function test1() {
+      document.getElementById('result').innerHTML = '';
+      const user = sessionStorage.getItem('sinu_user');
+      if (user) {
+        const parsed = JSON.parse(user);
+        log('✅ User Login', parsed, 'success');
+        log('Role (raw)', parsed.role);
+        log('Role (lowercase)', parsed.role.toLowerCase());
+      } else {
+        log('❌ Tidak ada user login', 'sessionStorage.sinu_user kosong', 'error');
+      }
+    }
+
+    async function test2() {
+      document.getElementById('result').innerHTML = '';
+      log('Querying ALL work_orders...');
+      const res = await supa.from('work_orders')
+        .select('wo_id, pelanggan, tipe, status, created_at')
+        .order('created_at', { ascending: false })
+        .limit(10);
+      
+      if (res.error) {
+        log('❌ Query Error', res.error, 'error');
+      } else {
+        log('✅ Total WO', res.data.length, 'success');
+        log('Data WO (10 terbaru)', res.data);
+        
+        const maintenance = res.data.filter(d => d.tipe === 'MAINTENANCE');
+        log('WO Maintenance', maintenance);
+        
+        const nocStatus = res.data.filter(d => d.status === 'NOC');
+        log('WO dengan status NOC', nocStatus, nocStatus.length > 0 ? 'success' : 'error');
+      }
+    }
+
+    async function test3() {
+      document.getElementById('result').innerHTML = '';
+      log('Querying work_orders WHERE status=NOC...');
+      const res = await supa.from('work_orders')
+        .select('*')
+        .eq('status', 'NOC')
+        .order('created_at', { ascending: false });
+      
+      if (res.error) {
+        log('❌ Query Error', res.error, 'error');
+      } else {
+        log('✅ Total WO status NOC', res.data.length, res.data.length > 0 ? 'success' : 'error');
+        log('Data WO NOC', res.data);
+      }
+    }
+
+    async function test4() {
+      document.getElementById('result').innerHTML = '';
+      
+      // Test di halaman utama
+      const opener = window.opener || window.parent;
+      if (opener && opener !== window) {
+        const el = opener.document.getElementById('noc-task-list');
+        log('Element #noc-task-list', el ? '✅ DITEMUKAN' : '❌ TIDAK DITEMUKAN', el ? 'success' : 'error');
+        if (el) {
+          log('Element HTML', el.outerHTML.substring(0, 200) + '...');
+        }
+        
+        const section = opener.document.getElementById('section-noc');
+        log('Section #section-noc', section ? '✅ ADA' : '❌ TIDAK ADA', section ? 'success' : 'error');
+        if (section) {
+          log('Section visible?', !section.classList.contains('hidden') ? '✅ VISIBLE' : '❌ HIDDEN');
+        }
+      } else {
+        log('⚠️ Buka halaman ini dari window.open() atau iframe', 'Tidak bisa akses parent window', 'error');
+      }
+    }
+
+    async function test5() {
+      document.getElementById('result').innerHTML = '';
+      const user = sessionStorage.getItem('sinu_user');
+      if (!user) {
+        log('❌ No user', 'Login dulu', 'error');
+        return;
+      }
+      
+      const currentUser = JSON.parse(user);
+      const r = (currentUser.role || '').toLowerCase();
+      log('Role (normalized)', r);
+      
+      const isNOC = r === 'noc';
+      log('isNOC check', isNOC, isNOC ? 'success' : 'error');
+      
+      if (isNOC) {
+        log('✅ Tab NOC HARUS MUNCUL', 'buildNavigation() akan menampilkan tab NOC', 'success');
+      } else {
+        log('❌ Tab NOC TIDAK MUNCUL', 'Role bukan NOC: ' + r, 'error');
+      }
+    }
+  </script>
+</body>
+</html>

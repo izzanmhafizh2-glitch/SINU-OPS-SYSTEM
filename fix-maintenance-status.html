@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Fix Maintenance Status</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body { font-family: monospace; padding: 20px; background: #1e293b; color: #e2e8f0; }
+    button { padding: 12px 24px; margin: 8px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
+    .btn-check { background: #3b82f6; color: white; }
+    .btn-fix { background: #10b981; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    pre { background: #0f172a; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #334155; white-space: pre-wrap; }
+    .success { color: #10b981; } .error { color: #ef4444; } .warn { color: #f59e0b; }
+    h2 { color: #60a5fa; }
+  </style>
+</head>
+<body>
+  <h1>🔧 Fix Maintenance Status → RELEASE</h1>
+  <p style="color:#94a3b8">Tiket Maintenance lama masih berstatus NOC. Perlu diupdate ke RELEASE agar masuk ke Pickup NOC.</p>
+
+  <div>
+    <button class="btn-check" onclick="cekData()">1. Cek tiket NOC (status=NOC)</button>
+    <button class="btn-fix" onclick="fixStatus()">2. Update ke RELEASE</button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const SUPABASE_URL = 'https://pasmdewdganfgdnntwam.supabase.co';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc21kZXdkZ2FuZmdkbm50d2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Njc3OTgsImV4cCI6MjEwMzU0Mzc5OH0.3NKjbhz0IzVAjMGOGlnvyWptDyNPejzrbIYD1QNT-2U';
+    const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    function log(title, data, type = '') {
+      const el = document.getElementById('result');
+      el.innerHTML += `<h2>${title}</h2><pre class="${type}">${typeof data === 'string' ? data : JSON.stringify(data, null, 2)}</pre>`;
+    }
+
+    async function cekData() {
+      document.getElementById('result').innerHTML = '';
+      log('Mencari WO Maintenance dengan status=NOC...');
+      const res = await supa.from('work_orders')
+        .select('wo_id, pelanggan, tipe, status, tanggal')
+        .eq('tipe', 'MAINTENANCE')
+        .eq('status', 'NOC')
+        .order('created_at', { ascending: false });
+
+      if (res.error) { log('❌ Error', res.error, 'error'); return; }
+      log(`✅ Ditemukan ${res.data.length} tiket Maintenance status=NOC`, res.data, 'success');
+    }
+
+    async function fixStatus() {
+      document.getElementById('result').innerHTML = '';
+      log('⏳ Mengupdate semua Maintenance status=NOC → RELEASE...', '');
+
+      const res = await supa.from('work_orders')
+        .update({ status: 'RELEASE' })
+        .eq('tipe', 'MAINTENANCE')
+        .eq('status', 'NOC');
+
+      if (res.error) {
+        log('❌ Gagal update', res.error, 'error');
+      } else {
+        log('✅ BERHASIL! Semua tiket Maintenance status=NOC sudah diupdate ke RELEASE', 'Silakan buka halaman utama dan refresh tab Pickup NOC.', 'success');
+      }
+    }
+  </script>
+</body>
+</html>

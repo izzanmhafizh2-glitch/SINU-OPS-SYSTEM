@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Reset Data — SINU OPS</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: monospace; padding: 30px; background: #0f172a; color: #e2e8f0; max-width: 700px; margin: 0 auto; }
+    h1 { color: #ef4444; border-bottom: 2px solid #ef4444; padding-bottom: 10px; }
+    h2 { color: #f59e0b; }
+    .warning { background: #7f1d1d; border: 1px solid #ef4444; border-radius: 8px; padding: 15px; margin: 15px 0; color: #fca5a5; }
+    .btn { padding: 12px 28px; margin: 6px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn-danger:hover { background: #dc2626; }
+    .btn-safe { background: #3b82f6; color: white; }
+    .btn-safe:hover { background: #2563eb; }
+    .btn-gray { background: #475569; color: white; }
+    pre { background: #1e293b; padding: 15px; border-radius: 8px; overflow-x: auto; border: 1px solid #334155; white-space: pre-wrap; font-size: 12px; }
+    .success { color: #10b981; } .error { color: #ef4444; } .info { color: #60a5fa; }
+    table { width: 100%; border-collapse: collapse; margin: 10px 0; font-size: 13px; }
+    th, td { padding: 8px 12px; border: 1px solid #334155; text-align: left; }
+    th { background: #1e293b; color: #94a3b8; }
+    .count-ok { color: #10b981; font-weight: bold; }
+    .count-warn { color: #f59e0b; font-weight: bold; }
+    input { padding: 8px 12px; background: #1e293b; border: 1px solid #475569; border-radius: 6px; color: white; font-size: 14px; width: 200px; }
+  </style>
+</head>
+<body>
+  <h1>⚠️ RESET DATA — SINU OPS SYSTEM</h1>
+
+  <div class="warning">
+    <strong>PERINGATAN:</strong> Operasi ini akan menghapus SEMUA data tiket dan perangkat secara permanen.<br>
+    Data yang dihapus: work_orders, perangkat, perangkat_teknisi, history_perangkat, pickup_requests, material_requests, provisioning_requests<br>
+    <strong>Data akun (akun, karyawan, absensi, odp) TIDAK akan dihapus.</strong>
+  </div>
+
+  <div>
+    <button class="btn btn-safe" onclick="cekData()">📊 Cek Jumlah Data Sekarang</button>
+  </div>
+
+  <div id="count-result"></div>
+
+  <hr style="border-color:#334155; margin: 20px 0">
+
+  <h2>Konfirmasi Reset</h2>
+  <p style="color:#94a3b8">Ketik <strong style="color:#ef4444">RESET SEMUA</strong> untuk konfirmasi:</p>
+  <input type="text" id="confirm-input" placeholder="ketik di sini..." oninput="checkConfirm()">
+  <div style="margin-top:15px">
+    <button class="btn btn-danger" id="btn-reset" onclick="resetSemua()" disabled style="opacity:0.4">
+      🗑️ HAPUS SEMUA DATA
+    </button>
+  </div>
+
+  <div id="result"></div>
+
+  <script>
+    const supa = supabase.createClient(
+      'https://pasmdewdganfgdnntwam.supabase.co',
+      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc21kZXdkZ2FuZmdkbm50d2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Njc3OTgsImV4cCI6MjEwMzU0Mzc5OH0.3NKjbhz0IzVAjMGOGlnvyWptDyNPejzrbIYD1QNT-2U'
+    );
+
+    function checkConfirm() {
+      const val = document.getElementById('confirm-input').value;
+      const btn = document.getElementById('btn-reset');
+      if(val === 'RESET SEMUA') {
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      } else {
+        btn.disabled = true;
+        btn.style.opacity = '0.4';
+      }
+    }
+
+    async function cekData() {
+      const el = document.getElementById('count-result');
+      el.innerHTML = '<p class="info">Mengecek data...</p>';
+
+      const tables = [
+        { name: 'work_orders', label: 'Tiket WO' },
+        { name: 'perangkat', label: 'Perangkat Gudang' },
+        { name: 'perangkat_teknisi', label: 'Perangkat di Teknisi' },
+        { name: 'history_perangkat', label: 'History Perangkat' },
+        { name: 'pickup_requests', label: 'Pickup Requests' },
+        { name: 'material_requests', label: 'Material Requests' },
+        { name: 'provisioning_requests', label: 'Provisioning Requests' },
+      ];
+
+      let rows = '';
+      for(const t of tables) {
+        try {
+          const { count } = await supa.from(t.name).select('*', { count: 'exact', head: true });
+          const cls = count > 0 ? 'count-warn' : 'count-ok';
+          rows += `<tr><td>${t.label}</td><td>${t.name}</td><td class="${cls}">${count ?? '-'} baris</td></tr>`;
+        } catch(e) {
+          rows += `<tr><td>${t.label}</td><td>${t.name}</td><td class="error">Error: ${e.message}</td></tr>`;
+        }
+      }
+
+      el.innerHTML = `<table><tr><th>Tabel</th><th>Nama DB</th><th>Jumlah Data</th></tr>${rows}</table>`;
+    }
+
+    async function resetSemua() {
+      const el = document.getElementById('result');
+      el.innerHTML = '<p class="info">⏳ Memulai reset...</p>';
+
+      // Urutan hapus: tabel yang punya FK dependency dihapus dulu
+      const tables = [
+        'history_perangkat',
+        'perangkat_teknisi',
+        'material_requests',
+        'pickup_requests',
+        'provisioning_requests',
+        'work_orders',
+        'perangkat',
+      ];
+
+      let log = '';
+      let sukses = 0, gagal = 0;
+
+      for(const tbl of tables) {
+        try {
+          // Delete semua baris dengan filter id > 0 (atau created_at not null)
+          const res = await supa.from(tbl).delete().gte('created_at', '2000-01-01');
+          if(res.error) throw res.error;
+          log += `<span class="success">✅ ${tbl} — berhasil dihapus</span>\n`;
+          sukses++;
+        } catch(e) {
+          // Coba cara lain kalau gagal
+          try {
+            const res2 = await supa.from(tbl).delete().not('id', 'is', null);
+            if(res2.error) throw res2.error;
+            log += `<span class="success">✅ ${tbl} — berhasil dihapus (alt)</span>\n`;
+            sukses++;
+          } catch(e2) {
+            log += `<span class="error">❌ ${tbl} — gagal: ${e2.message}</span>\n`;
+            gagal++;
+          }
+        }
+      }
+
+      log += `\n<span class="${gagal===0?'success':'error'}">Selesai: ${sukses} berhasil, ${gagal} gagal</span>`;
+      if(gagal === 0) {
+        log += '\n<span class="success">✅ Semua data berhasil direset! Silakan buka aplikasi dan mulai dari awal.</span>';
+      }
+
+      el.innerHTML = `<pre>${log}</pre>`;
+
+      // Update count
+      await cekData();
+    }
+  </script>
+</body>
+</html>
