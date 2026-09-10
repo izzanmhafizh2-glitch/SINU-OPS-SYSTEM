@@ -22,9 +22,6 @@ const releaseTickets = [];
 // KPI WO data — diambil dari Supabase tabel 'work_orders'
 let kpiWOData = [];
 
-// KPI history — diambil dari Supabase
-let kpiHistory = [];
-
 // Device histories — diambil dari Supabase tabel 'device_history'
 const deviceHistories = {};
 

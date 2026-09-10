@@ -149,7 +149,7 @@ async function handleNativeFileSelect(event){
   };reader.readAsDataURL(file);
 }
 
-function handleFormSubmit(event){
+async function handleFormSubmit(event){
   event.preventDefault();const btn=document.getElementById('btn-submit');
   const empName=document.getElementById('employeeName').value;const role=document.getElementById('selectedRole').value;const shift=document.getElementById('selectedShift').value;const lateReason=document.getElementById('lateReason').value;
   if(!empName){showAlert('Silakan pilih Nama Karyawan.');return;}
@@ -159,6 +159,13 @@ function handleFormSubmit(event){
   if(isLate&&!lateReason.trim()){showAlert('Anda terlambat! Isi alasan keterlambatan.');return;}
   const point=hitungPointKehadiran(statusKehadiran,mntLate,'',false);
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengirim...</span>';
+  try {
+    if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({nama:empName,role,shift,statusKehadiran,mntTerlambat:mntLate,point,lat:locationData.lat,lng:locationData.lng});
+  } catch(error) {
+    btn.disabled=false;btn.innerHTML=orig;
+    showAlert('Absensi gagal disimpan: '+(error.message||'Periksa koneksi Supabase.'),'Gagal Menyimpan');
+    return;
+  }
   setTimeout(()=>{
     btn.disabled=false;btn.innerHTML=orig;
     document.getElementById('attendance-form').classList.add('hidden');document.getElementById('success-screen').classList.remove('hidden');
@@ -179,10 +186,40 @@ function setSickDocStatus(ada,el){
 
 function handleLeaveSubmit(event,jenisForm){
   event.preventDefault();const form=event.target;const btn=form.querySelector('button[type="submit"]');
-  const name=form.querySelector('select[name="nama"]').value;const ket=form.querySelector('textarea[name="keterangan"]').value;
-  if(!name||!ket){showAlert('Harap pilih nama dan isi keterangan.');return;}
+  // Ambil nama dari input readonly (bukan select lagi)
+  const nameInput = form.querySelector('input[name="nama"]') || form.querySelector('select[name="nama"]');
+  const name = nameInput ? nameInput.value : (currentUser ? currentUser.displayName : '');
+  const ket=form.querySelector('textarea[name="keterangan"]').value;
+  if(!name||!ket){showAlert('Nama dan keterangan wajib diisi.');return;}
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i>Mengirim...';
   setTimeout(()=>{btn.disabled=false;btn.innerHTML=orig;if(jenisForm==='Izin Sakit'){document.getElementById('form-sakit').classList.add('hidden');document.getElementById('success-screen-sakit').classList.remove('hidden');}else{document.getElementById('form-cuti').classList.add('hidden');document.getElementById('success-screen-cuti').classList.remove('hidden');}},1000);
+}
+
+// Auto-fill nama dari currentUser di semua form absensi
+function autoFillNamaAbsensi(){
+  const nama = currentUser ? currentUser.displayName : '';
+  const role = currentUser ? (currentUser.role||'') : '';
+
+  // Form Absensi
+  const empEl = document.getElementById('employeeName');
+  if(empEl) { empEl.value = nama; }
+
+  // Form Izin Sakit
+  const sakitEl = document.getElementById('izin-sakit-nama');
+  if(sakitEl) sakitEl.value = nama;
+
+  // Form Izin Cuti
+  const cutiEl = document.getElementById('izin-cuti-nama');
+  if(cutiEl) cutiEl.value = nama;
+
+  // Auto-set role di form absensi berdasarkan role akun
+  const roleMap = {
+    'admin':'Admin','cs':'CS','noc':'NOC','teknisi':'Teknisi',
+    'finance':'Finance','supervisor':'SPV','spv':'SPV'
+  };
+  const mappedRole = roleMap[role.toLowerCase()] || 'Teknisi';
+  const roleBtn = document.getElementById('role-btn-'+mappedRole);
+  if(roleBtn) selectRole(mappedRole, roleBtn);
 }
 
 function renderMyPointSection(){
@@ -199,6 +236,20 @@ function renderMyPointSection(){
 }
 
 function resetForm(){document.getElementById('attendance-form').reset();document.getElementById('photo-preview').classList.add('hidden');document.getElementById('camera-placeholder').classList.remove('hidden');document.getElementById('success-screen').classList.add('hidden');document.getElementById('attendance-form').classList.remove('hidden');capturedImageData=null;locationData=null;document.getElementById('location-status').innerText='Klik tombol untuk mendeteksi GPS.';}
-function resetFormSakit(){document.getElementById('form-sakit').reset();document.getElementById('label-file-sakit').innerText='Upload Surat Dokter';document.getElementById('success-screen-sakit').classList.add('hidden');document.getElementById('form-sakit').classList.remove('hidden');}
-function resetFormCuti(){document.getElementById('form-cuti').reset();document.getElementById('label-file-cuti').innerText='Upload Surat Cuti';document.getElementById('success-screen-cuti').classList.add('hidden');document.getElementById('form-cuti').classList.remove('hidden');}
+function resetFormSakit(){
+  document.getElementById('form-sakit').reset();
+  document.getElementById('label-file-sakit').innerText='Upload Surat Dokter';
+  document.getElementById('success-screen-sakit').classList.add('hidden');
+  document.getElementById('form-sakit').classList.remove('hidden');
+  // Restore nama setelah reset
+  if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
+}
+function resetFormCuti(){
+  document.getElementById('form-cuti').reset();
+  document.getElementById('label-file-cuti').innerText='Upload Surat Cuti';
+  document.getElementById('success-screen-cuti').classList.add('hidden');
+  document.getElementById('form-cuti').classList.remove('hidden');
+  // Restore nama setelah reset
+  if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
+}
 function updateFileName(input,labelId){if(input.files&&input.files[0])document.getElementById(labelId).innerText='File: '+input.files[0].name;}

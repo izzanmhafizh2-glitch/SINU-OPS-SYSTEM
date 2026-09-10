@@ -1,80 +1,121 @@
 // ===================== TUGAS =====================
 
-// ── HELPER: tandai SN terpasang (kabel hanya hapus kalau habis) ───────
+// ── HELPER: tandai SN terpasang (kabel hanya habis jika seluruh stok habis) ───────
 async function tandaiTerpasang(sn, teknisi, pelanggan, ket) {
   if(typeof supa === 'undefined') return;
-  const isKabel = sn && (sn.startsWith('KBL') || await (async()=>{
-    try {
-      const {data} = await supa.from('perangkat_teknisi').select('jenis').eq('sn',sn).eq('teknisi_name',teknisi).maybeSingle();
-      return data?.jenis?.toLowerCase().includes('kabel') || false;
-    } catch(e){ return false; }
-  })());
 
-  if(isKabel) {
-    // Kabel: cek sisa dulu
-    try {
-      const {data} = await supa.from('perangkat_teknisi')
-        .select('panjang_sisa').eq('sn',sn).eq('teknisi_name',teknisi).maybeSingle();
-      const sisa = data?.panjang_sisa || 0;
-      if(sisa <= 0) {
-        // Kabel habis — tandai terpasang & hapus dari teknisi
-        await supa.from('perangkat').update({ status:'Terpasang', lokasi:'Pelanggan: '+pelanggan }).eq('sn', sn);
-        await supa.from('perangkat_teknisi').delete().eq('sn', sn).eq('teknisi_name', teknisi);
-      } else {
-        // Kabel masih ada sisa — tetap di teknisi, update lokasi di perangkat saja
-        await supa.from('perangkat').update({ lokasi: teknisi }).eq('sn', sn);
-      }
-    } catch(e) { console.warn('[tandaiTerpasang kabel]', e.message); }
-  } else {
-    // ONT/AP/STB — langsung tandai terpasang
-    await supa.from('perangkat').update({ status:'Terpasang', lokasi:'Pelanggan: '+pelanggan }).eq('sn', sn);
-    await supa.from('perangkat_teknisi').delete().eq('sn', sn).eq('teknisi_name', teknisi);
-  }
-  if(typeof catatHistory === 'function')
-    await catatHistory(sn, teknisi, 'Pelanggan: '+pelanggan, isKabel ? 'DIPAKAI' : 'TERPASANG', ket);
-}
-async function kurangiSisaKabel(snKabel, panjangTerpakai, teknisiName) {
-  if(!snKabel || !panjangTerpakai || panjangTerpakai <= 0) return;
-  if(typeof supa === 'undefined') return;
   try {
-    let sisaBaru = null;
+    const { data: ptData, error: ptError } = await supa.from('perangkat_teknisi')
+      .select('jenis,panjang_sisa')
+      .eq('sn', sn).eq('teknisi_name', teknisi).maybeSingle();
+    if(ptError) throw ptError;
 
-    // Coba ambil dari perangkat_teknisi dulu
-    const { data: ptData } = await supa.from('perangkat_teknisi')
-      .select('panjang_sisa, panjang_awal')
-      .eq('sn', snKabel).eq('teknisi_name', teknisiName).maybeSingle();
+    const isKabel = sn && (sn.startsWith('KBL') || ptData?.jenis?.toLowerCase().includes('kabel'));
+    if(isKabel) {
+      const { data: globalData, error: globalError } = await supa.from('perangkat')
+        .select('status,lokasi,panjang_sisa')
+        .eq('sn', sn).maybeSingle();
+      if(globalError) throw globalError;
 
-    if(ptData) {
-      sisaBaru = Math.max(0, (ptData.panjang_sisa || 0) - panjangTerpakai);
-      // Update perangkat_teknisi
-      await supa.from('perangkat_teknisi')
-        .update({ panjang_sisa: sisaBaru })
-        .eq('sn', snKabel).eq('teknisi_name', teknisiName);
-    } else {
-      // Fallback: ambil dari tabel perangkat langsung
-      const { data: pData } = await supa.from('perangkat')
-        .select('panjang_sisa').eq('sn', snKabel).maybeSingle();
-      if(pData) {
-        sisaBaru = Math.max(0, (pData.panjang_sisa || 0) - panjangTerpakai);
+      const stokGudang = Number(globalData?.panjang_sisa || 0);
+      const sisaTeknisi = Number(ptData?.panjang_sisa || 0);
+      if(sisaTeknisi <= 0) {
+        const { error: deleteError } = await supa.from('perangkat_teknisi')
+          .delete().eq('sn', sn).eq('teknisi_name', teknisi);
+        if(deleteError) throw deleteError;
       }
+
+      // Stok gudang dan alokasi teknisi adalah dua stok berbeda. SN baru
+      // menjadi Terpasang jika keduanya sudah habis.
+      const globalUpdate = stokGudang > 0
+        ? { status:'Gudang', lokasi:'Gudang Utama' }
+        : sisaTeknisi > 0
+          ? { status:teknisi, lokasi:teknisi }
+          : { status:'Terpasang', lokasi:'Pelanggan: '+pelanggan };
+      const { error: updateError } = await supa.from('perangkat')
+        .update(globalUpdate).eq('sn', sn);
+      if(updateError) throw updateError;
+    } else {
+      // ONT/AP/STB — langsung tandai terpasang.
+      const { error: updateError } = await supa.from('perangkat')
+        .update({ status:'Terpasang', lokasi:'Pelanggan: '+pelanggan }).eq('sn', sn);
+      if(updateError) throw updateError;
+      const { error: deleteError } = await supa.from('perangkat_teknisi')
+        .delete().eq('sn', sn).eq('teknisi_name', teknisi);
+      if(deleteError) throw deleteError;
     }
 
-    if(sisaBaru === null) {
-      console.warn('[kurangiSisaKabel] Kabel SN tidak ditemukan:', snKabel);
+    if(typeof catatHistory === 'function')
+      await catatHistory(sn, teknisi, 'Pelanggan: '+pelanggan, isKabel ? 'DIPAKAI' : 'TERPASANG', ket);
+  } catch(e) {
+    console.warn('[tandaiTerpasang]', e.message);
+    throw e;
+  }
+}
+
+async function kurangiSisaKabel(snKabel, panjangTerpakai, teknisiName) {
+  const panjang = Number(panjangTerpakai);
+  if(!snKabel || !Number.isFinite(panjang) || panjang <= 0) return;
+  if(typeof supa === 'undefined') return;
+
+  try {
+    const { data: ptData, error: ptError } = await supa.from('perangkat_teknisi')
+      .select('panjang_sisa, panjang_awal')
+      .eq('sn', snKabel).eq('teknisi_name', teknisiName).maybeSingle();
+    if(ptError) throw ptError;
+
+    if(ptData) {
+      // Setelah pickup, stok global sudah dikurangi. Pemakaian teknisi hanya
+      // mengurangi alokasi di perangkat_teknisi agar stok gudang tidak terpotong dua kali.
+      const tersedia = Number(ptData.panjang_sisa || 0);
+      if(panjang > tersedia) {
+        throw new Error(`Pemakaian kabel ${panjang}m melebihi alokasi ${tersedia}m untuk ${snKabel}.`);
+      }
+      const sisaBaru = tersedia - panjang;
+      const { error: updateError } = await supa.from('perangkat_teknisi')
+        .update({ panjang_sisa: sisaBaru })
+        .eq('sn', snKabel).eq('teknisi_name', teknisiName);
+      if(updateError) throw updateError;
+      console.log('[Kabel] SN', snKabel, 'alokasi teknisi tersisa:', sisaBaru, 'm (terpakai', panjang, 'm)');
       return;
     }
 
-    // Selalu update tabel perangkat (sumber utama untuk admin)
-    const resUpdate = await supa.from('perangkat')
-      .update({ panjang_sisa: sisaBaru })
-      .eq('sn', snKabel);
-    if(resUpdate.error) throw resUpdate.error;
-
-    console.log('[Kabel] SN', snKabel, 'sisa:', sisaBaru, 'm (terpakai', panjangTerpakai, 'm)');
-  } catch(e) { console.warn('[kurangiSisaKabel]', e.message); }
+    // Fallback untuk data lama yang belum memiliki baris perangkat_teknisi.
+    const { data: pData, error: pError } = await supa.from('perangkat')
+      .select('panjang_sisa').eq('sn', snKabel).maybeSingle();
+    if(pError) throw pError;
+    if(!pData) throw new Error('Kabel SN tidak ditemukan: '+snKabel);
+    const tersediaGudang = Number(pData.panjang_sisa || 0);
+    if(panjang > tersediaGudang) {
+      throw new Error(`Pemakaian kabel ${panjang}m melebihi stok ${tersediaGudang}m untuk ${snKabel}.`);
+    }
+    const { error: updateError } = await supa.from('perangkat')
+      .update({ panjang_sisa: tersediaGudang - panjang }).eq('sn', snKabel);
+    if(updateError) throw updateError;
+  } catch(e) {
+    console.warn('[kurangiSisaKabel]', e.message);
+    throw e;
+  }
 }
 
 // ── FORM WO: show/hide fields berdasarkan tipe ───────
+function syncWORequiredFields(tipe){
+  const allIds=[
+    'wo-t1-time','wo-tipe',
+    'wo-pelanggan','wo-nohp','wo-alamat','wo-registrasi','wo-paket','wo-nama-paket','wo-marketing','wo-koordinat-instalasi','wo-username-pppoe','wo-password-pppoe','wo-status-koneksi',
+    'wo-nama-reseller','wo-nohp-reseller','wo-alamat-reseller','wo-registrasi-reseller','wo-paket-voucher','wo-marketing-reseller','wo-koordinat-reseller','wo-status-koneksi-reseller',
+    'wo-reseller-perluasan','wo-nohp-perluasan','wo-pelanggan-perluasan','wo-alamat-perluasan','wo-titik-perluasan','wo-koordinat-perluasan',
+    'wo-pelanggan-maint','wo-nohp-maint','wo-alamat-maint','wo-koordinat-maint','wo-kendala-maint'
+  ];
+  const byType={
+    INSTALASI:['wo-pelanggan','wo-nohp','wo-alamat','wo-registrasi','wo-paket','wo-nama-paket','wo-marketing','wo-koordinat-instalasi','wo-username-pppoe','wo-password-pppoe','wo-status-koneksi'],
+    INSTALASI_RESELLER:['wo-nama-reseller','wo-nohp-reseller','wo-alamat-reseller','wo-registrasi-reseller','wo-paket-voucher','wo-marketing-reseller','wo-koordinat-reseller','wo-status-koneksi-reseller'],
+    PERLUASAN_RESELLER:['wo-reseller-perluasan','wo-nohp-perluasan','wo-pelanggan-perluasan','wo-alamat-perluasan','wo-titik-perluasan','wo-koordinat-perluasan'],
+    MAINTENANCE:['wo-pelanggan-maint','wo-nohp-maint','wo-alamat-maint','wo-koordinat-maint','wo-kendala-maint']
+  };
+  const requiredIds=['wo-t1-time','wo-tipe'].concat(byType[tipe]||byType.INSTALASI);
+  allIds.forEach(id=>{const el=document.getElementById(id);if(el)el.required=requiredIds.includes(id);});
+}
 function onWoTipeChange() {
   var tipe = (document.getElementById('wo-tipe')||{value:'INSTALASI'}).value;
   var panels = ['instalasi','reseller','perluasan','maintenance'];
@@ -91,22 +132,46 @@ function onWoTipeChange() {
   var active = mapPanel[tipe] || 'instalasi';
   var actEl = document.getElementById('wo-fields-'+active);
   if (actEl) actEl.classList.remove('hidden');
+  syncWORequiredFields(tipe);
   // Auto hitung total reseller saat panel muncul
   if (tipe === 'INSTALASI_RESELLER') hitungTotalWOReseller();
 }
 
+function parseRupiahValue(value, fallback=0) {
+  const digits = String(value ?? '').replace(/\D/g, '');
+  return digits ? Number(digits) : fallback;
+}
+
+function formatRupiahValue(value) {
+  const amount = Number(value) || 0;
+  return 'Rp ' + amount.toLocaleString('id-ID');
+}
+
+function formatRupiahInput(input) {
+  if(!input) return;
+  const raw = String(input.value || '');
+  if(!raw.trim()) { input.value = ''; return; }
+  input.value = formatRupiahValue(parseRupiahValue(raw));
+}
+
 function hitungTotalWO() {
-  var reg  = parseFloat((document.getElementById('wo-registrasi')||{value:0}).value)||0;
-  var pak  = parseFloat((document.getElementById('wo-paket')||{value:0}).value)||0;
+  var reg  = parseRupiahValue((document.getElementById('wo-registrasi')||{value:''}).value);
+  var pak  = parseRupiahValue((document.getElementById('wo-paket')||{value:''}).value);
   var tot  = document.getElementById('wo-total');
-  if (tot) tot.value = reg + pak;
+  if (tot) tot.value = formatRupiahValue(reg + pak);
 }
 
 function hitungTotalWOReseller() {
-  var reg  = parseFloat((document.getElementById('wo-registrasi-reseller')||{value:250000}).value)||250000;
-  var pak  = parseFloat((document.getElementById('wo-paket-voucher')||{value:240000}).value)||240000;
+  var regInput = document.getElementById('wo-registrasi-reseller');
+  var pakInput = document.getElementById('wo-paket-voucher');
+  var regRaw = String((regInput||{value:''}).value || '').trim();
+  var pakRaw = String((pakInput||{value:''}).value || '').trim();
+  var reg  = parseRupiahValue(regRaw, 250000);
+  var pak  = parseRupiahValue(pakRaw, 240000);
+  if(regInput && !regRaw) regInput.value = formatRupiahValue(reg);
+  if(pakInput && !pakRaw) pakInput.value = formatRupiahValue(pak);
   var tot  = document.getElementById('wo-total-reseller');
-  if (tot) tot.value = reg + pak;
+  if (tot) tot.value = formatRupiahValue(reg + pak);
 }
 
 function renderPickupList(filter=''){
@@ -144,7 +209,7 @@ function pickupTask(woId, customer, tipe){
     switchSubTugas('tugas-saya');
     return;
   }
-  myPickedTasks.push({woId, customer, tipe, koordinat: null});
+  myPickedTasks.push({woId, customer, tipe, teknisi1: currentUser ? currentUser.displayName : '', teknisi2: '', koordinat: null});
   renderMyTaskList();
   renderReturnSelect();
 
@@ -154,24 +219,36 @@ function pickupTask(woId, customer, tipe){
     if(card.textContent.includes(woId)) card.remove();
   });
 
-  // Update status di Supabase → PICKUP + simpan nama teknisi
+  // Update status di Supabase → PICKUP + simpan nama teknisi dan waktu pickup
   const teknisiName = currentUser ? currentUser.displayName : '';
+  const pickupAt = new Date().toISOString();
   if(typeof supa !== 'undefined') {
-    supa.from('work_orders').update({
+    const pickupUpdate = {
       status: 'PICKUP',
-      teknisi: [teknisiName]
-    }).eq('wo_id', woId).then(({error}) => {
+      teknisi_1: teknisiName,
+      teknisi_2: null,
+      teknisi: [teknisiName],
+      picked_up_at: pickupAt
+    };
+    supa.from('work_orders').update(pickupUpdate).eq('wo_id', woId).then(async ({error}) => {
+      if(error && /picked_up_at|column/i.test(error.message||'')) {
+        delete pickupUpdate.picked_up_at;
+        const retry = await supa.from('work_orders').update(pickupUpdate).eq('wo_id', woId);
+        error = retry.error;
+      }
       if(error) {
         console.warn('[Pickup] Gagal update DB:', error.message);
       } else {
+        const local = Array.isArray(kpiWOData) ? kpiWOData.find(item=>item.id===woId) : null;
+        if(local) local.picked_up_at = pickupAt;
         console.log('[Pickup] WO', woId, 'di-pickup oleh', teknisiName);
         if(typeof renderPickupListFromDB==='function') renderPickupListFromDB();
       }
     });
 
-    // Ambil koordinat dari DB untuk tombol Maps
+    // Ambil koordinat + RL Radius dari DB
     supa.from('work_orders')
-      .select('koordinat, alamat')
+      .select('*')
       .eq('wo_id', woId).maybeSingle()
       .then(({data}) => {
         if(data) {
@@ -179,7 +256,9 @@ function pickupTask(woId, customer, tipe){
           if(task) {
             task.koordinat = data.koordinat || null;
             task.alamat = data.alamat || null;
-            renderMyTaskList(); // re-render dengan tombol maps
+            task.noLayanan = data.no_layanan || null;
+            task.rlRadiusDone = data.rl_radius_done || false;
+            renderMyTaskList();
           }
         }
       });
@@ -225,6 +304,16 @@ function renderMyTaskList(){
         <i class="fa-solid fa-location-dot text-slate-400 text-sm"></i>
       </a>`;
     }
+    // Badge RL Radius / No Layanan untuk tipe instalasi
+    let rlBadge = '';
+    const isInstalasi = ['INSTALASI','INSTALASI_RESELLER','PERLUASAN_RESELLER'].includes(t.tipe);
+    if(isInstalasi) {
+      if(t.rlRadiusDone && t.noLayanan) {
+        rlBadge = `<p class="text-[10px] font-bold text-emerald-600 mt-0.5"><i class="fa-solid fa-id-card mr-1"></i>No. Layanan: ${t.noLayanan}</p>`;
+      } else {
+        rlBadge = `<p class="text-[10px] font-bold text-rose-500 mt-0.5"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Belum Input RL Radius</p>`;
+      }
+    }
     return `<div class="bg-slate-50 dark:bg-slate-700/40 p-4 rounded-2xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="space-y-1">
         <div class="flex items-center gap-2">
@@ -233,15 +322,164 @@ function renderMyTaskList(){
         </div>
         <h3 class="text-sm font-extrabold text-slate-900 dark:text-white">${t.customer}</h3>
         ${t.alamat ? `<p class="text-[10px] text-slate-400"><i class="fa-solid fa-location-dot text-rose-400 mr-1"></i>${t.alamat}</p>` : ''}
+        ${rlBadge}
       </div>
       <div class="flex items-center gap-2 shrink-0">
         ${mapsBtn}
+        <button type="button" onclick="returnTaskLangsung('${t.woId}')" title="Kembalikan tiket ke Pickup"
+          class="px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 hover:bg-rose-50 hover:border-rose-300 dark:hover:bg-rose-950/30 text-slate-500 hover:text-rose-600 text-xs font-bold rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-rotate-left text-sm"></i>
+        </button>
         <button type="button" onclick="startWork('${t.tipe}','${t.woId}','${t.customer}')" class="px-4 py-2.5 ${c[1]} text-white text-xs font-bold rounded-xl transition-all shadow-md flex items-center justify-center gap-2 active:scale-95">
           <i class="fa-solid ${c[2]}"></i>Kerjakan
         </button>
       </div>
     </div>`;
   }).join('');
+}
+
+// Return tiket langsung dari card Tugas Saya (dengan konfirmasi)
+async function returnTaskLangsung(woId) {
+  const alasan = prompt('Kembalikan tiket ' + woId + ' ke Pickup?\n\nIsi alasan pengembalian:');
+  if(alasan === null) return;
+  if(!alasan.trim()) { showAlert('Alasan pengembalian wajib diisi.', 'Validasi'); return; }
+  myPickedTasks = myPickedTasks.filter(t => t.woId !== woId);
+  renderMyTaskList();
+  if(typeof supa !== 'undefined') {
+    const releaseData={status:'RELEASE',released_at:new Date().toISOString(),picked_up_at:null,teknisi:[],teknisi_1:null,teknisi_2:null};
+    let releaseResult=await supa.from('work_orders').update(releaseData).eq('wo_id',woId);
+    if(releaseResult.error && /released_at|picked_up_at|completed_at|column/i.test(releaseResult.error.message||'')){delete releaseData.released_at;delete releaseData.picked_up_at;releaseResult=await supa.from('work_orders').update(releaseData).eq('wo_id',woId);}
+    const { error } = releaseResult;
+    if(error) { showAlert('Gagal return: ' + error.message, 'Error'); return; }
+  }
+  showAlert('WO ' + woId + ' dikembalikan ke Pickup Tugas.\nAlasan: ' + alasan, 'Return Berhasil');
+  if(typeof renderPickupListFromDB === 'function') renderPickupListFromDB();
+}
+
+// Isi info box read-only di form teknisi (No Tiket, Nama, No Layanan)
+function fillInfoBoxTeknisi(woId, customer) {
+  const noTiketEl = document.getElementById('info-no-tiket');
+  const namaEl    = document.getElementById('info-nama-pelanggan');
+  const noLayEl   = document.getElementById('info-no-layanan');
+  if(noTiketEl) noTiketEl.value = woId;
+  if(namaEl)    namaEl.value = customer;
+
+  // Ambil No Layanan & status RL Radius dari task atau DB
+  const task = myPickedTasks.find(t => t.woId === woId);
+  function applyNoLayanan(noLayanan, rlDone) {
+    if(!noLayEl) return;
+    if(noLayanan) {
+      noLayEl.value = noLayanan;
+      noLayEl.style.background = rlDone ? '#ecfdf5' : '#fffbeb';
+      noLayEl.style.borderColor = rlDone ? '#6ee7b7' : '#fcd34d';
+      noLayEl.style.color = rlDone ? '#059669' : '#b45309';
+    } else {
+      noLayEl.value = '⚠ Belum Input RL Radius';
+      noLayEl.style.background = '#fef2f2';
+      noLayEl.style.borderColor = '#fca5a5';
+      noLayEl.style.color = '#dc2626';
+    }
+  }
+
+  if(task && task.noLayanan !== undefined) {
+    applyNoLayanan(task.noLayanan, task.rlRadiusDone);
+  } else if(typeof supa !== 'undefined') {
+    // Fetch dari DB
+    supa.from('work_orders').select('*').eq('wo_id', woId).maybeSingle()
+      .then(({data}) => { if(data) applyNoLayanan(data.no_layanan, data.rl_radius_done); });
+  }
+}
+
+// Isi info read-only Perluasan seperti Instalasi Baru.
+function fillPerluasanInfoBox(woId, customer) {
+  const noTiketEl = document.getElementById('perluasan-info-no-tiket');
+  const namaEl = document.getElementById('perluasan-info-nama-pelanggan');
+  const noLayEl = document.getElementById('perluasan-info-no-layanan');
+  const hiddenNoLayEl = document.getElementById('perluasan-no-layanan');
+  if(noTiketEl) noTiketEl.value = woId;
+  if(namaEl) namaEl.value = customer;
+
+  function applyNoLayanan(noLayanan, rlDone) {
+    const value = noLayanan ? String(noLayanan) : '';
+    if(hiddenNoLayEl) hiddenNoLayEl.value = value;
+    if(!noLayEl) return;
+    noLayEl.value = value || '⚠ Belum Input RL Radius';
+    noLayEl.style.background = value && rlDone ? '#ecfdf5' : (value ? '#fffbeb' : '#fef2f2');
+    noLayEl.style.borderColor = value && rlDone ? '#6ee7b7' : (value ? '#fcd34d' : '#fca5a5');
+    noLayEl.style.color = value && rlDone ? '#059669' : (value ? '#b45309' : '#dc2626');
+  }
+
+  const task = myPickedTasks.find(t => t.woId === woId);
+  if(task && task.noLayanan !== undefined) {
+    applyNoLayanan(task.noLayanan, task.rlRadiusDone);
+  } else if(typeof supa !== 'undefined') {
+    supa.from('work_orders').select('no_layanan,rl_radius_done').eq('wo_id', woId).maybeSingle()
+      .then(({data}) => { if(data) applyNoLayanan(data.no_layanan, data.rl_radius_done); });
+  }
+}
+
+async function loadTeknisiTeamFields(woId, prefix){
+  const input1=document.getElementById(prefix+'-teknisi-1');
+  const select2=document.getElementById(prefix+'-teknisi-2');
+  if(!input1 || !select2) return;
+  const namaSaya=currentUser ? currentUser.displayName : '';
+  if(input1) input1.value=namaSaya;
+  try{
+    const {data:akun,error:akunError}=await supa.from('akun')
+      .select('username,display_name').eq('role','teknisi').order('display_name');
+    if(akunError) throw akunError;
+    const partners=(akun||[]).filter(a=>(a.display_name||'').toLowerCase()!==namaSaya.toLowerCase());
+    select2.innerHTML='<option value="">-- Pilih Partner Teknisi (Opsional) --</option>'+
+      partners.map(a=>`<option value="${a.display_name}">${a.display_name}</option>`).join('');
+
+    let {data:wo,error}=await supa.from('work_orders')
+      .select('*').eq('wo_id',woId).maybeSingle();
+    if(error) throw error;
+    const legacy=Array.isArray(wo?.teknisi) ? wo.teknisi : [];
+    const teknisi1=wo?.teknisi_1 || legacy[0] || namaSaya;
+    const teknisi2=wo?.teknisi_2 || legacy[1] || '';
+    input1.value=teknisi1;
+    if(teknisi2 && !Array.from(select2.options).some(option=>option.value===teknisi2)){
+      select2.insertAdjacentHTML('beforeend',`<option value="${teknisi2}">${teknisi2}</option>`);
+    }
+    select2.value=teknisi2;
+    const task=myPickedTasks.find(item=>item.woId===woId);
+    if(task){ task.teknisi1=teknisi1; task.teknisi2=teknisi2; }
+  }catch(e){
+    select2.innerHTML='<option value="">Gagal memuat teknisi</option>';
+    console.warn('[loadTeknisiTeamFields]',e.message);
+  }
+}
+
+function getTeknisiTeam(prefix,showMessage=true){
+  const teknisi1=(document.getElementById(prefix+'-teknisi-1')?.value||'').trim();
+  const teknisi2=(document.getElementById(prefix+'-teknisi-2')?.value||'').trim();
+  if(!teknisi1){
+    if(showMessage) showAlert('Teknisi 1 belum terisi.','Tim Teknisi');
+    return null;
+  }
+  if(teknisi2 && teknisi1.toLowerCase()===teknisi2.toLowerCase()){
+    if(showMessage) showAlert('Teknisi 2 tidak boleh sama dengan Teknisi 1.','Tim Teknisi');
+    return null;
+  }
+  return {teknisi1,teknisi2:teknisi2||null,teknisi:[teknisi1].concat(teknisi2?[teknisi2]:[])};
+}
+
+async function saveTeknisiTeam(woId,prefix){
+  const team=getTeknisiTeam(prefix);
+  if(!team) return null;
+  const {error}=await supa.from('work_orders').update({
+    teknisi_1:team.teknisi1, teknisi_2:team.teknisi2, teknisi:team.teknisi
+  }).eq('wo_id',woId);
+  if(error){
+    showAlert('Gagal menyimpan Teknisi 1/2: '+error.message+'\nPastikan SQL kolom teknisi_1 dan teknisi_2 sudah dijalankan.','Error');
+    throw error;
+  }
+  const task=myPickedTasks.find(item=>item.woId===woId);
+  if(task){ task.teknisi1=team.teknisi1; task.teknisi2=team.teknisi2; }
+  const local=kpiWOData.find(item=>item.id===woId);
+  if(local){ local.teknisi_1=team.teknisi1; local.teknisi_2=team.teknisi2; local.teknisi=team.teknisi; }
+  return team;
 }
 
 function startWork(type,woId,customer){
@@ -252,43 +490,51 @@ function startWork(type,woId,customer){
   document.getElementById('view-tugas-saya-list').classList.add('hidden');
   sessionStorage.setItem('sinu_active_work', JSON.stringify({woId,customer,type}));
   if(type==='INSTALASI'||type==='INSTALASI_RESELLER'){
-    document.getElementById('instalasi-wo-info').innerText='WO: '+woId+' — '+customer;
     document.getElementById('form-work-instalasi').classList.remove('hidden');
+    // Isi info box (No Tiket, Nama, No Layanan)
+    fillInfoBoxTeknisi(woId, customer);
+    loadTeknisiTeamFields(woId,'instalasi');
     goToInstalasiStep1();
     setTimeout(restoreCamPhotos, 100);
   } else if(type==='PERLUASAN_RESELLER'){
     document.getElementById('perluasan-wo-info').innerText='WO: '+woId+' — '+customer;
+    fillPerluasanInfoBox(woId, customer);
     document.getElementById('form-work-perluasan').classList.remove('hidden');
+    loadTeknisiTeamFields(woId,'perluasan');
     // Load SN dropdown perluasan (ONT/AP + Kabel)
     if(typeof loadSNDropdownsPerluasan === 'function') loadSNDropdownsPerluasan();
     setTimeout(restoreCamPhotos, 100);
   } else {
     document.getElementById('maint-wo-info').innerText='WO: '+woId+' — '+customer;
     document.getElementById('form-work-maintenance').classList.remove('hidden');
+    loadTeknisiTeamFields(woId,'maintenance');
     if(typeof loadSNDropdownsMaintenance === 'function') loadSNDropdownsMaintenance();
     setTimeout(restoreCamPhotos, 100);
   }
 }
 
-function completeTask(woId){
+async function completeTask(woId,team){
   const task=myPickedTasks.find(t=>t.woId===woId);
-  myPickedTasks=myPickedTasks.filter(t=>t.woId!==woId);
   const now=new Date();
+  const completedAt=now.toISOString();
   const t4=now.toTimeString().substring(0,5);
-  if(task) completedTasks.unshift({...task, t4, tanggal: now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}), waktuSelesai:now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})});
-  const wo=kpiWOData.find(d=>d.id===woId);if(wo){wo.status='SELESAI';wo.t4=t4;}
-  // Update status + nama teknisi di Supabase
-  const teknisiName = currentUser ? currentUser.displayName : '';
+
   if(typeof supa !== 'undefined') {
-    supa.from('work_orders').update({
-      status: 'SELESAI',
-      t4: t4,
-      teknisi: [teknisiName]
-    }).eq('wo_id', woId).then(({error}) => {
-      if(error) console.warn('[Complete] Gagal update DB:', error.message);
-      else console.log('[Complete] WO', woId, 'selesai oleh', teknisiName);
-    });
+    const updateData={status:'SELESAI',t4:t4,completed_at:completedAt};
+    if(team){ updateData.teknisi_1=team.teknisi1; updateData.teknisi_2=team.teknisi2; updateData.teknisi=team.teknisi; }
+    let result=await supa.from('work_orders').update(updateData).eq('wo_id',woId);
+    if(result.error && /released_at|completed_at|column/i.test(result.error.message||'')) {
+      delete updateData.completed_at;
+      result=await supa.from('work_orders').update(updateData).eq('wo_id',woId);
+    }
+    if(result.error) throw result.error;
+    console.log('[Complete] WO',woId,'selesai dengan tim',team?.teknisi?.join(', ')||'-');
   }
+
+  // Hapus dari tugas aktif hanya setelah update database berhasil.
+  myPickedTasks=myPickedTasks.filter(t=>t.woId!==woId);
+  if(task) completedTasks.unshift({...task, teknisi1:team?.teknisi1, teknisi2:team?.teknisi2, t4, completed_at:completedAt, tanggal: now.toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}), waktuSelesai:now.toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'})});
+  const wo=kpiWOData.find(d=>d.id===woId);if(wo){wo.status='SELESAI';wo.t4=t4;wo.completed_at=completedAt;wo.teknisi_1=team?.teknisi1||wo.teknisi_1;wo.teknisi_2=team?.teknisi2||wo.teknisi_2;wo.teknisi=team?.teknisi||wo.teknisi||[];}
   renderMyTaskList();renderReturnSelect();renderRiwayatTugas();
 }
 
@@ -303,7 +549,7 @@ function renderRiwayatTugas(){
 
   if(typeof supa !== 'undefined') {
     supa.from('work_orders')
-      .select('wo_id, pelanggan, tipe, t4, t2, created_at, teknisi, alamat')
+      .select('*')
       .eq('status', 'SELESAI')
       .order('created_at', {ascending: false}) // terbaru di atas
       .limit(50)
@@ -393,10 +639,16 @@ function goToInstalasiStep1(){
   // Reset provisioning status agar tidak tampil di step 1
   const provStatus = document.getElementById('provisioning-status');
   const provBtn    = document.getElementById('btn-request-provisioning');
-  if(provStatus) { provStatus.classList.add('hidden'); provStatus.innerHTML=''; }
-  if(provBtn)    { provBtn.classList.remove('hidden'); provBtn.disabled=false; provBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>Kirim Request Registrasi'; }
+  const submitBtn  = document.getElementById('btn-submit-aktivasi');
+  if(provStatus) { provStatus.classList.add('hidden'); provStatus.innerHTML=''; delete provStatus.dataset.status; }
+  if(provBtn)    { provBtn.classList.remove('hidden'); provBtn.disabled=false; provBtn.style.display=''; provBtn.innerHTML='<i class="fa-solid fa-paper-plane"></i>Kirim Request Registrasi'; }
+  if(submitBtn)  submitBtn.disabled=true;
 }
-function goToInstalasiStep2(){
+async function goToInstalasiStep2(){
+  const team=await saveTeknisiTeam(activeWoId,'instalasi');
+  if(!team) return;
+  const submitBtn=document.getElementById('btn-submit-aktivasi');
+  if(submitBtn) submitBtn.disabled=true;
   document.getElementById('instalasi-step-1-content').classList.add('hidden');
   document.getElementById('instalasi-step-2-content').classList.remove('hidden');
   document.getElementById('step-btn-2').className='step-indicator active p-2.5 rounded-2xl border text-center cursor-pointer transition-all';
@@ -410,6 +662,11 @@ let _isSubmitting = false;
 
 async function submitWorkInstalasi(){
   if(_isSubmitting){ showAlert('Sedang menyimpan, harap tunggu...','Harap Tunggu'); return; }
+  const provStatus=document.getElementById('provisioning-status');
+  if(!provStatus || provStatus.dataset.status!=='DONE'){
+    showAlert('Tunggu sampai status Provisioning Selesai sebelum menekan Submit & Aktifkan.','Provisioning Belum Selesai');
+    return;
+  }
   _isSubmitting = true;
   showLoading('Menyimpan data instalasi...');
   try {
@@ -419,26 +676,43 @@ async function submitWorkInstalasi(){
   const snOnt   = document.getElementById('sn-ont-select')?.value   || '';
   const snKabel = document.getElementById('sn-kabel-select')?.value || '';
   const odpId   = document.getElementById('select-odp-instalasi')?.value || '';
+
+  // Peringatan kalau SN ONT belum dipilih (perangkat belum di-pickup)
+  if(!snOnt) {
+    const lanjut = confirm('SN ONT belum dipilih!\n\nPastikan Anda sudah pickup perangkat di menu Material.\n\nLanjutkan submit tanpa SN ONT?');
+    if(!lanjut) { _isSubmitting = false; hideLoading(); return; }
+  }
   const catatan = document.getElementById('instalasi-catatan')?.value || '';
   const panjangKabel = parseFloat(document.getElementById('instalasi-panjang-kabel')?.value)||0;
+  const noLayanan = (document.getElementById('instalasi-no-layanan')?.value||'').trim();
   const usernamePPPOE = ''; // sudah diisi CS saat buat WO
   const passwordPPPOE = ''; // sudah diisi CS saat buat WO
   const statusKoneksi = ''; // sudah diisi CS saat buat WO
 
-  completeTask(woId);
-  clearSavedCamPhotos();
-  sessionStorage.removeItem('sinu_active_work');
+  const team = await saveTeknisiTeam(woId,'instalasi');
+  if(!team) return;
+  await completeTask(woId,team);
 
   if(typeof supa !== 'undefined') {
     const teknisi = currentUser ? currentUser.displayName : '';
     const ketInstalasi = 'Terpasang di pelanggan: '+pelanggan+' | WO: '+woId;
 
     // Simpan detail ke work_orders
-    await supa.from('work_orders').update({
-      sn_ont: snOnt, sn_kabel: snKabel, odp_id: odpId,
-      catatan: catatan, teknisi: [teknisi],
+    // Bangun objek update — hanya sertakan field yang ada isinya
+    var updateData = {
+      catatan: catatan, teknisi: team.teknisi,
+      teknisi_1: team.teknisi1, teknisi_2: team.teknisi2,
       panjang_kabel: panjangKabel
-    }).eq('wo_id', woId);
+    };
+    if(snOnt)   updateData.sn_ont   = snOnt;
+    if(snKabel) updateData.sn_kabel = snKabel;
+    if(odpId)   updateData.odp_id   = odpId;
+    // no_layanan TIDAK diupdate di sini (diisi admin lewat RL Radius)
+    if(noLayanan) updateData.no_layanan = noLayanan;
+
+    console.log('[Instalasi] Update WO', woId, updateData);
+    var resUpd = await supa.from('work_orders').update(updateData).eq('wo_id', woId);
+    if(resUpd.error) console.error('[Instalasi] Gagal update:', resUpd.error);
 
     // Kurangi sisa kabel jika ada panjang yang dipakai
     if(snKabel && panjangKabel > 0) {
@@ -455,10 +729,11 @@ async function submitWorkInstalasi(){
         const img = document.getElementById('cam-img-'+fk.key);
         if(img && img.src && img.src.startsWith('data:image')) {
           try {
-            await supa.from('wo_photos').insert({
+            const {error: photoError}=await supa.from('wo_photos').insert({
               wo_id: woId, step, key: fk.key, label: fk.label, photo_base64: img.src
             });
-          } catch(e) { console.warn('Foto '+fk.key+' gagal simpan:', e.message); }
+            if(photoError) throw photoError;
+          } catch(e) { throw new Error('Foto '+fk.label+' gagal disimpan: '+e.message); }
         }
       }
     }
@@ -468,6 +743,10 @@ async function submitWorkInstalasi(){
       await tandaiTerpasang(sn, teknisi, pelanggan, ketInstalasi);
     }
   }
+
+  // Setelah seluruh foto dan detail tersimpan, baru bersihkan preview/session.
+  clearSavedCamPhotos();
+  sessionStorage.removeItem('sinu_active_work');
 
   showAlert('Data instalasi berhasil disimpan!', 'Tugas Selesai');
   document.getElementById('form-work-instalasi').classList.add('hidden');
@@ -488,16 +767,28 @@ async function submitWorkMaintenance(){
   const woId = activeWoId;
   if(!woId){ showAlert('Tidak ada WO aktif.','Error'); _isSubmitting=false; hideLoading(); return; }
   const panjangKabel = parseFloat(document.getElementById('maint-panjang-kabel')?.value)||0;
+  const keterangan = (document.getElementById('maint-keterangan')?.value || '').trim();
+  if(!keterangan){
+    const keteranganEl=document.getElementById('maint-keterangan');
+    if(keteranganEl) keteranganEl.focus();
+    showAlert('Keterangan Penanganan Teknisi wajib diisi sebelum maintenance disubmit.','Validasi Maintenance');
+    return;
+  }
   const snOnt   = document.getElementById('maint-sn-ont')?.value  || '';
   const snKabel = document.getElementById('maint-sn-kabel')?.value || '';
   const teknisi = currentUser ? currentUser.displayName : '';
+  const team = await saveTeknisiTeam(woId,'maintenance');
+  if(!team) return;
 
   if(typeof supa !== 'undefined') {
     await supa.from('work_orders').update({
       panjang_kabel: panjangKabel,
+      catatan: keterangan || null,
       sn_ont:   snOnt   || null,
       sn_kabel: snKabel || null,
-      teknisi:  [teknisi]
+      teknisi:  team.teknisi,
+      teknisi_1: team.teknisi1,
+      teknisi_2: team.teknisi2
     }).eq('wo_id', woId);
 
     // Kurangi sisa kabel jika ada panjang terpakai
@@ -505,18 +796,40 @@ async function submitWorkMaintenance(){
       await kurangiSisaKabel(snKabel, panjangKabel, teknisi);
     }
 
-    // Tandai perangkat terpasang — hanya untuk ONT (bukan kabel)
-    // Kabel tidak ditandai terpasang, hanya dikurangi sisanya di atas
     const task = myPickedTasks.find(t => t.woId === woId);
     const pelanggan = task ? task.customer : '-';
     const ket = 'Penggantian Maintenance: '+pelanggan+' | WO: '+woId;
-    for(const sn of [snOnt].filter(s => s && s !== '')) {
-      await tandaiTerpasang(sn, teknisi, pelanggan, ket);
+
+    // AUTO-UPDATE SN ONT di WO Instalasi asal pelanggan (jika ada penggantian ONT)
+    if(snOnt) {
+      try {
+        // Cari WO Instalasi terbaru milik pelanggan ini
+        const { data: woInstalasi } = await supa.from('work_orders')
+          .select('wo_id, sn_ont')
+          .eq('pelanggan', pelanggan)
+          .in('tipe', ['INSTALASI', 'INSTALASI_RESELLER', 'PERLUASAN_RESELLER'])
+          .order('created_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if(woInstalasi) {
+          const snLama = woInstalasi.sn_ont;
+          // Catat riwayat pergantian ONT ke device_history
+          if(snLama && snLama !== snOnt) {
+            await catatHistory(snLama, pelanggan, 'Diganti', 'REPLACE',
+              'ONT diganti oleh teknisi ' + teknisi + ' | WO Maintenance: ' + woId + ' | ONT baru: ' + snOnt);
+          }
+          // Update SN ONT baru di WO instalasi
+          await supa.from('work_orders')
+            .update({ sn_ont: snOnt })
+            .eq('wo_id', woInstalasi.wo_id);
+          console.log('[Maint] SN ONT pelanggan', pelanggan, 'diupdate:', snLama, '→', snOnt);
+        }
+      } catch(e) { console.warn('[Maint] Gagal update SN ONT:', e.message); }
     }
-    // Catat history kabel jika ada
-    if(snKabel && snKabel !== '') {
-      if(typeof catatHistory === 'function')
-        await catatHistory(snKabel, teknisi, 'Pelanggan: '+pelanggan, 'DIPAKAI', ket);
+
+    for(const sn of [snOnt, snKabel].filter(s => s && s !== '')) {
+      await tandaiTerpasang(sn, teknisi, pelanggan, ket);
     }
 
     // Simpan foto maintenance
@@ -524,13 +837,15 @@ async function submitWorkMaintenance(){
     for(const fk of fotoMap) {
       const img = document.getElementById('cam-img-'+fk.key);
       if(img && img.src && img.src.startsWith('data:image')) {
-        try { await supa.from('wo_photos').insert({ wo_id:woId, step:'maintenance', key:fk.key, label:fk.label, photo_base64:img.src }); }
-        catch(e){ console.warn('Foto '+fk.key+' gagal:', e.message); }
+        try {
+          const {error: photoError}=await supa.from('wo_photos').insert({ wo_id:woId, step:'maintenance', key:fk.key, label:fk.label, photo_base64:img.src });
+          if(photoError) throw photoError;
+        } catch(e){ throw new Error('Foto '+fk.label+' gagal disimpan: '+e.message); }
       }
     }
   }
 
-  completeTask(woId);
+  await completeTask(woId,team);
   clearSavedCamPhotos();
   sessionStorage.removeItem('sinu_active_work');
   showAlert('Pelaporan Maintenance berhasil! Masuk ke Log Tugas.','Tugas Selesai');
@@ -554,7 +869,9 @@ async function loadSNDropdownsMaintenance() {
     const { data } = await supa.from('perangkat_teknisi')
       .select('sn,jenis,kondisi,panjang_sisa').eq('teknisi_name', nama).eq('status','READY');
     const onts   = (data||[]).filter(d => d.jenis==='Modem/ONT' || d.jenis==='Access Point');
-    const kabels = (data||[]).filter(d => d.jenis==='Kabel Dropcore' || d.jenis==='Kabel RJ45');
+    const kabels = (data||[]).filter(d =>
+      (d.jenis==='Kabel Dropcore' || d.jenis==='Kabel RJ45') && Number(d.panjang_sisa || 0) > 0
+    );
     const emptyOpt = '<option value="">-- Tidak ada --</option>';
     if(selOnt)   selOnt.innerHTML   = emptyOpt + onts.map(d=>`<option value="${d.sn}">${d.sn} (${d.jenis})</option>`).join('');
     if(selKabel) selKabel.innerHTML = emptyOpt + kabels.map(d=>{
@@ -572,13 +889,18 @@ async function loadSNDropdownsPerluasan() {
   const nama = currentUser ? currentUser.displayName : '';
   try {
     const { data } = await supa.from('perangkat_teknisi')
-      .select('sn,jenis,kondisi').eq('teknisi_name', nama).eq('status','READY');
+      .select('sn,jenis,kondisi,panjang_sisa').eq('teknisi_name', nama).eq('status','READY');
     const onts   = (data||[]).filter(d => d.jenis==='Modem/ONT' || d.jenis==='Access Point');
-    const kabels = (data||[]).filter(d => d.jenis==='Kabel Dropcore' || d.jenis==='Kabel RJ45');
+    const kabels = (data||[]).filter(d =>
+      (d.jenis==='Kabel Dropcore' || d.jenis==='Kabel RJ45') && Number(d.panjang_sisa || 0) > 0
+    );
     const emptyOpt = '<option value="" disabled selected>-- Pilih SN --</option>';
     const emptyKbl = '<option value="">-- Tidak ada --</option>';
     if(selOnt)   selOnt.innerHTML   = emptyOpt  + onts.map(d=>`<option value="${d.sn}">${d.sn} (${d.jenis})</option>`).join('');
-    if(selKabel) selKabel.innerHTML = emptyKbl + kabels.map(d=>`<option value="${d.sn}">${d.sn} (${d.jenis})</option>`).join('');
+    if(selKabel) selKabel.innerHTML = emptyKbl + kabels.map(d=>{
+      const sisa = ` — ${d.panjang_sisa}m sisa`;
+      return `<option value="${d.sn}">${d.sn} (${d.jenis})${sisa}</option>`;
+    }).join('');
   } catch(e) { console.warn('[loadSNDropdownsPerluasan]', e.message); }
 }
 
@@ -595,11 +917,12 @@ async function submitWorkPerluasan() {
   const snKabel    = document.getElementById('perluasan-sn-kabel')?.value || '';
   const panjang    = parseFloat(document.getElementById('perluasan-panjang-kabel')?.value)||0;
   const catatan    = document.getElementById('perluasan-catatan')?.value || '';
+  const noLayanan  = (document.getElementById('perluasan-no-layanan')?.value||'').trim();
   const teknisi    = currentUser ? currentUser.displayName : '';
+  const team       = await saveTeknisiTeam(woId,'perluasan');
+  if(!team) return;
 
-  completeTask(woId);
-  clearSavedCamPhotos();
-  sessionStorage.removeItem('sinu_active_work');
+  await completeTask(woId,team);
 
   if(typeof supa !== 'undefined') {
     await supa.from('work_orders').update({
@@ -607,7 +930,10 @@ async function submitWorkPerluasan() {
       sn_kabel:     snKabel || null,
       panjang_kabel: panjang,
       catatan:      catatan,
-      teknisi:      [teknisi]
+      no_layanan:   noLayanan || null,
+      teknisi:      team.teknisi,
+      teknisi_1:    team.teknisi1,
+      teknisi_2:    team.teknisi2
     }).eq('wo_id', woId);
 
     // Kurangi sisa kabel jika ada panjang terpakai
@@ -629,10 +955,15 @@ async function submitWorkPerluasan() {
     for(const fk of fotoMap) {
       const img = document.getElementById('cam-img-'+fk.key);
       if(img && img.src && img.src.startsWith('data:image')) {
-        try { await supa.from('wo_photos').insert({ wo_id:woId, step:'perluasan', key:fk.key, label:fk.label, photo_base64:img.src }); }
-        catch(e){ console.warn('Foto '+fk.key+' gagal:', e.message); }
+        try {
+          const {error: photoError}=await supa.from('wo_photos').insert({ wo_id:woId, step:'perluasan', key:fk.key, label:fk.label, photo_base64:img.src });
+          if(photoError) throw photoError;
+        } catch(e){ throw new Error('Foto '+fk.label+' gagal disimpan: '+e.message); }
       }
     }
+    // Setelah seluruh foto tersimpan, baru bersihkan preview dan session pekerjaan.
+    clearSavedCamPhotos();
+    sessionStorage.removeItem('sinu_active_work');
   }
 
   showAlert('Perluasan Reseller '+woId+' berhasil disimpan!','Tugas Selesai');
@@ -654,7 +985,10 @@ async function executeReturnTask(){
   renderMyTaskList();renderReturnSelect();
   // Reset status RELEASE dan kosongkan teknisi
   if(typeof supa!=='undefined') {
-    const {error} = await supa.from('work_orders').update({ status:'RELEASE', teknisi:[] }).eq('wo_id', wo);
+    const releaseData={status:'RELEASE',released_at:new Date().toISOString(),teknisi:[],teknisi_1:null,teknisi_2:null};
+    let releaseResult=await supa.from('work_orders').update(releaseData).eq('wo_id', wo);
+    if(releaseResult.error && /released_at|completed_at|column/i.test(releaseResult.error.message||'')){delete releaseData.released_at;releaseResult=await supa.from('work_orders').update(releaseData).eq('wo_id', wo);}
+    const {error} = releaseResult;
     if(error) {
       console.error('[Return] Gagal update DB:', error.message);
       showAlert('Return berhasil lokal tapi gagal update DB: '+error.message, 'Peringatan');
@@ -717,11 +1051,16 @@ function onCamChange(event,key){
     const img=document.getElementById('cam-img-'+key);
     if(box&&img){
       img.src=e.target.result;
+      img.style.display='';           // hapus inline display:none dari reset sebelumnya
       box.classList.add('has-photo');
-      // Auto-save foto ke sessionStorage agar tidak hilang saat refresh
+      // Auto-save foto ke sessionStorage agar tidak hilang saat refresh.
+      // Disimpan per-WO agar foto WO lain tidak ikut terpulihkan.
       try {
         const saved = JSON.parse(sessionStorage.getItem('sinu_cam_photos')||'{}');
-        saved[key] = e.target.result;
+        saved.woId = activeWoId;
+        if(!saved.photos || saved.woId !== activeWoId) saved.photos = {};
+        saved.woId = activeWoId;
+        saved.photos[key] = e.target.result;
         sessionStorage.setItem('sinu_cam_photos', JSON.stringify(saved));
       } catch(ex) { console.warn('Foto tidak bisa disimpan sementara:', ex.message); }
     }
@@ -729,15 +1068,18 @@ function onCamChange(event,key){
   reader.readAsDataURL(file);
 }
 
-// Pulihkan foto dari sessionStorage setelah refresh
+// Pulihkan foto dari sessionStorage setelah refresh.
+// Hanya memulihkan foto milik WO yang sedang aktif.
 function restoreCamPhotos(){
   try {
     const saved = JSON.parse(sessionStorage.getItem('sinu_cam_photos')||'{}');
-    Object.entries(saved).forEach(([key, dataUrl]) => {
+    if(!saved || saved.woId !== activeWoId || !saved.photos) return;
+    Object.entries(saved.photos).forEach(([key, dataUrl]) => {
       const box = document.getElementById('cam-box-'+key);
       const img = document.getElementById('cam-img-'+key);
       if(box && img && dataUrl) {
         img.src = dataUrl;
+        img.style.display='';
         box.classList.add('has-photo');
       }
     });
@@ -748,7 +1090,7 @@ function restoreCamPhotos(){
 function clearSavedCamPhotos(){
   sessionStorage.removeItem('sinu_cam_photos');
 
-  // Reset semua elemen foto di DOM — hapus src dan sembunyikan img
+  // Reset semua elemen foto di DOM — hapus src, class preview, dan tampilkan placeholder
   const allCamKeys = [
     // Instalasi Step 1
     's1f1','s1f2','s1f3','s1f4','s1f5',
@@ -757,21 +1099,20 @@ function clearSavedCamPhotos(){
     // Maintenance
     'mf1','mf2','mf3',
     // Perluasan
-    'pf1','pf2','pf3',
+    'pf1','pf2','pf3','pf4','pf5',
     // NOC
     'nf1','nf2'
   ];
   allCamKeys.forEach(function(key) {
-    // Reset img
     const img = document.getElementById('cam-img-' + key);
-    if(img) { img.src = ''; img.style.display = 'none'; }
-    // Tampilkan kembali placeholder
+    // Kosongkan gambar dan hapus inline display agar tidak ada sisa foto dari WO sebelumnya.
+    if(img) { img.removeAttribute('src'); img.style.removeProperty('display'); }
     const box = document.getElementById('cam-box-' + key);
     if(box) {
+      box.classList.remove('has-photo');
       const ph = box.querySelector('.cam-ph');
-      if(ph) ph.style.display = '';
+      if(ph) ph.style.removeProperty('display');
     }
-    // Reset file input
     const inp = document.getElementById('cam-' + key);
     if(inp) inp.value = '';
   });
@@ -821,6 +1162,9 @@ async function requestProvisioning(){
   if(!statusEl||!btnEl)return;
   btnEl.disabled=true;
   btnEl.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i>Mengirim...';
+  statusEl.dataset.status='PENDING';
+  const submitBtn=document.getElementById('btn-submit-aktivasi');
+  if(submitBtn) submitBtn.disabled=true;
   statusEl.className='flex items-center gap-3 p-3 rounded-xl border bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800';
   statusEl.classList.remove('hidden');
   statusEl.innerHTML='<i class="fa-solid fa-spinner animate-spin text-amber-500 text-lg"></i><div><p class="text-xs font-extrabold text-amber-700 dark:text-amber-300">On Going</p><p class="text-[11px] text-slate-500">Menunggu proses Admin...</p></div>';
@@ -875,9 +1219,12 @@ function startPollingProvisioning(id, statusEl) {
           showToast('Provisioning Selesai ✅', 'Pelanggan berhasil diaktifkan oleh Admin.', 'success', 6000);
         // Update status card
         if(statusEl) {
+          statusEl.dataset.status='DONE';
           statusEl.className = 'flex items-center gap-3 p-3 rounded-xl border bg-emerald-50 dark:bg-emerald-950/30 border-emerald-200 dark:border-emerald-800';
           statusEl.innerHTML = '<i class="fa-solid fa-circle-check text-emerald-500 text-xl"></i><div><p class="text-xs font-extrabold text-emerald-700 dark:text-emerald-300">Provisioning Selesai ✅</p><p class="text-[11px] text-slate-500">Pelanggan berhasil diaktifkan oleh Admin.</p></div>';
         }
+        const submitBtn=document.getElementById('btn-submit-aktivasi');
+        if(submitBtn) submitBtn.disabled=false;
       }
     } catch(e) { /* silent */ }
   }, 5000);

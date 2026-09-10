@@ -20,7 +20,7 @@ async function handleLogin(e) {
     } else {
       err.classList.add('hidden');
       currentUser = acc;
-      sessionStorage.setItem('sinu_user', JSON.stringify(acc));
+      sinuSavePersistentSession(acc);
       document.getElementById('login-form').reset();
       loadMainApp();
     }
@@ -77,22 +77,54 @@ async function loadKaryawanFromSupabase() {
 async function loadWOFromSupabase() {
   try {
     const { data, error } = await supa.from('work_orders').select('*').order('created_at', { ascending: false });
-    if (!error && data && data.length) {
-      kpiWOData = data.map(d => ({ id: d.wo_id, pelanggan: d.pelanggan, tipe: d.tipe, cs: d.cs_name, teknisi: d.teknisi || [], t1: d.t1, t2: d.t2, t4: d.t4, status: d.status, bulan: d.bulan, tahun: d.tahun }));
-    }
-  } catch(e) { console.warn('WO load fallback'); }
+    if (error) throw error;
+    kpiWOData = Array.isArray(data) ? data.map(d => {
+      const legacy = Array.isArray(d.teknisi) ? d.teknisi : [];
+      const anggota = [d.teknisi_1, d.teknisi_2].filter(Boolean);
+      return { ...d, id: d.wo_id, pelanggan: d.pelanggan, tipe: d.tipe, cs: d.cs_name || d.cs || '',
+        teknisi_1: d.teknisi_1 || legacy[0] || null,
+        teknisi_2: d.teknisi_2 || legacy[1] || null,
+        teknisi: anggota.length ? anggota : legacy,
+        t1: d.t1, t2: d.t2, t4: d.t4,
+        created_at: d.created_at || null, tanggal: d.tanggal || null,
+        released_at: d.released_at || null, picked_up_at: d.picked_up_at || null, completed_at: d.completed_at || null,
+        status: d.status, bulan: Number(d.bulan), tahun: Number(d.tahun) };
+    }) : [];
+  } catch(e) {
+    kpiWOData = [];
+    console.warn('WO load failed:', e);
+  }
 }
 
 // ── SIMPAN ke Supabase ────────────────────────────────────────
 async function simpanAbsensiKeSupabase(payload) {
-  try {
-    await supa.from('absensi').insert({ nama: payload.nama, role: payload.role, shift: payload.shift, status_kehadiran: payload.statusKehadiran, mnt_terlambat: payload.mntTerlambat || 0, point: payload.point || 0, lat: payload.lat || null, lng: payload.lng || null, tanggal: new Date().toISOString().substring(0, 10) });
-  } catch(e) { console.warn('Absensi tidak tersimpan:', e); }
+  const now = new Date();
+  const tanggal = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+  const { error } = await supa.from('absensi').insert({
+    nama: payload.nama,
+    role: payload.role,
+    shift: payload.shift,
+    status_kehadiran: payload.statusKehadiran,
+    mnt_terlambat: payload.mntTerlambat || 0,
+    point: payload.point || 0,
+    lat: payload.lat || null,
+    lng: payload.lng || null,
+    tanggal
+  });
+  if(error) throw error;
 }
 
 async function simpanWOKeSupabase(woData) {
   try {
-    await supa.from('work_orders').insert({ wo_id: woData.id, pelanggan: woData.pelanggan, tipe: woData.tipe, cs_name: woData.cs, teknisi: woData.teknisi || [], t1: woData.t1, t2: woData.t2, t4: woData.t4 || null, status: woData.status || 'RELEASE', bulan: woData.bulan, tahun: woData.tahun, alamat: woData.alamat || '' });
+    const row = { wo_id: woData.id, pelanggan: woData.pelanggan, tipe: woData.tipe, cs_name: woData.cs, teknisi: woData.teknisi || [], teknisi_1: woData.teknisi_1 || null, teknisi_2: woData.teknisi_2 || null, t1: woData.t1, t2: woData.t2, t4: woData.t4 || null, released_at: woData.released_at || new Date().toISOString(), picked_up_at: woData.picked_up_at || null, completed_at: woData.completed_at || null, status: woData.status || 'RELEASE', bulan: woData.bulan, tahun: woData.tahun, alamat: woData.alamat || '' };
+    let result = await supa.from('work_orders').insert(row);
+    if(result.error && /released_at|completed_at|column/i.test(result.error.message||'')) {
+      delete row.released_at;
+      delete row.picked_up_at;
+      delete row.completed_at;
+      result = await supa.from('work_orders').insert(row);
+    }
+    if(result.error) throw result.error;
   } catch(e) { console.warn('WO tidak tersimpan:', e); }
 }
 
@@ -119,9 +151,13 @@ async function simpanKaryawanKeSupabase(nama, role) {
 // ── LOAD SEMUA DATA ───────────────────────────────────────────
 async function loadAllDataFromSupabase() {
   await Promise.all([loadODPFromSupabase(), loadKaryawanFromSupabase(), loadWOFromSupabase()]);
+  // Sync karyawan dari tabel akun agar semua user masuk rekap
+  if(typeof loadEmployeesFromAkun === 'function') await loadEmployeesFromAkun();
   updateDashboardStats();
   if(typeof updateTopEmployee==='function') updateTopEmployee();
   updateRecapTable(); renderMainChart(); renderDonutChart(); renderPodium(); renderKPIKlasemen(); renderODPGrid();
+  if(typeof renderKPI==='function') renderKPI();
+  if(typeof changeKPIPeriod==='function' && currentUser && currentUser.role==='supervisor') await changeKPIPeriod();
   renderPickupListFromDB();
 }
 
@@ -144,10 +180,10 @@ function getWOFields(tipe) {
     alamat    = (document.getElementById('wo-alamat')||{value:''}).value;
     nohp      = (document.getElementById('wo-nohp')||{value:''}).value;
     extra = {
-      registrasi: parseFloat((document.getElementById('wo-registrasi')||{value:0}).value)||0,
-      paket:       parseFloat((document.getElementById('wo-paket')||{value:0}).value)||0,
+      registrasi: parseRupiahValue((document.getElementById('wo-registrasi')||{value:''}).value),
+      paket:       parseRupiahValue((document.getElementById('wo-paket')||{value:''}).value),
       nama_paket:  (document.getElementById('wo-nama-paket')||{value:''}).value,
-      total:       parseFloat((document.getElementById('wo-total')||{value:0}).value)||0,
+      total:       parseRupiahValue((document.getElementById('wo-total')||{value:''}).value),
       marketing:   (document.getElementById('wo-marketing')||{value:''}).value,
       koordinat:   (document.getElementById('wo-koordinat-instalasi')||{value:''}).value,
       username_pppoe: (document.getElementById('wo-username-pppoe')||{value:''}).value,
@@ -159,9 +195,9 @@ function getWOFields(tipe) {
     alamat    = (document.getElementById('wo-alamat-reseller')||{value:''}).value;
     nohp      = (document.getElementById('wo-nohp-reseller')||{value:''}).value;
     extra = {
-      registrasi:       parseFloat((document.getElementById('wo-registrasi-reseller')||{value:250000}).value)||250000,
-      paket:            parseFloat((document.getElementById('wo-paket-voucher')||{value:240000}).value)||240000,
-      total:            parseFloat((document.getElementById('wo-total-reseller')||{value:0}).value)||0,
+      registrasi:       parseRupiahValue((document.getElementById('wo-registrasi-reseller')||{value:''}).value, 0),
+      paket:            parseRupiahValue((document.getElementById('wo-paket-voucher')||{value:''}).value, 0),
+      total:            parseRupiahValue((document.getElementById('wo-total-reseller')||{value:''}).value),
       marketing:        (document.getElementById('wo-marketing-reseller')||{value:''}).value,
       koordinat:        (document.getElementById('wo-koordinat-reseller')||{value:''}).value,
       status_koneksi:   (document.getElementById('wo-status-koneksi-reseller')||{value:'Reseller'}).value
@@ -169,14 +205,16 @@ function getWOFields(tipe) {
   } else if(tipe==='PERLUASAN_RESELLER') {
     pelanggan = (document.getElementById('wo-pelanggan-perluasan')||{value:''}).value;
     alamat    = (document.getElementById('wo-alamat-perluasan')||{value:''}).value;
+    nohp      = (document.getElementById('wo-nohp-perluasan')||{value:''}).value;
     extra = {
       nama_reseller:  (document.getElementById('wo-reseller-perluasan')||{value:''}).value,
-      jumlah_titik:   parseInt((document.getElementById('wo-titik-perluasan')||{value:1}).value)||1,
+      jumlah_titik:   parseInt((document.getElementById('wo-titik-perluasan')||{value:0}).value)||0,
       koordinat:      (document.getElementById('wo-koordinat-perluasan')||{value:''}).value
     };
   } else if(tipe==='MAINTENANCE') {
     pelanggan = (document.getElementById('wo-pelanggan-maint')||{value:''}).value;
     alamat    = (document.getElementById('wo-alamat-maint')||{value:''}).value;
+    nohp      = (document.getElementById('wo-nohp-maint')||{value:''}).value;
     extra = {
       koordinat: (document.getElementById('wo-koordinat-maint')||{value:''}).value,
       kendala:   (document.getElementById('wo-kendala-maint')||{value:''}).value
@@ -193,16 +231,31 @@ function getWOFields(tipe) {
   return {pelanggan, alamat, nohp, extra};
 }
 
-// Helper: validasi minimal per tipe
+// Helper: validasi seluruh field yang diisi Admin berdasarkan tipe WO
 function validateWOFields(tipe, fields) {
-  if(!fields.pelanggan) { showAlert('Nama pelanggan wajib diisi.','Validasi'); return false; }
-  if(!fields.alamat) { showAlert('Alamat wajib diisi.','Validasi'); return false; }
-  if(!fields.extra.koordinat || !fields.extra.koordinat.trim()) {
-    showAlert('Titik koordinat wajib diisi.\nKlik ikon 🎯 untuk deteksi otomatis atau input manual.','Koordinat Wajib');
+  const missing = (value, label) => {
+    if(value === null || value === undefined || String(value).trim() === '') {
+      showAlert(label+' wajib diisi.','Validasi WO');
+      return true;
+    }
     return false;
+  };
+  if(missing(fields.pelanggan,'Nama pelanggan/reseller') || missing(fields.nohp,'Nomor HP') || missing(fields.alamat,'Alamat') || missing(fields.extra.koordinat,'Titik koordinat')) return false;
+
+  if(tipe==='INSTALASI') {
+    if(!fields.extra.registrasi) { showAlert('Registrasi wajib diisi.','Validasi WO'); return false; }
+    if(!fields.extra.paket) { showAlert('Paket Mbps wajib diisi.','Validasi WO'); return false; }
+    if(missing(fields.extra.nama_paket,'Nama paket') || missing(fields.extra.marketing,'Marketing') || missing(fields.extra.username_pppoe,'Username PPPOE') || missing(fields.extra.password_pppoe,'Password PPPOE') || missing(fields.extra.status_koneksi,'Status koneksi')) return false;
   }
-  if(tipe==='MAINTENANCE' && !fields.extra.kendala) { showAlert('Kendala wajib diisi untuk WO Maintenance.','Validasi'); return false; }
-  if(tipe==='PERLUASAN_RESELLER' && !fields.extra.nama_reseller) { showAlert('Nama reseller wajib diisi.','Validasi'); return false; }
+  if(tipe==='INSTALASI_RESELLER') {
+    if(!fields.extra.registrasi) { showAlert('Registrasi reseller wajib diisi.','Validasi WO'); return false; }
+    if(!fields.extra.paket) { showAlert('Paket voucher wajib diisi.','Validasi WO'); return false; }
+    if(missing(fields.extra.marketing,'Marketing reseller') || missing(fields.extra.status_koneksi,'Status koneksi reseller')) return false;
+  }
+  if(tipe==='PERLUASAN_RESELLER') {
+    if(missing(fields.extra.nama_reseller,'Nama reseller') || !fields.extra.jumlah_titik || missing(fields.nohp,'Nomor HP reseller')) return false;
+  }
+  if(tipe==='MAINTENANCE' && missing(fields.extra.kendala,'Keterangan kerusakan')) return false;
   return true;
 }
 
@@ -210,6 +263,7 @@ async function handleCreateTaskWithDB(e) {
   e.preventDefault();
   var t1   = document.getElementById('wo-t1-time').value;
   var tipe = document.getElementById('wo-tipe').value;
+  if(typeof syncWORequiredFields==='function') syncWORequiredFields(tipe);
   console.log('[WO] Tipe yang dipilih:', tipe);
   if(!t1){showAlert('Harap input jam permintaan masuk (T1).','T1 Wajib Diisi');return;}
 
@@ -217,7 +271,7 @@ async function handleCreateTaskWithDB(e) {
   if(!validateWOFields(tipe, fields)) return;
 
   var now=new Date(), t2=now.toTimeString().substring(0,5), bulan=now.getMonth(), tahun=now.getFullYear();
-  var tanggal = now.toISOString().substring(0,10);
+  var tanggal = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   var woId='WO-'+String(tahun).slice(-2)+String(now.getMonth()+1).padStart(2,'0')+String(now.getDate()).padStart(2,'0')+'-'+String(Math.floor(Math.random()*900)+100);
   var dur=selisihMenit(t1,t2), poin=hitungPointAdmin(Math.max(0,dur||0));
 
@@ -225,13 +279,19 @@ async function handleCreateTaskWithDB(e) {
   var statusAwal = 'RELEASE';
 
   var pelanggan=fields.pelanggan, alamat=fields.alamat;
-  var woData={id:woId,pelanggan,tipe,cs:currentUser.displayName,teknisi:[],t1,t2,t4:null,status:statusAwal,bulan,tahun,alamat};
+  var woData={id:woId,pelanggan,tipe,cs:currentUser.displayName,teknisi:[],teknisi_1:null,teknisi_2:null,t1,t2,t4:null,released_at:now.toISOString(),picked_up_at:null,completed_at:null,status:statusAwal,bulan,tahun,alamat,no_hp:fields.nohp||null,...fields.extra};
   kpiWOData.push(woData);
 
   var insertData = {
     wo_id: woId, pelanggan, tipe,
     cs_name: currentUser.displayName,
-    teknisi: [], t1, t2, t4: null,
+    teknisi: [],
+    teknisi_1: null,
+    teknisi_2: null,
+    t1, t2, t4: null,
+    released_at: now.toISOString(),
+    picked_up_at: null,
+    completed_at: null,
     status: statusAwal,
     bulan, tahun, alamat: alamat||'',
     tanggal,
@@ -256,28 +316,43 @@ async function handleCreateTaskWithDB(e) {
   console.log('[WO] Menyimpan ke Supabase:', insertData);
   console.log('[WO] Status awal:', statusAwal, 'Tipe:', tipe);
   var res = await supa.from('work_orders').insert(insertData);
+  // Kompatibilitas sementara bila migration timestamp belum dijalankan.
+  if(res.error && /released_at|completed_at|column/i.test(res.error.message||'')) {
+    var legacyInsert = Object.assign({}, insertData);
+    delete legacyInsert.released_at;
+    delete legacyInsert.picked_up_at;
+    delete legacyInsert.completed_at;
+    res = await supa.from('work_orders').insert(legacyInsert);
+  }
   if(res.error) { console.error('[WO] Gagal simpan:', res.error); showAlert('Gagal simpan WO: '+res.error.message,'Error'); return; }
   console.log('[WO] Berhasil simpan dengan status:', statusAwal);
 
   // Simpan foto/video kendala maintenance ke Supabase Storage
   if(tipe === 'MAINTENANCE') {
     showLoading('Mengupload media kendala...');
+    var totalMedia = _mediaKendalaFiles.length;
     var uploadedMedia = await uploadMediaKendalaToStorage(woId);
+    var savedMedia = 0;
     if(uploadedMedia.length) {
-      // Simpan URL ke wo_photos
+      // Simpan URL / base64 ke wo_photos
       for(var um of uploadedMedia) {
         try {
-          await supa.from('wo_photos').insert({
+          var ins = await supa.from('wo_photos').insert({
             wo_id: woId, step: 'kendala',
             key: um.type === 'video' ? 'video' : 'foto',
             label: um.name,
-            photo_base64: um.url  // reuse kolom sebagai URL storage
+            photo_base64: um.url  // reuse kolom sebagai URL storage atau base64
           });
+          if(ins.error) throw ins.error;
+          savedMedia++;
         } catch(e) { console.warn('Gagal simpan record media:', e.message); }
       }
     }
     clearMediaKendala();
     hideLoading();
+    if(totalMedia > 0 && savedMedia < totalMedia) {
+      showAlert('Sebagian media kendala gagal disimpan ('+savedMedia+'/'+totalMedia+').\nPeriksa koneksi/bucket Supabase "wo-media".','Media Kendala');
+    }
   }
   document.dispatchEvent(new Event('wo-created'));
   if(typeof renderPickupListFromDB==='function') renderPickupListFromDB();
@@ -358,62 +433,82 @@ function togglePanjangKabelInput() {
 // ── REFRESH LIST TIKET ADMIN ──────────────────────────────────
 var _adminTicketData = [];
 
+function adminTicketDateKey(t) {
+  if(t && t.created_at) {
+    var created = new Date(t.created_at);
+    if(!Number.isNaN(created.getTime())) {
+      return created.getFullYear()+'-'+String(created.getMonth()+1).padStart(2,'0')+'-'+String(created.getDate()).padStart(2,'0');
+    }
+  }
+  return t && t.tanggal ? String(t.tanggal).substring(0,10) : '';
+}
+
+function adminTodayDateKey() {
+  var now = new Date();
+  return now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
+}
+
 async function refreshAdminTicketList() {
   var el = document.getElementById('admin-ticket-list');
   if (!el) return;
   el.innerHTML = '<p class="text-xs text-slate-400 text-center py-4"><i class="fa-solid fa-spinner animate-spin mr-2"></i>Memuat...</p>';
 
-  var today = new Date().toISOString().substring(0, 10); // YYYY-MM-DD
-
   try {
     var res = await supa.from('work_orders')
-      .select('wo_id,pelanggan,tipe,status,alamat,created_at,teknisi,verified,tanggal')
+      .select('*')
       .order('created_at', { ascending: false })
-      .limit(200);
-    var all = res.data || [];
-
-    // Filter default: semua yang belum selesai (kapanpun) + yang selesai hari ini saja
-    _adminTicketData = all.filter(function(t) {
-      var tglWO = t.tanggal || (t.created_at ? t.created_at.substring(0,10) : '');
-      if(t.status !== 'SELESAI') return true;       // belum selesai → selalu tampil
-      return tglWO === today;                         // selesai → hanya tampil kalau hari ini
-    });
+      .limit(1000);
+    if(res.error) throw res.error;
+    _adminTicketData = Array.isArray(res.data) ? res.data : [];
+    applyAdminTicketFilters();
   } catch(e) {
     _adminTicketData = [];
+    console.error('[List Tiket] Gagal memuat:', e);
+    el.innerHTML = '<p class="text-xs text-rose-500 text-center py-4"><i class="fa-solid fa-circle-xmark mr-1"></i>Gagal memuat tiket: '+(e.message||'Periksa koneksi Supabase.')+'</p>';
   }
-  renderTicketList(_adminTicketData);
 }
 
-function filterTicketList() {
+function applyAdminTicketFilters() {
   var status = (document.getElementById('ticket-filter-status')||{value:'ALL'}).value;
   var tipe   = (document.getElementById('ticket-filter-tipe')||{value:'ALL'}).value;
-  var date   = (document.getElementById('ticket-filter-date')||{value:''}).value;
-
-  // Kalau ada filter tanggal → load semua tiket di tanggal itu dari DB
-  if(date) {
-    var el = document.getElementById('admin-ticket-list');
-    if(el) el.innerHTML = '<p class="text-xs text-slate-400 text-center py-4"><i class="fa-solid fa-spinner animate-spin mr-2"></i>Memuat...</p>';
-    supa.from('work_orders')
-      .select('wo_id,pelanggan,tipe,status,alamat,created_at,teknisi,verified,tanggal')
-      .or('tanggal.eq.'+date+',created_at.gte.'+date+'T00:00:00,created_at.lte.'+date+'T23:59:59')
-      .order('created_at', {ascending: false})
-      .then(function(res) {
-        var filtered = (res.data||[]).filter(function(t) {
-          var tglWO = t.tanggal || (t.created_at ? t.created_at.substring(0,10) : '');
-          return tglWO === date;
-        });
-        if(status !== 'ALL') filtered = filtered.filter(function(t){return t.status===status;});
-        if(tipe   !== 'ALL') filtered = filtered.filter(function(t){return t.tipe===tipe;});
-        renderTicketList(filtered);
-      });
+  var from   = (document.getElementById('ticket-filter-date-from')||{value:''}).value;
+  var to     = (document.getElementById('ticket-filter-date-to')||{value:''}).value;
+  if(from && to && from > to) {
+    if(typeof showAlert==='function') showAlert('Tanggal mulai tidak boleh lebih besar dari tanggal akhir.','Filter Tanggal');
     return;
   }
 
-  // Tanpa filter tanggal → pakai data default (hari ini + belum selesai)
-  var filtered = _adminTicketData;
-  if(status !== 'ALL') filtered = filtered.filter(function(t){return t.status===status;});
-  if(tipe   !== 'ALL') filtered = filtered.filter(function(t){return t.tipe===tipe;});
+  var today = adminTodayDateKey();
+  var hasDateRange = Boolean(from || to);
+  var filtered = _adminTicketData.filter(function(t) {
+    if(status !== 'ALL' && t.status !== status) return false;
+    if(tipe !== 'ALL' && t.tipe !== tipe) return false;
+
+    var dateKey = adminTicketDateKey(t);
+    // Tanpa rentang tanggal: tiket aktif selalu tampil; tiket selesai hanya yang selesai/tercatat hari ini.
+    if(!hasDateRange && t.status === 'SELESAI' && dateKey !== today) return false;
+    if(from && (!dateKey || dateKey < from)) return false;
+    if(to && (!dateKey || dateKey > to)) return false;
+    return true;
+  });
   renderTicketList(filtered);
+}
+
+function filterTicketList() {
+  applyAdminTicketFilters();
+}
+
+function resetTicketFilters() {
+  var status = document.getElementById('ticket-filter-status');
+  var tipe = document.getElementById('ticket-filter-tipe');
+  var from = document.getElementById('ticket-filter-date-from');
+  var to = document.getElementById('ticket-filter-date-to');
+  if(status) status.value='ALL';
+  if(tipe) tipe.value='ALL';
+  if(from) from.value='';
+  if(to) to.value='';
+  if(_adminTicketData.length) applyAdminTicketFilters();
+  else refreshAdminTicketList();
 }
 
 function renderTicketList(tickets) {
@@ -433,6 +528,16 @@ function renderTicketList(tickets) {
     var sc = sCls[t.status] || 'bg-slate-100 text-slate-600';
     var tc = tCls[t.tipe] || 'bg-slate-50 border-slate-200';
     var btn = isSelesai ? '<button onclick="showWODetail(\''+t.wo_id+'\')" class="px-2.5 py-1 bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold rounded-lg flex items-center gap-1"><i class="fa-solid fa-eye text-[9px]"></i>Lihat Detail</button>' : '';
+    // Badge RL Radius / No Layanan — hanya untuk tipe instalasi
+    var rlBadge = '';
+    var isInstalasi = ['INSTALASI','INSTALASI_RESELLER','PERLUASAN_RESELLER'].includes(t.tipe);
+    if(isInstalasi) {
+      if(t.rl_radius_done && t.no_layanan) {
+        rlBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-emerald-100 text-emerald-700"><i class="fa-solid fa-id-card"></i>No. Layanan: '+t.no_layanan+'</span>';
+      } else {
+        rlBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i>Belum Input RL Radius</span>';
+      }
+    }
     return '<div class="p-3 rounded-xl border space-y-1.5 '+tc+'">'
       +'<div class="flex items-center justify-between gap-1">'
       +'<span class="text-[10px] font-extrabold text-blue-600 font-mono">'+t.wo_id+'</span>'
@@ -440,6 +545,7 @@ function renderTicketList(tickets) {
       +'</div>'
       +'<p class="text-xs font-bold text-slate-800">'+t.pelanggan+'</p>'
       +'<p class="text-[10px] text-slate-400">'+t.tipe+(t.alamat?' • '+t.alamat:'')+'</p>'
+      +(rlBadge ? '<div>'+rlBadge+'</div>' : '')
       +'<div class="flex items-center justify-between pt-0.5">'
       +'<p class="text-[10px] text-slate-400">'+tgl+(tek?' • '+tek:'')+'</p>'
       +btn+'</div></div>';
@@ -474,18 +580,6 @@ async function addNewEmployeeWithDB(e) {
   btn.disabled=false; btn.innerText='Simpan'; closeAddEmployeeModal(); showAlert('Berhasil menambahkan: '+name);
 }
 window.addNewEmployee = addNewEmployeeWithDB;
-
-// Override handleFormSubmit (absensi)
-var _origHandleFormSubmit = window.handleFormSubmit;
-window.handleFormSubmitWithDB = async function(event) {
-  if(_origHandleFormSubmit) _origHandleFormSubmit(event);
-  var empName = document.getElementById('employeeName').value;
-  var role = document.getElementById('selectedRole').value;
-  var shift = document.getElementById('selectedShift').value;
-  var res2 = cekKeterlambatan();
-  var point = hitungPointKehadiran(res2.statusKehadiran, res2.mntLate, '', false);
-  await simpanAbsensiKeSupabase({ nama:empName, role, shift, statusKehadiran:res2.statusKehadiran, mntTerlambat:res2.mntLate, point, lat:locationData?locationData.lat:null, lng:locationData?locationData.lng:null });
-};
 
 // Load data saat halaman pertama kali dibuka
 window.addEventListener('load', async function() {
@@ -535,13 +629,13 @@ async function showWODetail(woId) {
       +row('CS/Admin', d.cs_name)
       +row('Teknisi', tek)
       +'<p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-3 mb-1">Waktu</p>'
-      +row('T1 (WA Masuk)', d.t1)
-      +row('T2 (Tiket Dibuat)', d.t2)
-      +row('T4 (Selesai)', d.t4||'-')
-      +(dur ? row('Durasi T1 T2', dur) : '');
+      +row('WA Masuk', d.t1)
+      +row('Tiket Dibuat', d.t2)
+      +row('Selesai', d.t4||'-')
+      +(dur ? row('Durasi Pengerjaan', dur) : '');
     if(d.tipe === 'INSTALASI' || d.tipe === 'INSTALASI_RESELLER') {
       html += '<p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-3 mb-1">Detail Instalasi</p>'
-        +row('SN ONT', d.sn_ont) +row('SN Kabel', d.sn_kabel) +row('ODP', d.odp_id)
+        +row('No. Layanan', d.no_layanan) +row('SN ONT', d.sn_ont) +row('SN Kabel', d.sn_kabel) +row('ODP', d.odp_id)
         +row('Username PPPOE', d.username_pppoe) +row('Password PPPOE', d.password_pppoe)
         +row('Status Koneksi', d.status_koneksi) +row('Panjang Kabel', d.panjang_kabel ? d.panjang_kabel+' meter' : null)
         +row('Catatan', d.catatan);
@@ -610,6 +704,7 @@ async function loadWOPhotos(woId) {
   if(!container) return;
   try {
     var res = await supa.from('wo_photos').select('key,label,step,photo_base64').eq('wo_id', woId).order('step').order('key');
+    if(res.error) throw res.error;
     var photos = res.data || [];
     if(!photos.length) {
       container.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Tidak ada foto yang dilampirkan.</p>';
@@ -708,6 +803,15 @@ function clearMediaKendala() {
   renderMediaKendalaList();
 }
 
+function _fileToDataURL(file) {
+  return new Promise(function(resolve, reject) {
+    var reader = new FileReader();
+    reader.onload = function(e) { resolve(e.target.result); };
+    reader.onerror = function() { reject(new Error('Gagal membaca file')); };
+    reader.readAsDataURL(file);
+  });
+}
+
 async function uploadMediaKendalaToStorage(woId) {
   if(!_mediaKendalaFiles.length) return [];
   var uploaded = [];
@@ -724,7 +828,17 @@ async function uploadMediaKendalaToStorage(woId) {
       var urlRes = supa.storage.from('wo-media').getPublicUrl(path);
       uploaded.push({ path, url: urlRes.data.publicUrl, type: isVideo ? 'video' : 'image', name: file.name });
     } catch(e) {
-      console.warn('[Media] Gagal upload ' + file.name + ':', e.message);
+      console.warn('[Media] Gagal upload ke Storage ' + file.name + ':', e.message);
+      // Fallback: simpan foto sebagai base64 agar tetap muncul di NOC.
+      // Video tidak di-fallback karena base64 video terlalu besar untuk kolom teks.
+      if(!isVideo) {
+        try {
+          var dataUrl = await _fileToDataURL(file);
+          uploaded.push({ path: path, url: dataUrl, type: 'image', name: file.name });
+        } catch(fe) {
+          console.warn('[Media] Fallback base64 gagal ' + file.name + ':', fe.message);
+        }
+      }
     }
   }
   return uploaded;
@@ -836,3 +950,253 @@ function downloadTemplatePerangkat() {
   XLSX.utils.book_append_sheet(wb, ws, 'Template Perangkat');
   XLSX.writeFile(wb, 'Template_Import_Perangkat.xlsx');
 }
+
+// ── SEARCH & AUTO-FILL PELANGGAN (Maintenance & Dismantle) ────────────
+var _searchTimeout = null;
+
+// ── SEARCH RESELLER UNTUK PERLUASAN ───────────────────────────────
+let _resellerSearchTimeout = null;
+
+function escapeResellerHtml(value) {
+  return String(value || '').replace(/[&<>"']/g, function(char) {
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char];
+  });
+}
+
+async function searchResellerPerluasan(query) {
+  clearTimeout(_resellerSearchTimeout);
+  const dropdown = document.getElementById('wo-search-dropdown-reseller-perluasan');
+  if(!dropdown) return;
+
+  _resellerSearchTimeout = setTimeout(async function() {
+    dropdown.innerHTML = '<p class="text-xs text-slate-400 text-center py-3"><i class="fa-solid fa-spinner animate-spin mr-1"></i>Memuat reseller...</p>';
+    dropdown.classList.remove('hidden');
+    try {
+      const res = await supa.from('work_orders')
+        .select('nama_reseller,pelanggan,no_hp,tipe,created_at')
+        .in('tipe', ['INSTALASI_RESELLER', 'PERLUASAN_RESELLER'])
+        .order('created_at', {ascending: false})
+        .limit(500);
+      if(res.error) throw res.error;
+
+      const needle = (query || '').trim().toLowerCase();
+      const byName = {};
+      (res.data || []).forEach(function(row) {
+        // Instalasi Reseller lama menyimpan nama reseller di kolom pelanggan.
+        const name = (row.nama_reseller || (row.tipe === 'INSTALASI_RESELLER' ? row.pelanggan : '') || '').trim();
+        if(!name || (needle && name.toLowerCase().indexOf(needle) === -1)) return;
+        const key = name.toLowerCase();
+        const current = byName[key];
+        // Karena query terbaru lebih dulu, hanya ganti jika record lama belum punya HP.
+        if(!current || (!current.no_hp && row.no_hp)) {
+          byName[key] = { nama_reseller: name, no_hp: row.no_hp || '' };
+        }
+      });
+
+      const unique = Object.values(byName).sort(function(a, b) {
+        return a.nama_reseller.localeCompare(b.nama_reseller, 'id');
+      });
+      if(!unique.length) {
+        dropdown.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Reseller terdaftar tidak ditemukan</p>';
+        return;
+      }
+
+      if(!window._resellerPerluasanCache) window._resellerPerluasanCache = {};
+      dropdown.innerHTML = unique.map(function(row, index) {
+        const cacheKey = 'reseller_' + index;
+        window._resellerPerluasanCache[cacheKey] = row;
+        return '<button type="button" onclick="fillResellerPerluasan(\'' + cacheKey + '\')" '
+          + 'class="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border-b border-slate-100 dark:border-slate-700 last:border-0">'
+          + '<div class="flex items-center gap-2">'
+          + '<span class="text-xs font-extrabold text-slate-800 dark:text-slate-100 flex-1 truncate">' + escapeResellerHtml(row.nama_reseller) + '</span>'
+          + (row.no_hp ? '<span class="text-[10px] text-emerald-600 font-bold shrink-0">' + escapeResellerHtml(row.no_hp) + '</span>' : '<span class="text-[10px] text-slate-400 shrink-0">No. HP belum ada</span>')
+          + '</div></button>';
+      }).join('');
+    } catch(e) {
+      dropdown.innerHTML = '<p class="text-xs text-rose-500 text-center py-3">Gagal memuat reseller</p>';
+      console.warn('[SearchResellerPerluasan]', e.message);
+    }
+  }, 250);
+}
+
+function fillResellerPerluasan(cacheKey) {
+  const data = (window._resellerPerluasanCache || {})[cacheKey];
+  if(!data) return;
+  const nameEl = document.getElementById('wo-reseller-perluasan');
+  const nohpEl = document.getElementById('wo-nohp-perluasan');
+  const dropdown = document.getElementById('wo-search-dropdown-reseller-perluasan');
+  if(nameEl) nameEl.value = data.nama_reseller || '';
+  if(nohpEl && data.no_hp) nohpEl.value = data.no_hp;
+  if(dropdown) dropdown.classList.add('hidden');
+
+  [nameEl, nohpEl].forEach(function(el) {
+    if(el && el.value) {
+      el.classList.add('border-emerald-400');
+      el.classList.remove('border-slate-200');
+      setTimeout(function() {
+        el.classList.remove('border-emerald-400');
+        el.classList.add('border-slate-200');
+      }, 2000);
+    }
+  });
+}
+
+async function searchPelangganWO(query, formType) {
+  clearTimeout(_searchTimeout);
+  var dropdownId = 'wo-search-dropdown-' + formType;
+  var dropdown = document.getElementById(dropdownId);
+  if(!dropdown) return;
+
+  if(!query || query.length < 2) {
+    dropdown.classList.add('hidden');
+    return;
+  }
+
+  _searchTimeout = setTimeout(async function() {
+    try {
+      // Cari dari work_orders tipe INSTALASI, INSTALASI_RESELLER, PERLUASAN_RESELLER
+      // yang sudah SELESAI (pelanggan aktif)
+      var res = await supa.from('work_orders')
+        .select('*')
+        .in('tipe', ['INSTALASI', 'INSTALASI_RESELLER', 'PERLUASAN_RESELLER'])
+        .ilike('pelanggan', '%' + query + '%')
+        .order('created_at', { ascending: false })
+        .limit(8);
+
+      var data = res.data || [];
+
+      if(!data.length) {
+        dropdown.innerHTML = '<p class="text-xs text-slate-400 text-center py-3">Pelanggan tidak ditemukan</p>';
+        dropdown.classList.remove('hidden');
+        return;
+      }
+
+      // Hilangkan duplikat berdasarkan nama pelanggan. Jika riwayat terbaru
+      // belum memiliki No. Layanan, gunakan riwayat pelanggan berikutnya yang
+      // sudah memiliki no_layanan.
+      var seen = {};
+      var unique = [];
+      data.forEach(function(d) {
+        var key = (d.pelanggan || '').toLowerCase();
+        if(!seen[key]) {
+          seen[key] = d;
+          unique.push(d);
+        } else if(!seen[key].no_layanan && d.no_layanan) {
+          var index = unique.indexOf(seen[key]);
+          seen[key] = d;
+          if(index >= 0) unique[index] = d;
+        }
+      });
+
+      dropdown.innerHTML = unique.map(function(d, idx) {
+        var tipeBadge = {
+          INSTALASI: 'bg-blue-100 text-blue-700',
+          INSTALASI_RESELLER: 'bg-cyan-100 text-cyan-700',
+          PERLUASAN_RESELLER: 'bg-teal-100 text-teal-700'
+        }[d.tipe] || 'bg-slate-100 text-slate-600';
+        var tipeLabel = {
+          INSTALASI: 'Instalasi', INSTALASI_RESELLER: 'Reseller', PERLUASAN_RESELLER: 'Perluasan'
+        }[d.tipe] || d.tipe;
+        // Simpan data ke cache global lalu panggil dengan index
+        if(!window._pelangganSearchCache) window._pelangganSearchCache = {};
+        window._pelangganSearchCache[formType + '_' + idx] = d;
+        return '<button type="button" onclick="fillPelangganData(\'' + formType + '\',\'' + formType + '_' + idx + '\')" '
+          + 'class="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-all border-b border-slate-100 dark:border-slate-700 last:border-0">'
+          + '<div class="flex items-center gap-2">'
+            + '<span class="text-xs font-extrabold text-slate-800 dark:text-slate-100 flex-1 truncate">' + d.pelanggan + '</span>'
+            + '<span class="px-1.5 py-0.5 rounded text-[9px] font-extrabold ' + tipeBadge + ' shrink-0">' + tipeLabel + '</span>'
+          + '</div>'
+          + '<p class="text-[10px] text-slate-400 mt-0.5 truncate">'
+            + (d.alamat ? d.alamat.substring(0,50) : '-')
+          + '</p>'
+        + '</button>';
+      }).join('');
+      dropdown.classList.remove('hidden');
+
+    } catch(e) { console.warn('[SearchPelanggan]', e.message); }
+  }, 300);
+}
+
+function fillPelangganData(formType, cacheKey) {
+  // Ambil data dari cache global
+  var data = (window._pelangganSearchCache || {})[cacheKey];
+  if(!data) return;
+
+  // Tutup dropdown
+  var dropdown = document.getElementById('wo-search-dropdown-' + formType);
+  if(dropdown) dropdown.classList.add('hidden');
+
+  if(formType === 'maint') {
+    // Form Maintenance
+    var nameEl   = document.getElementById('wo-pelanggan-maint');
+    var alamatEl = document.getElementById('wo-alamat-maint');
+    var koordEl  = document.getElementById('wo-koordinat-maint');
+    var nohpEl   = document.getElementById('wo-nohp-maint');
+    var badge    = document.getElementById('wo-maint-source-badge');
+
+    if(nameEl)   nameEl.value   = data.pelanggan || '';
+    if(alamatEl) alamatEl.value = data.alamat    || '';
+    if(koordEl && data.koordinat)  koordEl.value = data.koordinat;
+    if(nohpEl  && data.no_hp)      nohpEl.value  = data.no_hp;
+    if(badge) badge.classList.remove('hidden');
+
+    // Highlight field yang terisi
+    [nameEl, alamatEl, koordEl, nohpEl].forEach(function(el) {
+      if(el && el.value) {
+        el.classList.add('border-emerald-400');
+        el.classList.remove('border-slate-200');
+        setTimeout(function(){ el.classList.remove('border-emerald-400'); el.classList.add('border-slate-200'); }, 2000);
+      }
+    });
+
+  } else if(formType === 'dis') {
+    // Form Dismantle
+    var nameEl   = document.getElementById('dis-nama-pelanggan');
+    var noLayananEl = document.getElementById('dis-no-layanan');
+    var alamatEl = document.getElementById('dis-alamat');
+    var koordEl  = document.getElementById('dis-koordinat');
+    var nohpEl   = document.getElementById('dis-no-telp');
+    var badge    = document.getElementById('wo-dis-source-badge');
+
+    if(nameEl)      nameEl.value      = data.pelanggan || '';
+    if(noLayananEl) noLayananEl.value = data.no_layanan || '';
+    if(alamatEl)    alamatEl.value    = data.alamat    || '';
+    if(koordEl && data.koordinat) koordEl.value  = data.koordinat;
+    if(nohpEl  && data.no_hp)     nohpEl.value   = data.no_hp;
+    if(badge) badge.classList.remove('hidden');
+
+    // Highlight field yang terisi
+    [nameEl, noLayananEl, alamatEl, koordEl, nohpEl].forEach(function(el) {
+      if(el && el.value) {
+        el.classList.add('border-emerald-400');
+        el.classList.remove('border-slate-200');
+        setTimeout(function(){ el.classList.remove('border-emerald-400'); el.classList.add('border-slate-200'); }, 2000);
+      }
+    });
+  }
+}
+
+function clearPelangganMaint() {
+  ['wo-pelanggan-maint','wo-alamat-maint','wo-koordinat-maint','wo-nohp-maint'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  var badge = document.getElementById('wo-maint-source-badge');
+  if(badge) badge.classList.add('hidden');
+}
+
+function clearPelangganDis() {
+  ['dis-nama-pelanggan','dis-no-layanan','dis-alamat','dis-koordinat','dis-no-telp'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
+  });
+  var badge = document.getElementById('wo-dis-source-badge');
+  if(badge) badge.classList.add('hidden');
+}
+
+// Tutup dropdown saat klik di luar
+ document.addEventListener('click', function(e) {
+  if(!e.target.closest('#wo-fields-maintenance') && !e.target.closest('#sub-adm-content-buat-dismantle') && !e.target.closest('#wo-fields-perluasan')) {
+    ['wo-search-dropdown-maint','wo-search-dropdown-dis','wo-search-dropdown-reseller-perluasan'].forEach(function(id){
+      var el = document.getElementById(id); if(el) el.classList.add('hidden');
+    });
+  }
+});

@@ -10,6 +10,11 @@ echo Buka browser dan ketik: http://localhost:8000
 echo.
 echo Tekan Ctrl+C untuk menghentikan server.
 echo.
-cd /d "%~dp0"
+cd /d "%~dp0Deploy netifly"
+if not exist "index.html" (
+    echo ERROR: index.html tidak ditemukan di folder Deploy netifly.
+    pause
+    exit /b 1
+)
 python -m http.server 8000
 pause

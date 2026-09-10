@@ -10,12 +10,17 @@ async function loadNOCPickup() {
   el.innerHTML = '<p class="text-xs text-slate-400 text-center py-6"><i class="fa-solid fa-spinner animate-spin mr-2"></i>Memuat...</p>';
   try {
     var res = await supa.from('work_orders')
-      .select('wo_id,pelanggan,tipe,status,alamat,kendala,created_at,tanggal,cs_name')
+      .select('*')
       .eq('status', 'RELEASE')
       .eq('tipe', 'MAINTENANCE')
       .order('created_at', { ascending: false });
+    if(res.error) throw res.error;
     console.log('[NOC Pickup] Query RELEASE+MAINTENANCE:', res.data);
-    var data = res.data || [];
+    // RELEASE baru tanpa noc_name = menunggu pickup NOC.
+    // RELEASE dengan noc_name = sudah dilepas NOC ke teknisi, jangan tampil di pickup NOC.
+    var data = (res.data || []).filter(function(t) {
+      return !t.noc_name || !String(t.noc_name).trim();
+    });
     if (!data.length) {
       el.innerHTML = '<p class="text-xs text-slate-400 text-center py-6"><i class="fa-solid fa-circle-check text-emerald-500 mr-2"></i>Tidak ada tiket masuk saat ini.</p>';
       return;
@@ -49,11 +54,17 @@ async function loadNOCPickup() {
 // ── PICKUP NOC TASK ───────────────────────────────────
 async function pickupNOCTask(woId, pelanggan, kendala) {
   const nocName = currentUser ? currentUser.displayName : '';
+  const pickupAt = new Date().toISOString();
   try {
-    var res = await supa.from('work_orders')
-      .update({ status: 'PICKUP', noc_name: nocName, teknisi: [nocName] })
-      .eq('wo_id', woId);
+    var pickupUpdate = { status: 'PICKUP', noc_name: nocName, teknisi: [nocName], picked_up_at: pickupAt };
+    var res = await supa.from('work_orders').update(pickupUpdate).eq('wo_id', woId);
+    if(res.error && /picked_up_at|column/i.test(res.error.message||'')) {
+      delete pickupUpdate.picked_up_at;
+      res = await supa.from('work_orders').update(pickupUpdate).eq('wo_id', woId);
+    }
     if (res.error) throw res.error;
+    var localPickup = Array.isArray(kpiWOData) ? kpiWOData.find(function(d){return d.id===woId;}) : null;
+    if(localPickup) localPickup.picked_up_at = pickupAt;
     console.log('[NOC] Pickup berhasil:', woId, 'oleh', nocName);
     showAlert('Tiket ' + woId + ' berhasil di-pickup!', 'Pickup NOC');
     loadNOCPickup();
@@ -77,7 +88,7 @@ async function loadNOCTasks() {
   try {
     console.log('[NOC] Query WO dengan status=NOC...');
     var res = await supa.from('work_orders')
-      .select('wo_id,pelanggan,tipe,status,alamat,kendala,created_at,tanggal,noc_name')
+      .select('*')
       .eq('status', 'PICKUP')
       .eq('tipe', 'MAINTENANCE')
       .order('created_at', { ascending: false });
@@ -145,6 +156,7 @@ async function loadFotoKendalaNOC(woId) {
       .select('key, label, photo_base64')
       .eq('wo_id', woId)
       .eq('step', 'kendala');
+    if(res.error) throw res.error;
     var data = res.data || [];
     if(!data.length) { el.innerHTML = '<p class="text-[10px] text-slate-400">Tidak ada media kendala dari CS.</p>'; return; }
     el.innerHTML = data.map(function(f) {
@@ -158,7 +170,7 @@ async function loadFotoKendalaNOC(woId) {
       } else {
         return '<div class="cam-cell">'
           + '<label>' + f.label + '</label>'
-          + '<img src="' + src + '" alt="' + f.label + '" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 cursor-pointer" onclick="window.open(this.src,\'_blank\')" style="aspect-ratio:1;min-height:90px;object-fit:cover;">'
+          + '<img src="' + src + '" alt="' + f.label + '" title="Klik untuk melihat detail foto" class="w-full rounded-xl border border-slate-200 dark:border-slate-600 cursor-zoom-in" onclick="openPhotoFullscreen(this.src)" style="aspect-ratio:1;min-height:90px;object-fit:cover;">'
           + '</div>';
       }
     }).join('');
@@ -186,18 +198,29 @@ async function submitWorkNOC() {
   var snKabel = '';
   var nocName = currentUser ? currentUser.displayName : '';
   var now     = new Date();
+  var completedAt = now.toISOString();
   var t4      = now.toTimeString().substring(0,5);
 
   try {
-    await supa.from('work_orders').update({
+    var updateNoc = {
       status: 'SELESAI',
       diagnosa: diagnosa,
       penanganan: penan,
       noc_name: nocName,
       t4: t4,
+      completed_at: completedAt,
       sn_ont:   snOnt   || null,
       sn_kabel: snKabel || null
-    }).eq('wo_id', woId);
+    };
+    var updateResult = await supa.from('work_orders').update(updateNoc).eq('wo_id', woId);
+    if(updateResult.error && /released_at|completed_at|column/i.test(updateResult.error.message||'')) {
+      delete updateNoc.completed_at;
+      updateResult = await supa.from('work_orders').update(updateNoc).eq('wo_id', woId);
+    }
+    if(updateResult.error) throw updateResult.error;
+
+    var localNoc = Array.isArray(kpiWOData) ? kpiWOData.find(function(d){return d.id===woId;}) : null;
+    if(localNoc){ localNoc.status='SELESAI'; localNoc.t4=t4; localNoc.completed_at=completedAt; }
 
     // Simpan foto NOC
     var fotoNOC = [{key:'nf1',label:'Foto 1'},{key:'nf2',label:'Foto 2'}];
@@ -230,13 +253,25 @@ async function nocReleaseToTeknisi() {
   if (!woId)  { showAlert('Tidak ada WO aktif.','Error'); return; }
   if (!diag)  { showAlert('Isi diagnosa terlebih dahulu sebelum release.','Validasi'); return; }
   var nocName = currentUser ? currentUser.displayName : '';
+  var releasedAt = new Date().toISOString();
   try {
-    await supa.from('work_orders').update({
+    var releaseData = {
       status: 'RELEASE',
       diagnosa: diag,
       penanganan: penan||null,
-      noc_name: nocName
-    }).eq('wo_id', woId);
+      noc_name: nocName,
+      released_at: releasedAt,
+      picked_up_at: null
+    };
+    var releaseResult = await supa.from('work_orders').update(releaseData).eq('wo_id', woId);
+    if(releaseResult.error && /released_at|completed_at|column/i.test(releaseResult.error.message||'')) {
+      delete releaseData.released_at;
+      delete releaseData.picked_up_at;
+      releaseResult = await supa.from('work_orders').update(releaseData).eq('wo_id', woId);
+    }
+    if(releaseResult.error) throw releaseResult.error;
+    var localRelease = Array.isArray(kpiWOData) ? kpiWOData.find(function(d){return d.id===woId;}) : null;
+    if(localRelease){ localRelease.status='RELEASE'; localRelease.released_at=releasedAt; localRelease.picked_up_at=null; localRelease.completed_at=null; localRelease.t4=null; }
     showAlert('WO ' + woId + ' dirilis ke teknisi. Akan muncul di Pickup Tugas.','Release ke Teknisi ✅');
     closeNOCForm();
     loadNOCTasks();
@@ -263,12 +298,11 @@ async function loadRiwayatNOC() {
   var nocName = currentUser ? currentUser.displayName : '';
   try {
     var res = await supa.from('work_orders')
-      .select('wo_id,pelanggan,tipe,status,diagnosa,penanganan,t4,created_at,tanggal')
+      .select('*')
       .eq('tipe','MAINTENANCE')
-      .not('diagnosa','is',null)
       .order('created_at',{ascending:false})
       .limit(50);
-    var data = (res.data||[]).filter(function(d){ return d.noc_name===nocName || !d.noc_name; });
+    var data = (res.data||[]).filter(function(d){ return d.diagnosa && (d.noc_name===nocName || !d.noc_name); });
     if(!data.length){ el.innerHTML='<p class="text-xs text-slate-400 text-center py-6">Belum ada riwayat.</p>'; return; }
     el.innerHTML = data.map(function(t){
       var stCls = t.status==='SELESAI' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700';
@@ -336,7 +370,16 @@ async function completeProvisioningNOC(id, woId) {
   try {
     var res = await supa.from('provisioning_requests').update({ status: 'DONE' }).eq('id', id);
     if(res.error) throw res.error;
-    await supa.from('work_orders').update({ status: 'SELESAI', verified: true }).eq('wo_id', woId);
+    var completedAt = new Date().toISOString();
+    var woUpdate = { status: 'SELESAI', verified: true, completed_at: completedAt };
+    var woResult = await supa.from('work_orders').update(woUpdate).eq('wo_id', woId);
+    if(woResult.error && /released_at|completed_at|column/i.test(woResult.error.message||'')) {
+      delete woUpdate.completed_at;
+      woResult = await supa.from('work_orders').update(woUpdate).eq('wo_id', woId);
+    }
+    if(woResult.error) throw woResult.error;
+    var localProvision = Array.isArray(kpiWOData) ? kpiWOData.find(function(d){return d.id===woId;}) : null;
+    if(localProvision){ localProvision.status='SELESAI'; localProvision.completed_at=completedAt; }
     showAlert('Provisioning WO ' + woId + ' berhasil diselesaikan!', 'Registrasi Selesai');
     loadProvisioningQueueNOC();
   } catch(e) {

@@ -18,6 +18,258 @@ body{font-family:"Plus Jakarta Sans",sans-serif;}
 .scan-line{animation:scan 2s infinite ease-in-out;position:absolute;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,#3b82f6,transparent);box-shadow:0 0 8px #3b82f6;}
 
 /* ================================================================
+   SPLASH SCREEN — LOGO S
+   ================================================================ */
+.sinu-splash{
+  position:fixed;
+  inset:0;
+  z-index:10000;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:12px;
+  overflow:hidden;
+  /* Tema terang (default) */
+  background:radial-gradient(circle at 50% 40%,#ffffff 0%,#f4f8fd 52%,#e9f1fb 100%);
+  opacity:1;
+  visibility:visible;
+  transition:opacity .6s ease,visibility 0s linear .6s;
+}
+/* Tema gelap — latar navy seperti intro */
+.sinu-splash.is-dark{
+  background:radial-gradient(circle at 50% 34%,#1E4A70 0%,#0E2C46 46%,#081826 100%);
+}
+/* Beam cahaya diagonal seperti referensi dark mode */
+.sinu-splash::before{
+  content:"";
+  position:absolute;
+  z-index:0;
+  top:24%;
+  left:calc(50% + clamp(56px,8vw,76px));
+  width:clamp(58px,11vw,88px);
+  height:70vh;
+  pointer-events:none;
+  opacity:0;
+  transform:rotate(14deg);
+  transform-origin:center;
+  background:linear-gradient(90deg,rgba(171,211,241,.04),rgba(199,224,246,.28) 50%,rgba(126,176,215,.08));
+  filter:blur(.5px);
+  mix-blend-mode:screen;
+}
+.sinu-splash.is-dark::before{display:none;opacity:0;}
+/* Beam cahaya dibuat statis agar tidak meninggalkan jejak antar-frame. */
+.sinu-splash.is-leaving{
+  opacity:0;
+  visibility:hidden;
+  pointer-events:none;
+}
+/* Partikel ambient halus (tampil di tema gelap) */
+.sinu-splash-ambient{
+  position:absolute;
+  inset:0;
+  pointer-events:none;
+  opacity:0;
+  background-image:
+    radial-gradient(1.5px 1.5px at 20% 30%,rgba(255,255,255,.14),transparent 60%),
+    radial-gradient(1px 1px at 75% 22%,rgba(255,255,255,.10),transparent 60%),
+    radial-gradient(1.5px 1.5px at 65% 72%,rgba(255,255,255,.09),transparent 60%),
+    radial-gradient(1px 1px at 30% 78%,rgba(255,255,255,.11),transparent 60%),
+    radial-gradient(1px 1px at 85% 60%,rgba(255,255,255,.08),transparent 60%);
+}
+.sinu-splash.is-dark .sinu-splash-ambient{opacity:.7;}
+.sinu-splash-stage{
+  position:relative;
+  z-index:1;
+  width:min(52vw,180px);
+  height:min(62vw,215px);
+  display:grid;
+  place-items:center;
+  isolation:isolate;
+}
+.sinu-splash-glow{
+  position:absolute;
+  z-index:1;
+  width:60%;
+  height:60%;
+  border-radius:50%;
+  background:rgba(59,130,246,.16);
+  filter:blur(26px);
+  opacity:0;
+}
+.sinu-splash.play .sinu-splash-glow{
+  animation:sinuSplashGlow 2.4s ease-in-out .4s infinite;
+}
+.sinu-splash.is-dark .sinu-splash-glow{
+  width:92%;
+  height:78%;
+  background:rgba(70,148,218,.3);
+  filter:blur(34px);
+}
+.sinu-splash-logo{
+  position:relative;
+  z-index:2;
+  width:100%;
+  height:100%;
+  object-fit:contain;
+  /* Wave reveal: logo tumbuh dari tengah ke atas & bawah */
+  transform:scaleY(0);
+  transform-origin:50% 50%;
+  filter:drop-shadow(0 12px 22px rgba(37,99,235,.18));
+}
+.sinu-splash.is-dark .sinu-splash-logo{
+  filter:drop-shadow(0 12px 26px rgba(8,24,38,.55));
+}
+.sinu-splash.play .sinu-splash-logo{
+  animation:sinuSplashReveal 1.55s cubic-bezier(.16,1,.3,1) .15s forwards;
+}
+/* Glint sweep melintas di atas logo saat terbentuk */
+.sinu-splash-sweep{
+  position:absolute;
+  z-index:3;
+  top:-20%;
+  left:-40%;
+  width:45%;
+  height:140%;
+  pointer-events:none;
+  background:linear-gradient(100deg,transparent 0%,rgba(255,255,255,.55) 50%,transparent 100%);
+  transform:translateX(-160%) rotate(14deg);
+  opacity:0;
+  mix-blend-mode:screen;
+}
+.sinu-splash.play .sinu-splash-sweep{
+  animation:sinuSplashSweep 1.05s cubic-bezier(.3,.65,.2,1) 1.7s forwards;
+}
+/* Bayangan persegi dimatikan khusus dark mode; mode terang tetap memakai sweep. */
+.sinu-splash.is-dark .sinu-splash-sweep{display:none;}
+/* Garis aksen */
+.sinu-splash-line{
+  width:0;
+  height:1px;
+  margin:4px auto 2px;
+  opacity:0;
+  background:linear-gradient(90deg,transparent,rgba(37,99,235,.7),transparent);
+}
+.sinu-splash.is-dark .sinu-splash-line{
+  position:relative;
+  z-index:2;
+  background:linear-gradient(90deg,transparent,rgba(160,196,232,.9),transparent);
+}
+.sinu-splash.play .sinu-splash-line{
+  animation:sinuSplashLine .65s cubic-bezier(.16,1,.3,1) 1.95s forwards;
+}
+.sinu-splash-wordmark{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  color:#1e4e6b;
+  text-align:center;
+  text-transform:uppercase;
+  letter-spacing:1.7px;
+  line-height:1.1;
+  opacity:0;
+  visibility:hidden;
+  filter:blur(4px);
+}
+.sinu-splash.is-dark .sinu-splash-wordmark{color:#cfe0f3;}
+/* Wordmark dibuka eksplisit oleh splash.js setelah logo selesai terbentuk */
+.sinu-splash.wordmark-ready .sinu-splash-wordmark{
+  visibility:visible;
+  animation:sinuSplashWordmark .9s cubic-bezier(.16,1,.3,1) forwards;
+}
+.sinu-splash-wordmark strong{font-size:12px;font-weight:900;}
+.sinu-splash-wordmark span{font-size:9.5px;font-weight:800;letter-spacing:1.35px;}
+/* Lockup logo + wordmark (login & header) */
+.sinu-brand-lockup{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  min-width:0;
+}
+.sinu-brand-lockup-login{justify-content:center;}
+.sinu-brand-icon{
+  width:42px;
+  height:42px;
+  object-fit:contain;
+  flex:0 0 auto;
+}
+.sinu-brand-icon-login{width:58px;height:58px;}
+.sinu-wordmark{
+  display:flex;
+  flex-direction:column;
+  gap:1px;
+  color:#1e4e6b;
+  font-size:7.5px;
+  font-weight:800;
+  line-height:1.15;
+  letter-spacing:.35px;
+  text-align:left;
+  text-transform:uppercase;
+  white-space:nowrap;
+}
+.sinu-wordmark strong{font-weight:900;}
+.dark .sinu-wordmark{color:#bfdbfe;}
+@keyframes sinuSplashReveal{
+  0%{transform:scaleY(0);}
+  100%{transform:scaleY(1);}
+}
+@keyframes sinuSplashSweep{
+  0%{transform:translateX(-160%) rotate(14deg);opacity:0;}
+  12%{opacity:.6;}
+  55%{opacity:.45;}
+  100%{transform:translateX(360%) rotate(14deg);opacity:0;}
+}
+@keyframes sinuSplashBeam{
+  0%{opacity:0;transform:translate3d(22px,-18px,0) rotate(14deg);}
+  24%{opacity:.78;transform:translate3d(0,0,0) rotate(14deg);}
+  100%{opacity:.72;transform:translate3d(0,0,0) rotate(14deg);}
+}
+@keyframes sinuSplashLine{
+  0%{width:0;opacity:0;}
+  30%{opacity:1;}
+  100%{width:132px;opacity:1;}
+}
+@keyframes sinuSplashWordmark{
+  0%{opacity:0;letter-spacing:.5em;filter:blur(4px);transform:translateY(4px);}
+  100%{opacity:1;letter-spacing:.14em;filter:blur(0);transform:translateY(0);}
+}
+@keyframes sinuSplashGlow{
+  0%,100%{opacity:.35;transform:scale(.82);}
+  50%{opacity:.7;transform:scale(1.12);}
+}
+/* Animasi splash tetap aktif; wordmark tetap dikunci oleh class wordmark-ready. */
+@media (max-width:420px){
+  .sinu-wordmark{font-size:6.5px;letter-spacing:.2px;}
+  .sinu-brand-icon{width:36px;height:36px;}
+  .sinu-splash-wordmark strong{font-size:11px;}
+  .sinu-splash-wordmark span{font-size:8.5px;}
+}
+
+/* ================================================================
+   DARK MODE — FORM READABILITY
+   ================================================================ */
+.dark label.text-slate-500,
+.dark .cam-cell label{
+  color:#cbd5e1;
+}
+.dark input:not([type="file"]):not([type="checkbox"]):not([type="radio"]),
+.dark select,
+.dark textarea{
+  color:#f8fafc;
+}
+.dark input::placeholder,
+.dark textarea::placeholder,
+.dark select:invalid{
+  color:#cbd5e1;
+  opacity:1;
+}
+.dark select option{
+  background:#1e293b;
+  color:#f8fafc;
+}
+
+/* ================================================================
    MAIN NAV TABS
    ================================================================ */
 .tab-btn{transition:all .2s;}
@@ -106,13 +358,12 @@ body{font-family:"Plus Jakarta Sans",sans-serif;}
 .dark .cam-box{background:#1e293b;border-color:#475569;}
 .cam-box:hover{border-color:#3b82f6;background:#eff6ff;}
 .dark .cam-box:hover{background:#172554;}
-.cam-box img{width:100%;height:100%;object-fit:cover;display:block;}
+.cam-box img{width:100%;height:100%;object-fit:cover;display:none;}
 .cam-box .cam-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:3px;color:#94a3b8;}
 .cam-box .cam-ph i{font-size:18px;}
 .cam-box .cam-ph span{font-size:9px;font-weight:700;}
 .cam-box.has-photo .cam-ph{display:none;}
 .cam-box.has-photo img{display:block;}
-.cam-box img{display:none;}
 
 /* ================================================================
    CAMERA ABSENSI

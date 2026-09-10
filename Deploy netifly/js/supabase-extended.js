@@ -26,7 +26,7 @@ async function renderPickupListFromDB() {
     console.log('[Pickup] Query WO dengan status RELEASE...');
     const { data, error } = await supa
       .from('work_orders')
-      .select('wo_id, pelanggan, tipe, alamat, status, noc_name')
+      .select('*')
       .eq('status', 'RELEASE')
       .order('created_at', {ascending: false});
 
@@ -35,8 +35,9 @@ async function renderPickupListFromDB() {
 
     // Filter: MAINTENANCE yang belum diproses NOC (noc_name kosong) tidak masuk pickup teknisi
     // MAINTENANCE yang sudah di-release dari NOC (noc_name ada) → boleh masuk
+    const hasNocColumn = (data||[]).some(d => Object.prototype.hasOwnProperty.call(d, 'noc_name'));
     const dbTickets = (data||[])
-      .filter(d => d.tipe !== 'MAINTENANCE' || (d.tipe === 'MAINTENANCE' && d.noc_name))
+      .filter(d => d.tipe !== 'MAINTENANCE' || !hasNocColumn || d.noc_name)
       .map(d => ({
         woId: d.wo_id, customer: d.pelanggan,
         tipe: d.tipe, alamat: d.alamat||''
@@ -185,19 +186,38 @@ async function loadApprovalList() {
       container.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada request pickup yang menunggu.</p>';
       return;
     }
-    container.innerHTML = data.map(r => `
+    container.innerHTML = data.map((r,index) => {
+      const isKabel = r.jenis && r.jenis.toLowerCase().includes('kabel');
+      const meterInfo = isKabel && r.meter_dari != null && r.meter_sampai != null
+        ? `<div class="mt-1.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-700 rounded-xl px-2.5 py-1.5 flex items-center gap-2">
+            <i class="fa-solid fa-ruler text-amber-500 text-[10px]"></i>
+            <span class="text-[11px] font-bold text-amber-700 dark:text-amber-300">
+              Meter ${r.meter_dari}m → ${r.meter_sampai}m
+              <span class="ml-1 px-1.5 py-0.5 bg-amber-200 dark:bg-amber-800 rounded-md text-[10px]">
+                ${r.meter_sampai - r.meter_dari}m diambil
+              </span>
+            </span>
+           </div>`
+        : '';
+      const batchLabel = r.batch_id ? `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Batch</span>` : '';
+      const isFirstBatchItem = !!r.batch_id && data.findIndex(item => item.batch_id === r.batch_id) === index;
+      const batchActions = isFirstBatchItem ? `<button type="button" onclick="handleAdminBatchApproval('${r.batch_id}',true)" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md">Approve Batch</button><button type="button" onclick="handleAdminBatchApproval('${r.batch_id}',false)" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl">Reject Batch</button>` : '';
+      return `
       <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <p class="text-xs font-black text-slate-900 dark:text-white">Request: Pickup ${r.sn}${r.jenis?' ('+r.jenis+')':''}</p>
-          <p class="text-[11px] text-slate-500 dark:text-slate-400">Diminta oleh: <span class="font-bold text-blue-600">${r.teknisi_name}</span> • ${new Date(r.created_at).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+        <div class="flex-1 min-w-0">
+          <p class="text-xs font-black text-slate-900 dark:text-white">${batchLabel} Request: Pickup ${r.sn}${r.jenis?' <span class="font-normal text-slate-500">('+r.jenis+')</span>':''}</p>
+          <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">Diminta oleh: <span class="font-bold text-blue-600">${r.teknisi_name}</span> • ${new Date(r.created_at).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'})}</p>
+          ${meterInfo}
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          ${batchActions}
           <button type="button" onclick="handleAdminApproval('${r.id}','${r.sn}','${r.jenis||''}','${r.teknisi_name}',false)"
             class="px-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 text-xs font-bold rounded-xl transition-all">Reject</button>
           <button type="button" onclick="handleAdminApproval('${r.id}','${r.sn}','${r.jenis||''}','${r.teknisi_name}',true)"
             class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md">Approve</button>
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   } catch(e) {
     container.innerHTML = '<p class="text-xs text-slate-400 text-center py-4">Gagal memuat data.</p>';
   }
@@ -265,20 +285,25 @@ async function loadAbsensiPointFromDB() {
 }
 
 // ── AGREGASI POINT SEMUA KARYAWAN ─────────────────────────────────────
-async function loadAllAbsensiPoints(bulan, tahun) {
+async function loadAllAbsensiPoints(bulan, tahun, requestId) {
+  const isCurrentRequest = () => requestId === undefined || typeof kpiPeriodRequest === 'undefined' || requestId === kpiPeriodRequest;
+  if(requestId === undefined) absensiPoints = {};
   if(typeof supa === 'undefined') return;
+  bulan=Number(bulan);tahun=Number(tahun);
   try {
     const { data, error } = await supa.from('absensi').select('nama, point, status_kehadiran, tanggal');
+    if(!isCurrentRequest()) return;
+    absensiPoints = {};
     if(error || !data) return;
     const bulanIniData = data.filter(d => {
       if(!d.tanggal) return false;
-      const tgl = new Date(d.tanggal);
-      return tgl.getMonth() === bulan && tgl.getFullYear() === tahun;
+      const [year,month] = String(d.tanggal).substring(0,10).split('-').map(Number);
+      return month-1 === bulan && year === tahun;
     });
     const grouped = {};
     bulanIniData.forEach(d => {
       if(!grouped[d.nama]) grouped[d.nama] = {total:0, count:0, allTepat:true};
-      grouped[d.nama].total += (d.point||0);
+      grouped[d.nama].total += Number(d.point)||0;
       grouped[d.nama].count++;
       if(d.status_kehadiran !== 'TEPAT WAKTU') grouped[d.nama].allTepat = false;
     });
@@ -437,12 +462,16 @@ async function loadDaftarAkun() {
   const roleBadge = {
     supervisor: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
     admin:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+    cs:         'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+    finance:    'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
     noc:        'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
     teknisi:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
   };
   const roleLabel = {
     supervisor: 'Supervisor',
-    admin:      'Admin/CS/Finance',
+    admin:      'Admin/CS',
+    cs:         'Admin/CS',
+    finance:    'Finance',
     noc:        'NOC Engineer',
     teknisi:    'Teknisi Field'
   };
@@ -470,7 +499,7 @@ async function loadDaftarAkun() {
           </div>
         </td>
         <td class="py-3 px-4 text-center">
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${roleBadge[a.role]||'bg-slate-100 text-slate-600'}">${roleLabel[a.role]||a.role}</span>
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${roleBadge[(a.role || '').toLowerCase()]||'bg-slate-100 text-slate-600'}">${roleLabel[(a.role || '').toLowerCase()]||a.role||'-'}</span>
         </td>
         <td class="py-3 px-4 text-slate-500 dark:text-slate-400">${a.division||'-'}</td>
         <td class="py-3 px-4 text-center">
@@ -522,6 +551,16 @@ function bukaEditAkun(username, displayName, role, division) {
   document.getElementById('edit-akun-password').value = '';
   document.getElementById('edit-akun-role').value = role || 'teknisi';
   document.getElementById('edit-akun-division').value = division || '';
+
+  // Owner boleh mengganti username akun lain; role lain tetap terkunci.
+  const isOwner = currentUser && String(currentUser.role||'').toLowerCase() === 'owner';
+  const ownerWrap = document.getElementById('edit-akun-username-owner-wrap');
+  const readonlyWrap = document.getElementById('edit-akun-username-readonly');
+  const ownerInput = document.getElementById('edit-akun-username-input');
+  if(ownerWrap) ownerWrap.classList.toggle('hidden', !isOwner);
+  if(readonlyWrap) readonlyWrap.classList.toggle('hidden', isOwner);
+  if(ownerInput) ownerInput.value = username;
+
   modal.classList.remove('hidden');
 }
 
@@ -539,8 +578,17 @@ async function simpanEditAkun(e) {
   const role         = document.getElementById('edit-akun-role').value;
   const division     = document.getElementById('edit-akun-division').value.trim();
 
+  const isOwner = currentUser && String(currentUser.role||'').toLowerCase() === 'owner';
+  const usernameBaru = isOwner
+    ? (document.getElementById('edit-akun-username-input').value.trim().toLowerCase())
+    : usernameAsal;
+
   if(!nama || !role) {
     showAlert('Nama dan Role tidak boleh kosong.', 'Form Tidak Lengkap');
+    return;
+  }
+  if(isOwner && !usernameBaru) {
+    showAlert('Username tidak boleh kosong.', 'Form Tidak Lengkap');
     return;
   }
 
@@ -553,8 +601,31 @@ async function simpanEditAkun(e) {
   if(password) update.password = password; // hanya update password kalau diisi
 
   try {
+    // Owner mengganti username: pastikan username baru belum dipakai akun lain.
+    if(isOwner && usernameBaru !== usernameAsal.toLowerCase()) {
+      const { data: bentrok } = await supa.from('akun')
+        .select('username').ilike('username', usernameBaru).maybeSingle();
+      if(bentrok) {
+        showAlert(`Username "${usernameBaru}" sudah dipakai akun lain.`, 'Username Duplikat');
+        btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Simpan';
+        return;
+      }
+      update.username = usernameBaru;
+    }
+
     const { error } = await supa.from('akun').update(update).eq('username', usernameAsal);
     if(error) throw error;
+
+    // Jika owner mengganti data akunnya sendiri, sinkronkan sesi aktif.
+    if(currentUser && currentUser.username === usernameAsal) {
+      currentUser.displayName = nama;
+      currentUser.role = String(role||'').toLowerCase();
+      currentUser.division = division || role;
+      currentUser.avatar = avatar;
+      if(update.username) currentUser.username = update.username;
+      sinuSavePersistentSession(currentUser);
+    }
+
     showAlert(`Akun "${usernameAsal}" berhasil diperbarui!`, 'Akun Diperbarui ✅');
     tutupEditAkun();
     loadDaftarAkun();
@@ -645,9 +716,9 @@ async function restoreMyPickedTasks() {
 
   try {
     // Query semua WO berstatus PICKUP lalu filter di client
-    const { data, error } = await supa
+    let { data, error } = await supa
       .from('work_orders')
-      .select('wo_id, pelanggan, tipe, teknisi, alamat, koordinat')
+      .select('*')
       .eq('status', 'PICKUP');
 
     if(error) { console.warn('[Restore] Query error:', error.message); return; }
@@ -655,18 +726,20 @@ async function restoreMyPickedTasks() {
 
     // Filter yang milik teknisi ini
     const milik = data.filter(d => {
-      if(!d.teknisi) return false;
-      const arr = Array.isArray(d.teknisi) ? d.teknisi : [d.teknisi];
-      return arr.some(t => typeof t === 'string' &&
-        t.toLowerCase() === nama.toLowerCase());
+      const legacy = Array.isArray(d.teknisi) ? d.teknisi : [];
+      const owner = d.teknisi_1 || legacy[0];
+      return owner && owner.toLowerCase() === nama.toLowerCase();
     });
 
     if(!milik.length) return;
 
     myPickedTasks = milik.map(d => ({
       woId: d.wo_id, customer: d.pelanggan,
-      tipe: d.tipe, alamat: d.alamat||'',
-      koordinat: d.koordinat||null
+      tipe: d.tipe, teknisi1: d.teknisi_1 || (Array.isArray(d.teknisi) ? d.teknisi[0] : nama),
+      teknisi2: d.teknisi_2 || (Array.isArray(d.teknisi) ? d.teknisi[1] || '' : ''), alamat: d.alamat||'',
+      koordinat: d.koordinat||null,
+      noLayanan: d.no_layanan||null,
+      rlRadiusDone: d.rl_radius_done||false
     }));
     if(typeof renderMyTaskList === 'function') renderMyTaskList();
     if(typeof renderReturnSelect === 'function') renderReturnSelect();
@@ -678,30 +751,81 @@ async function restoreMyPickedTasks() {
 }
 
 // ── SUPABASE REALTIME ─────────────────────────────────────────────────
-// Auto-update data tanpa perlu refresh manual
+// Auto-update data tanpa perlu refresh manual.
+
+// Cek apakah sebuah elemen benar-benar terlihat (bukan hanya cek class hidden
+// pada satu container). offsetParent === null berarti elemen/parent-nya hidden.
+function _sinuIsVisible(el) {
+  return !!(el && el.offsetParent !== null);
+}
+
+// Jalankan loader HANYA jika menu/section terkait sedang terlihat.
+// Ini membuat menu aktif ter-refresh otomatis tanpa harus pindah tab.
+function _sinuRefreshIfVisible(containerId, fnName) {
+  const el = document.getElementById(containerId);
+  if(_sinuIsVisible(el) && typeof window[fnName] === 'function') {
+    try { window[fnName](); } catch(e) { console.warn('[Realtime] refresh', fnName, e.message); }
+  }
+}
+
+// Refresh seluruh menu yang mungkin bergantung pada work_orders.
+function _sinuRefreshWorkOrderViews() {
+  if(typeof renderPickupListFromDB === 'function') renderPickupListFromDB(); // pickup tugas teknisi
+  if(typeof loadWOSummaryDashboard === 'function') loadWOSummaryDashboard();
+  if(typeof refreshAdminTicketList === 'function') refreshAdminTicketList();  // list tiket admin
+  // Log tugas berada langsung di section-logtugas (tanpa sub-view wrapper).
+  const ltEl = document.getElementById('section-logtugas');
+  if(ltEl && !ltEl.classList.contains('hidden') && typeof loadLogTugas === 'function') loadLogTugas();
+  if(typeof renderRiwayatTugas === 'function') renderRiwayatTugas(); // riwayat tugas teknisi
+  // NOC
+  _sinuRefreshIfVisible('sub-content-pickup-noc', 'loadNOCPickup');
+  _sinuRefreshIfVisible('sub-content-tugas-noc', 'loadNOCTasks');
+  // RL Radius & registrasi admin
+  _sinuRefreshIfVisible('sub-adm-content-rl-radius', 'loadRLRadiusList');
+  _sinuRefreshIfVisible('sub-adm-content-registrasi', 'loadProvisioningQueue');
+}
+
 function initRealtimeListeners() {
   if(typeof supa === 'undefined') return;
 
-  // Channel: work_orders berubah → update pickup list + summary
+  // Channel: work_orders berubah → refresh semua view terkait yang aktif
   supa.channel('realtime-wo')
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'work_orders'
-    }, () => {
-      if(typeof renderPickupListFromDB === 'function') renderPickupListFromDB();
-      if(typeof loadWOSummaryDashboard === 'function') loadWOSummaryDashboard();
-      const ltEl = document.getElementById('sub-logtugas-log-wo');
-      if(ltEl && !ltEl.classList.contains('hidden') && typeof loadLogTugas === 'function') loadLogTugas();
-      if(typeof refreshAdminTicketList === 'function') refreshAdminTicketList();
-    })
+    }, () => { _sinuRefreshWorkOrderViews(); })
     .subscribe();
 
-  // Channel: provisioning_requests → admin
+  // Channel: provisioning_requests → admin & NOC
   supa.channel('realtime-provisioning')
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'provisioning_requests'
     }, () => {
-      const regEl = document.getElementById('sub-adm-content-registrasi');
-      if(regEl && !regEl.classList.contains('hidden') && typeof loadProvisioningQueue === 'function') loadProvisioningQueue();
+      _sinuRefreshIfVisible('sub-adm-content-registrasi', 'loadProvisioningQueue');
+      _sinuRefreshIfVisible('sub-content-registrasi-noc', 'loadProvisioningQueueNOC');
+    })
+    .subscribe();
+
+  // Channel: tiket_dismantle berubah → refresh pickup/tugas dismantle + list admin
+  supa.channel('realtime-dismantle')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'tiket_dismantle'
+    }, () => {
+      _sinuRefreshIfVisible('sub-content-pickup-dismantle', 'loadPickupDismantle');
+      _sinuRefreshIfVisible('sub-content-tugas-dismantle', 'loadTugasDismantle');
+      _sinuRefreshIfVisible('sub-content-checking-dismantle', 'loadCheckingDismantle');
+      // Admin: list tiket dismantle aktif + list tiket dismantle
+      if(typeof loadTiketDismantleAdmin === 'function' && _sinuIsVisible(document.getElementById('tiket-dismantle-admin-list'))) loadTiketDismantleAdmin();
+      _sinuRefreshIfVisible('sub-adm-content-list-tiket-dismantle', 'loadListTiketDismantle');
+    })
+    .subscribe();
+
+  // Channel: dismantle_items berubah → refresh checking NOC + list item admin
+  supa.channel('realtime-dismantle-items')
+    .on('postgres_changes', {
+      event: '*', schema: 'public', table: 'dismantle_items'
+    }, () => {
+      _sinuRefreshIfVisible('sub-content-checking-dismantle', 'loadCheckingDismantle');
+      _sinuRefreshIfVisible('sub-adm-content-dismantle-items', 'loadDismantleItems');
     })
     .subscribe();
 
@@ -710,15 +834,8 @@ function initRealtimeListeners() {
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'pickup_requests'
     }, (payload) => {
-      // Sisi teknisi: refresh waiting list
-      const waitEl = document.getElementById('sub-mat-content-waiting-approval');
-      if(waitEl && !waitEl.classList.contains('hidden') && typeof loadWaitingApproval === 'function') {
-        loadWaitingApproval();
-      }
-      // Sisi admin: refresh approval list
-      const approvalEl = document.getElementById('approval-pickup-content');
-      if(approvalEl && typeof loadApprovalList === 'function') loadApprovalList();
-      // Toast ke admin saat ada request baru
+      if(typeof loadWaitingApproval === 'function') loadWaitingApproval();
+      if(typeof loadApprovalList === 'function') loadApprovalList();
       if(payload.eventType === 'INSERT' && currentUser && currentUser.role === 'admin') {
         const r = payload.new;
         if(typeof showToast === 'function')
@@ -732,33 +849,29 @@ function initRealtimeListeners() {
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'material_requests'
     }, (payload) => {
-      // Sisi admin: refresh material requests + toast notif request baru
-      const matEl = document.getElementById('material-requests-content');
-      if(matEl && typeof loadMaterialRequests === 'function') loadMaterialRequests();
+      if(typeof loadMaterialRequests === 'function') loadMaterialRequests();
       if(payload.eventType === 'INSERT' && currentUser && currentUser.role === 'admin') {
         const r = payload.new;
         const typeLabel = r.type === 'SEND' ? '🔄 Request Send' : '↩️ Request Return';
         if(typeof showToast === 'function')
           showToast(typeLabel+' Masuk', `${r.dari_teknisi}: SN ${r.sn}`, 'info', 6000);
       }
-      // Sisi teknisi: update status via polling (sudah ditangani _pollMaterialRequest)
     })
     .subscribe();
 
-  // Channel: perangkat berubah → refresh list perangkat admin
+  // Channel: perangkat berubah → refresh list perangkat + rekap kabel + tracking
   supa.channel('realtime-perangkat')
     .on('postgres_changes', {
       event: '*', schema: 'public', table: 'perangkat'
     }, () => {
-      if(typeof loadAndRenderListPerangkat === 'function') {
-        const el = document.getElementById('admin-list-perangkat-tbody');
-        if(el) loadAndRenderListPerangkat();
-      }
+      if(typeof loadAndRenderListPerangkat === 'function' && _sinuIsVisible(document.getElementById('admin-list-perangkat-tbody'))) loadAndRenderListPerangkat();
+      if(typeof loadRekapKabel === 'function') loadRekapKabel();
+      if(typeof loadLogPerangkat === 'function' && _sinuIsVisible(document.getElementById('logperangkat-table-body'))) loadLogPerangkat();
+      if(typeof loadListPerangkatSaya === 'function') loadListPerangkatSaya();
     })
     .subscribe();
 
-  // Aktifkan realtime untuk tabel-tabel ini di Supabase
-  console.log('[Realtime] Listeners aktif — 5 channels');
+  console.log('[Realtime] Listeners aktif — 7 channels');
 }
 
 // Panggil realtime saat app siap
@@ -780,14 +893,22 @@ function restoreActiveWork() {
       sessionStorage.removeItem('sinu_active_work');
       return;
     }
-    // Buka kembali form yang sedang dikerjakan
+    // Buka kembali form yang sedang dikerjakan pada view Tugas Saya.
+    // Ini mencegah form terlihat di parent/sub-view yang salah setelah refresh.
+    if(typeof switchMainTab === 'function') {
+      const tugasSection = document.getElementById('section-tugas');
+      if(tugasSection && tugasSection.classList.contains('hidden')) switchMainTab('tugas');
+    }
+    if(typeof switchSubTugas === 'function') switchSubTugas('tugas-saya');
+
     activeWoId = woId;
     document.getElementById('view-tugas-saya-list').classList.add('hidden');
-    if(type === 'INSTALASI' || type === 'GANGGUAN') {
+    if(type === 'INSTALASI' || type === 'INSTALASI_RESELLER' || type === 'GANGGUAN') {
       const el = document.getElementById('form-work-instalasi');
       if(el) {
-        document.getElementById('instalasi-wo-info').innerText = 'WO: '+woId+' — '+customer;
         el.classList.remove('hidden');
+        if(typeof fillInfoBoxTeknisi === 'function') fillInfoBoxTeknisi(woId, customer);
+        if(typeof loadTeknisiTeamFields === 'function') loadTeknisiTeamFields(woId, 'instalasi');
         if(typeof goToInstalasiStep1 === 'function') goToInstalasiStep1();
         setTimeout(restoreCamPhotos, 200);
       }
@@ -833,43 +954,125 @@ async function checkSNExists(val) {
 }
 
 // ── HANDLE ADMIN APPROVAL PICKUP MATERIAL ────────────────────────────
-async function handleAdminApproval(requestId, sn, jenis, teknisiName, approve) {
-  const newStatus = approve ? 'APPROVED' : 'REJECTED';
-
-  try {
-    const { error } = await supa
-      .from('pickup_requests')
-      .update({ status: newStatus })
-      .eq('id', requestId);
+async function handleAdminBatchApproval(batchId, approve){
+  if(!batchId){ showAlert('Batch tidak ditemukan.','Error'); return; }
+  try{
+    const {data,error}=await supa.from('pickup_requests').select('id,sn,jenis,teknisi_name')
+      .eq('batch_id',batchId).eq('status','WAITING').order('created_at',{ascending:true});
     if(error) throw error;
-
-    if(approve) {
-      // Ambil data jenis, merk, kondisi, panjang dari tabel perangkat
-      const { data: pData } = await supa.from('perangkat').select('jenis,merk,kondisi,panjang_awal,panjang_sisa').eq('sn', sn).maybeSingle();
-      const jenisFinal  = pData?.jenis    || jenis  || '-';
-      const kondisiFinal= pData?.kondisi  || 'Baru';
-      const isKabel     = jenisFinal.toLowerCase().includes('kabel');
-      const panjangAwal = pData?.panjang_awal || null;
-      const panjangSisa = pData?.panjang_sisa || null;
-
-      // Cek dulu apakah sudah ada di perangkat_teknisi
-      const { data: existing } = await supa.from('perangkat_teknisi')
-        .select('id').eq('sn', sn).eq('teknisi_name', teknisiName).maybeSingle();
-      if(!existing) {
-        const row = { sn, jenis: jenisFinal, teknisi_name: teknisiName, status: 'READY', kondisi: kondisiFinal };
-        if(isKabel) { row.panjang_awal = panjangAwal; row.panjang_sisa = panjangSisa; }
-        await supa.from('perangkat_teknisi').insert(row);
-      }
-      await supa.from('perangkat').update({ status: teknisiName, lokasi: teknisiName }).eq('sn', sn);
-      // Catat history perpindahan
-      const ket = isKabel && panjangSisa ? `Pickup oleh ${teknisiName} (${panjangSisa}m)` : `Pickup oleh ${teknisiName}`;
-      await catatHistory(sn, 'Gudang', teknisiName, 'PICKUP', ket);
-      const msg = isKabel && panjangSisa ? `SN "${sn}" disetujui untuk ${teknisiName}.\nPanjang: ${panjangSisa}m` : `SN "${sn}" disetujui untuk ${teknisiName}.\nPerangkat siap diambil.`;
-      showAlert(msg, 'Approved');
-    } else {
-      showAlert(`Request SN "${sn}" dari ${teknisiName} ditolak.`, 'Rejected ❌');
+    if(!data?.length){ showAlert('Tidak ada request pickup yang masih menunggu pada batch ini.','Info'); return; }
+    for(const row of data){
+      await handleAdminApproval(row.id,row.sn,row.jenis||'',row.teknisi_name,approve);
     }
-    loadApprovalList();
+    showAlert(data.length+' request pickup berhasil '+(approve?'di-approve':'ditolak')+'.','Batch Selesai');
+    await loadApprovalList();
+  }catch(err){ showAlert('Gagal memproses batch pickup: '+(err.message||''),'Error'); }
+}
+
+async function handleAdminApproval(requestId, sn, jenis, teknisiName, approve) {
+  try {
+    const { data: reqData, error: reqError } = await supa.from('pickup_requests')
+      .select('status,meter_dari,meter_sampai')
+      .eq('id', requestId).maybeSingle();
+    if(reqError) throw reqError;
+    if(!reqData) throw new Error('Request pickup tidak ditemukan.');
+    if(reqData.status !== 'WAITING') {
+      showAlert(`Request SN "${sn}" sudah diproses sebelumnya (${reqData.status}).`, 'Info');
+      await loadApprovalList();
+      return;
+    }
+
+    if(!approve) {
+      const { error: rejectError } = await supa.from('pickup_requests')
+        .update({ status: 'REJECTED' }).eq('id', requestId);
+      if(rejectError) throw rejectError;
+      showAlert(`Request SN "${sn}" dari ${teknisiName} ditolak.`, 'Rejected ❌');
+      await loadApprovalList();
+      return;
+    }
+
+    const meterDari = reqData.meter_dari != null ? Number(reqData.meter_dari) : null;
+    const meterSampai = reqData.meter_sampai != null ? Number(reqData.meter_sampai) : null;
+    const panjangDiambil = meterDari != null && meterSampai != null
+      ? meterSampai - meterDari : null;
+    if(panjangDiambil != null && (!Number.isFinite(panjangDiambil) || panjangDiambil <= 0)) {
+      throw new Error('Rentang meter pickup tidak valid.');
+    }
+
+    const { data: pData, error: pError } = await supa.from('perangkat')
+      .select('jenis,merk,kondisi,panjang_awal,panjang_sisa,status,lokasi')
+      .eq('sn', sn).maybeSingle();
+    if(pError) throw pError;
+    if(!pData) throw new Error('SN perangkat tidak ditemukan: '+sn);
+
+    const jenisFinal = pData.jenis || jenis || '-';
+    const kondisiFinal = pData.kondisi || 'Baru';
+    const isKabel = jenisFinal.toLowerCase().includes('kabel');
+    const panjangAwal = pData.panjang_awal != null ? Number(pData.panjang_awal) : null;
+    const stokGudang = pData.panjang_sisa != null ? Number(pData.panjang_sisa) : panjangAwal;
+    if(isKabel && panjangDiambil != null && panjangDiambil > stokGudang) {
+      throw new Error(`Pickup ${panjangDiambil}m melebihi stok gudang ${stokGudang}m untuk ${sn}.`);
+    }
+
+    const { data: existing, error: existingError } = await supa.from('perangkat_teknisi')
+      .select('id,panjang_awal,panjang_sisa')
+      .eq('sn', sn).eq('teknisi_name', teknisiName).maybeSingle();
+    if(existingError) throw existingError;
+
+    const alokasiBaru = isKabel && panjangDiambil != null ? panjangDiambil : (isKabel ? stokGudang : null);
+    if(existing) {
+      if(isKabel && alokasiBaru != null) {
+        const panjangAwalTeknisi = Number(existing.panjang_awal || 0) + alokasiBaru;
+        const panjangSisaTeknisi = Number(existing.panjang_sisa || 0) + alokasiBaru;
+        const { error: mergeError } = await supa.from('perangkat_teknisi')
+          .update({ panjang_awal: panjangAwalTeknisi, panjang_sisa: panjangSisaTeknisi })
+          .eq('id', existing.id);
+        if(mergeError) throw mergeError;
+      }
+    } else {
+      const row = { sn, jenis: jenisFinal, teknisi_name: teknisiName, status: 'READY', kondisi: kondisiFinal };
+      if(isKabel && alokasiBaru != null) {
+        row.panjang_awal = alokasiBaru;
+        row.panjang_sisa = alokasiBaru;
+      }
+      const { error: insertError } = await supa.from('perangkat_teknisi').insert(row);
+      if(insertError) throw insertError;
+    }
+
+    if(isKabel) {
+      const sisaGudangBaru = panjangDiambil != null ? stokGudang - panjangDiambil : 0;
+      const globalUpdate = sisaGudangBaru > 0
+        ? { status:'Gudang', lokasi:'Gudang Utama', panjang_sisa:sisaGudangBaru }
+        : { status:teknisiName, lokasi:teknisiName, panjang_sisa:0 };
+      const { error: updateError } = await supa.from('perangkat')
+        .update(globalUpdate).eq('sn', sn);
+      if(updateError) throw updateError;
+    } else {
+      const { error: updateError } = await supa.from('perangkat')
+        .update({ status:teknisiName, lokasi:teknisiName }).eq('sn', sn);
+      if(updateError) throw updateError;
+    }
+
+    const ket = isKabel && panjangDiambil != null
+      ? `Pickup oleh ${teknisiName} — meter ${meterDari}m→${meterSampai}m (${panjangDiambil}m)`
+      : `Pickup oleh ${teknisiName}`;
+    await catatHistory(sn, 'Gudang', teknisiName, 'PICKUP', ket);
+
+    // Status request diubah paling akhir agar kegagalan insert/update tidak
+    // membuat request terlihat selesai padahal stok belum berhasil diproses.
+    const { error: statusError } = await supa.from('pickup_requests')
+      .update({ status: 'APPROVED' }).eq('id', requestId).eq('status', 'WAITING');
+    if(statusError) throw statusError;
+
+    let msg = `SN "${sn}" disetujui untuk ${teknisiName}.`;
+    if(isKabel && panjangDiambil != null) {
+      msg += `\nKabel diambil: ${panjangDiambil}m (meter ${meterDari}→${meterSampai})`;
+      msg += `\nSisa di gudang: ${stokGudang - panjangDiambil}m`;
+    } else {
+      msg += '\nPerangkat siap diambil.';
+    }
+    showAlert(msg, 'Approved ✅');
+    await loadApprovalList();
   } catch(err) {
     showAlert('Gagal update approval: ' + (err.message || ''), 'Error');
   }
@@ -905,14 +1108,14 @@ async function loadSNDropdowns() {
     }
 
     if(selKabel) {
-      const kabels = items.filter(isKabel);
+      const kabels = items.filter(i => isKabel(i) && Number(i.panjang_sisa || 0) > 0);
       selKabel.innerHTML = '<option value="" disabled selected>-- Pilih SN Kabel --</option>' +
         (kabels.length
           ? kabels.map(p => {
-              const sisa = (p.panjang_sisa != null) ? ` — ${p.panjang_sisa}m sisa` : '';
+              const sisa = ` — ${p.panjang_sisa}m sisa`;
               return `<option value="${p.sn}">${p.sn}${p.jenis?' ('+p.jenis+')':''}${sisa}</option>`;
             }).join('')
-          : '<option disabled>Belum ada Kabel yang di-approve</option>');
+          : '<option disabled>Belum ada Kabel dengan sisa stok</option>');
     }
 
   } catch(e) {
@@ -944,7 +1147,34 @@ async function loadAndRenderListPerangkat() {
   try {
     const { data, error } = await supa.from('perangkat').select('*').order('created_at', {ascending: false});
     if(error) throw error;
-    _allPerangkatData = data || [];
+
+    // Hitung saldo total roll dari pemakaian WO. Field perangkat.panjang_sisa
+    // hanya stok gudang, sehingga tidak boleh dipakai sebagai saldo total kabel.
+    const kabelSns = (data || [])
+      .filter(p => p.jenis && p.jenis.toLowerCase().includes('kabel') && p.sn)
+      .map(p => p.sn);
+    const pemakaianMap = {};
+    if(kabelSns.length) {
+      const { data: woKabel, error: woError } = await supa.from('work_orders')
+        .select('sn_kabel, panjang_kabel')
+        .in('sn_kabel', kabelSns);
+      if(!woError) {
+        (woKabel || []).forEach(wo => {
+          pemakaianMap[wo.sn_kabel] = (pemakaianMap[wo.sn_kabel] || 0) + (Number(wo.panjang_kabel) || 0);
+        });
+      }
+    }
+
+    _allPerangkatData = (data || []).map(p => {
+      const isKabel = p.jenis && p.jenis.toLowerCase().includes('kabel');
+      if(!isKabel || p.panjang_awal == null) return p;
+      const panjangAwal = Number(p.panjang_awal) || 0;
+      const totalTerpakai = pemakaianMap[p.sn] || 0;
+      return {
+        ...p,
+        _saldoKabelRekap: Math.max(0, panjangAwal - totalTerpakai)
+      };
+    });
     renderPerangkatTable(_allPerangkatData, kondisiColor, lokasiColor);
   } catch(e) {
     tbody.innerHTML = '<tr><td colspan="5" class="text-center py-4 text-rose-500 text-xs">Gagal load data.</td></tr>';
@@ -965,6 +1195,11 @@ function renderPerangkatTable(data, kondisiColor, lokasiColor) {
     const lokasi = p.lokasi || p.status || 'Gudang';
     const isPelanggan = lokasi.startsWith('Pelanggan:');
     const namaPlg = lokasi.replace('Pelanggan:','').trim();
+    const isKabel = p.jenis && p.jenis.toLowerCase().includes('kabel');
+    const panjangAwal = Number(p.panjang_awal) || 0;
+    const panjangSisa = isKabel && p._saldoKabelRekap != null
+      ? Number(p._saldoKabelRekap)
+      : (p.panjang_sisa != null ? Number(p.panjang_sisa) : null);
     const lokasiCell = isPelanggan
       ? `<div class="flex flex-col gap-0.5">
            <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 w-fit">Terpasang</span>
@@ -974,8 +1209,16 @@ function renderPerangkatTable(data, kondisiColor, lokasiColor) {
     return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all">
       <td class="py-3 px-4 font-bold font-mono text-slate-900 dark:text-white text-xs">${p.sn}</td>
       <td class="py-3 px-3 text-xs font-semibold text-slate-700 dark:text-slate-200">${p.merk||'-'}</td>
-      <td class="py-3 px-3 text-xs">${p.jenis||'-'}${p.panjang_sisa != null ? `<br><span class="text-[10px] font-bold ${p.panjang_sisa <= 0 ? 'text-rose-500' : p.panjang_sisa < (p.panjang_awal||0)*0.2 ? 'text-amber-500' : 'text-emerald-600'}">${p.panjang_sisa}m sisa${p.panjang_awal ? ' / '+p.panjang_awal+'m' : ''}</span>` : ''}</td>
-      <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${kCls}">${p.kondisi||'-'}</span></td>
+      <td class="py-3 px-3 text-xs">${p.jenis||'-'}${isKabel && panjangSisa != null ? `<br><span class="text-[10px] font-bold ${panjangSisa <= 0 ? 'text-rose-500' : panjangSisa < panjangAwal*0.2 ? 'text-amber-500' : 'text-emerald-600'}">${panjangSisa}m sisa${panjangAwal ? ' / '+panjangAwal+'m' : ''}</span>` : ''}</td>
+      <td class="py-3 px-3 text-center">
+        <div class="flex items-center justify-center gap-1">
+          <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${kCls}">${p.kondisi||'-'}</span>
+          <button type="button" onclick="editKondisiPerangkat('${p.sn}','${p.kondisi||'Baru'}')" title="Edit kondisi"
+            class="p-1 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all">
+            <i class="fa-solid fa-pen text-[9px]"></i>
+          </button>
+        </div>
+      </td>
       <td class="py-3 px-3">${lokasiCell}</td>
     </tr>`;
   }).join('');
@@ -1021,7 +1264,7 @@ async function loadMaterialRequests() {
       return;
     }
 
-    container.innerHTML = data.map(r => {
+    container.innerHTML = data.map((r,index) => {
       const isSend = r.type === 'SEND';
       const tgl = new Date(r.created_at).toLocaleString('id-ID', {day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
       const typeBadge = isSend
@@ -1030,13 +1273,17 @@ async function loadMaterialRequests() {
       const desc = isSend
         ? `${r.sn} → ${r.ke_teknisi}`
         : `${r.sn} → Gudang (${r.alasan||'-'})`;
+      const batchLabel = r.batch_id ? '<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300">Batch</span>' : '';
+      const isFirstBatchItem = !!r.batch_id && data.findIndex(item => item.batch_id === r.batch_id) === index;
+      const batchActions = isFirstBatchItem ? `<button onclick="approveMaterialBatch('${r.batch_id}',true)" class="px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-md">Approve Batch</button><button onclick="approveMaterialBatch('${r.batch_id}',false)" class="px-3 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-bold rounded-xl">Reject Batch</button>` : '';
       return `
       <div class="p-4 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div class="space-y-1">
-          <div class="flex items-center gap-2">${typeBadge}<span class="text-xs font-black text-slate-900 dark:text-white">${desc}</span></div>
+          <div class="flex items-center gap-2">${typeBadge}${batchLabel}<span class="text-xs font-black text-slate-900 dark:text-white">${desc}</span></div>
           <p class="text-[11px] text-slate-500">Dari: <span class="font-bold text-blue-600">${r.dari_teknisi}</span> • ${tgl}</p>
         </div>
         <div class="flex items-center gap-2 shrink-0">
+          ${batchActions}
           <button onclick="approveMaterialRequest('${r.id}','${r.type}','${r.sn}','${r.dari_teknisi}','${r.ke_teknisi||''}',false)"
             class="px-3 py-2 bg-rose-100 hover:bg-rose-200 text-rose-600 text-xs font-bold rounded-xl transition-all">Reject</button>
           <button onclick="approveMaterialRequest('${r.id}','${r.type}','${r.sn}','${r.dari_teknisi}','${r.ke_teknisi||''}',true)"
@@ -1050,57 +1297,126 @@ async function loadMaterialRequests() {
 }
 
 // Approve/Reject Send & Return
+async function approveMaterialBatch(batchId,approve){
+  if(!batchId){ showAlert('Batch tidak ditemukan.','Error'); return; }
+  try{
+    const {data,error}=await supa.from('material_requests').select('id,type,sn,dari_teknisi,ke_teknisi')
+      .eq('batch_id',batchId).eq('status','WAITING').order('created_at',{ascending:true});
+    if(error) throw error;
+    if(!data?.length){ showAlert('Tidak ada request material yang masih menunggu pada batch ini.','Info'); return; }
+    for(const row of data){
+      await approveMaterialRequest(row.id,row.type,row.sn,row.dari_teknisi,row.ke_teknisi||'',approve);
+    }
+    showAlert(data.length+' request material berhasil '+(approve?'di-approve':'ditolak')+'.','Batch Selesai');
+    await loadMaterialRequests();
+  }catch(err){ showAlert('Gagal memproses batch material: '+(err.message||''),'Error'); }
+}
+
 async function approveMaterialRequest(id, type, sn, dari, ke, approve) {
   try {
-    const { error } = await supa.from('material_requests')
-      .update({ status: approve ? 'APPROVED' : 'REJECTED' })
-      .eq('id', id);
-    if(error) throw error;
-
-    if(approve) {
-      if(type === 'RETURN') {
-        // Ambil panjang sisa dari perangkat_teknisi sebelum delete
-        const { data: ptReturn } = await supa.from('perangkat_teknisi')
-          .select('panjang_sisa, panjang_awal, jenis').eq('sn', sn).eq('teknisi_name', dari).maybeSingle();
-        const isKabelReturn = ptReturn?.jenis?.toLowerCase().includes('kabel');
-        // Update tabel perangkat dengan sisa terkini
-        const updateRet = { status: 'Gudang', lokasi: 'Gudang Utama' };
-        if(isKabelReturn && ptReturn?.panjang_sisa != null) {
-          updateRet.panjang_sisa = ptReturn.panjang_sisa;
-        }
-        await supa.from('perangkat').update(updateRet).eq('sn', sn);
-        await supa.from('perangkat_teknisi').delete().eq('sn', sn).eq('teknisi_name', dari);
-        const retKet = isKabelReturn && ptReturn?.panjang_sisa != null
-          ? `Return oleh ${dari} — sisa ${ptReturn.panjang_sisa}m`
-          : `Return oleh ${dari}`;
-        await catatHistory(sn, dari, 'Gudang', 'RETURN', retKet);
-        showAlert(`SN "${sn}" berhasil di-return ke Gudang.${isKabelReturn && ptReturn?.panjang_sisa != null ? '\nSisa kabel: '+ptReturn.panjang_sisa+'m' : ''}`, 'Return Berhasil');
-      } else if(type === 'SEND') {
-        const { data: ptData } = await supa.from('perangkat_teknisi')
-          .select('jenis,kondisi,panjang_awal,panjang_sisa').eq('sn', sn).eq('teknisi_name', dari).maybeSingle();
-        const isKabelSend = ptData?.jenis?.toLowerCase().includes('kabel');
-        await supa.from('perangkat').update({ status: ke, lokasi: ke }).eq('sn', sn);
-        await supa.from('perangkat_teknisi').delete().eq('sn', sn).eq('teknisi_name', dari);
-        const newRow = {
-          sn, teknisi_name: ke, status: 'READY',
-          kondisi: ptData?.kondisi || 'Baru',
-          jenis: ptData?.jenis || '-'
-        };
-        if(isKabelSend) {
-          newRow.panjang_awal = ptData?.panjang_awal || null;
-          newRow.panjang_sisa = ptData?.panjang_sisa || null;
-        }
-        await supa.from('perangkat_teknisi').upsert(newRow);
-        const sendKet = isKabelSend && ptData?.panjang_sisa != null
-          ? `Send dari ${dari} ke ${ke} — sisa ${ptData.panjang_sisa}m`
-          : `Send dari ${dari} ke ${ke}`;
-        await catatHistory(sn, dari, ke, 'SEND', sendKet);
-        showAlert(`SN "${sn}" berhasil dipindahkan ke ${ke}.${isKabelSend && ptData?.panjang_sisa != null ? '\nSisa kabel: '+ptData.panjang_sisa+'m' : ''}`, 'Send Berhasil');
-      }
-    } else {
-      showAlert(`Request ${type} SN "${sn}" dari ${dari} ditolak.`, 'Ditolak');
+    const { data: request, error: requestError } = await supa.from('material_requests')
+      .select('status').eq('id', id).maybeSingle();
+    if(requestError) throw requestError;
+    if(!request) throw new Error('Request material tidak ditemukan.');
+    if(request.status !== 'WAITING') {
+      showAlert(`Request ${type} SN "${sn}" sudah diproses sebelumnya (${request.status}).`, 'Info');
+      await loadMaterialRequests();
+      return;
     }
-    loadMaterialRequests();
+
+    if(!approve) {
+      const { error: rejectError } = await supa.from('material_requests')
+        .update({ status:'REJECTED' }).eq('id', id).eq('status', 'WAITING');
+      if(rejectError) throw rejectError;
+      showAlert(`Request ${type} SN "${sn}" dari ${dari} ditolak.`, 'Ditolak');
+      await loadMaterialRequests();
+      return;
+    }
+
+    if(type === 'RETURN') {
+      const { data: ptReturn, error: ptError } = await supa.from('perangkat_teknisi')
+        .select('panjang_sisa, panjang_awal, jenis')
+        .eq('sn', sn).eq('teknisi_name', dari).eq('status','READY').maybeSingle();
+      if(ptError) throw ptError;
+      if(!ptReturn) throw new Error('Alokasi perangkat teknisi tidak ditemukan untuk '+sn+'.');
+
+      const isKabelReturn = ptReturn.jenis?.toLowerCase().includes('kabel');
+      const { data: globalData, error: globalError } = await supa.from('perangkat')
+        .select('panjang_sisa').eq('sn', sn).maybeSingle();
+      if(globalError) throw globalError;
+      if(!globalData) throw new Error('Perangkat global tidak ditemukan untuk '+sn+'.');
+
+      // Stok gudang tidak boleh ditimpa oleh sisa teknisi. Sisa alokasi
+      // dikembalikan dan dijumlahkan dengan stok gudang yang sudah ada.
+      const updateRet = { status:'Gudang', lokasi:'Gudang Utama' };
+      if(isKabelReturn) {
+        const stokGudang = Number(globalData.panjang_sisa || 0);
+        const sisaTeknisi = Number(ptReturn.panjang_sisa || 0);
+        updateRet.panjang_sisa = stokGudang + sisaTeknisi;
+      }
+      const { error: updateError } = await supa.from('perangkat')
+        .update(updateRet).eq('sn', sn);
+      if(updateError) throw updateError;
+
+      const { error: deleteError } = await supa.from('perangkat_teknisi')
+        .delete().eq('sn', sn).eq('teknisi_name', dari);
+      if(deleteError) throw deleteError;
+
+      const retSisa = isKabelReturn ? Number(globalData.panjang_sisa || 0) + Number(ptReturn.panjang_sisa || 0) : null;
+      const retKet = isKabelReturn
+        ? `Return oleh ${dari} — sisa dikembalikan ${ptReturn.panjang_sisa || 0}m, total gudang ${retSisa}m`
+        : `Return oleh ${dari}`;
+      await catatHistory(sn, dari, 'Gudang', 'RETURN', retKet);
+      showAlert(`SN "${sn}" berhasil di-return ke Gudang.${isKabelReturn ? '\nTotal stok kabel: '+retSisa+'m' : ''}`, 'Return Berhasil');
+    } else if(type === 'SEND') {
+      const { data: ptData, error: ptError } = await supa.from('perangkat_teknisi')
+        .select('jenis,kondisi,panjang_awal,panjang_sisa')
+        .eq('sn', sn).eq('teknisi_name', dari).eq('status','READY').maybeSingle();
+      if(ptError) throw ptError;
+      if(!ptData) throw new Error('Alokasi perangkat teknisi tidak ditemukan untuk '+sn+'.');
+      const isKabelSend = ptData.jenis?.toLowerCase().includes('kabel');
+
+      const { data: globalData, error: globalError } = await supa.from('perangkat')
+        .select('panjang_sisa').eq('sn', sn).maybeSingle();
+      if(globalError) throw globalError;
+      if(!globalData) throw new Error('Perangkat global tidak ditemukan untuk '+sn+'.');
+
+      const globalUpdate = isKabelSend && Number(globalData.panjang_sisa || 0) > 0
+        ? { status:'Gudang', lokasi:'Gudang Utama' }
+        : { status:ke, lokasi:ke };
+      const { error: globalUpdateError } = await supa.from('perangkat')
+        .update(globalUpdate).eq('sn', sn);
+      if(globalUpdateError) throw globalUpdateError;
+
+      const { error: deleteError } = await supa.from('perangkat_teknisi')
+        .delete().eq('sn', sn).eq('teknisi_name', dari);
+      if(deleteError) throw deleteError;
+
+      const newRow = {
+        sn, teknisi_name:ke, status:'READY',
+        kondisi:ptData.kondisi || 'Baru', jenis:ptData.jenis || '-'
+      };
+      if(isKabelSend) {
+        newRow.panjang_awal = ptData.panjang_awal || null;
+        newRow.panjang_sisa = ptData.panjang_sisa || null;
+      }
+      const { error: upsertError } = await supa.from('perangkat_teknisi').upsert(newRow);
+      if(upsertError) throw upsertError;
+
+      const sendKet = isKabelSend && ptData.panjang_sisa != null
+        ? `Send dari ${dari} ke ${ke} — sisa ${ptData.panjang_sisa}m`
+        : `Send dari ${dari} ke ${ke}`;
+      await catatHistory(sn, dari, ke, 'SEND', sendKet);
+      showAlert(`SN "${sn}" berhasil dipindahkan ke ${ke}.${isKabelSend && ptData.panjang_sisa != null ? '\nSisa alokasi: '+ptData.panjang_sisa+'m' : ''}`, 'Send Berhasil');
+    } else {
+      throw new Error('Tipe request material tidak dikenal: '+type);
+    }
+
+    // Tandai selesai hanya setelah seluruh perubahan stok/alokasi berhasil.
+    const { error: statusError } = await supa.from('material_requests')
+      .update({ status:'APPROVED' }).eq('id', id).eq('status', 'WAITING');
+    if(statusError) throw statusError;
+    await loadMaterialRequests();
   } catch(err) {
     showAlert('Gagal: ' + (err.message || ''), 'Error');
   }
@@ -1132,10 +1448,33 @@ async function loadLogPerangkat() {
       .order('created_at', {ascending: false});
     if(error) throw error;
 
-    // Ambil juga data perangkat untuk jenis
-    const { data: perangkats } = await supa.from('perangkat').select('sn, jenis, merk, kondisi, status, lokasi');
+    // Ambil juga data perangkat untuk jenis dan saldo kabel.
+    const { data: perangkats, error: perangkatError } = await supa.from('perangkat')
+      .select('sn, jenis, merk, kondisi, status, lokasi, panjang_awal, panjang_sisa');
+    if(perangkatError) throw perangkatError;
     const pMap = {};
     (perangkats||[]).forEach(p => pMap[p.sn] = p);
+
+    // Kabel parsial dapat tercatat pernah dipasang, tetapi roll-nya masih
+    // memiliki saldo. Hitung saldo total dari pemakaian WO, bukan status global.
+    const kabelSns = (perangkats||[])
+      .filter(p => p.jenis && p.jenis.toLowerCase().includes('kabel') && p.sn)
+      .map(p => p.sn);
+    if(kabelSns.length) {
+      const { data: woKabel, error: woError } = await supa.from('work_orders')
+        .select('sn_kabel, panjang_kabel')
+        .in('sn_kabel', kabelSns);
+      if(woError) throw woError;
+      const pemakaianMap = {};
+      (woKabel||[]).forEach(wo => {
+        pemakaianMap[wo.sn_kabel] = (pemakaianMap[wo.sn_kabel] || 0) + (Number(wo.panjang_kabel) || 0);
+      });
+      kabelSns.forEach(sn => {
+        const p = pMap[sn];
+        const panjangAwal = Number(p?.panjang_awal) || 0;
+        p._saldoKabelRekap = Math.max(0, panjangAwal - (pemakaianMap[sn] || 0));
+      });
+    }
 
     // Group by SN — ambil event terbaru per SN
     const snMap = {};
@@ -1182,28 +1521,33 @@ async function loadLogPerangkat() {
       const tgl = new Date(r.created_at).toLocaleDateString('id-ID',{day:'numeric',month:'short',year:'numeric'});
       const jam = new Date(r.created_at).toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
       const aCls = aksiColor[r.aksi] || 'bg-slate-100 text-slate-600';
-      const lokNow = p.lokasi || p.status || r.ke;
-      const lokDisplay = lokNow.startsWith('Pelanggan:') 
-        ? `<span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">Terpasang — ${lokNow.replace('Pelanggan:','').trim()}</span>`
-        : lokNow;
-      const lokCls = (lokNow==='Gudang'||lokNow==='Gudang Utama')
+      const rawLokNow = p.lokasi || p.status || r.ke;
+      const isKabel = p.jenis && p.jenis.toLowerCase().includes('kabel');
+      const saldoKabel = isKabel && p._saldoKabelRekap != null ? Number(p._saldoKabelRekap) : null;
+      const adaSaldoKabel = saldoKabel != null && saldoKabel > 0;
+      const lokNow = rawLokNow;
+      const lokDisplay = adaSaldoKabel
+        ? `<div class="flex flex-col gap-0.5">
+             <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 w-fit">Kabel parsial — sisa ${saldoKabel}m</span>
+             <span class="text-[10px] text-slate-500 dark:text-slate-400">Riwayat terakhir: ${rawLokNow}</span>
+           </div>`
+        : lokNow.startsWith('Pelanggan:')
+          ? `<span class="text-[10px] text-emerald-700 dark:text-emerald-400 font-bold">Terpasang — ${lokNow.replace('Pelanggan:','').trim()}</span>`
+          : lokNow;
+      const lokCls = adaSaldoKabel
         ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-        : lokNow==='Terpasang'||lokNow.startsWith('Pelanggan:')
-        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
-        : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
+        : (lokNow==='Gudang'||lokNow==='Gudang Utama')
+          ? 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
+          : lokNow==='Terpasang'||lokNow.startsWith('Pelanggan:')
+          ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+          : 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300';
       return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all">
         <td class="py-3 px-3 font-extrabold font-mono text-xs text-slate-900 dark:text-white">${r.sn}</td>
         <td class="py-3 px-3 text-xs text-slate-600 dark:text-slate-300">${p.jenis||'-'}${p.merk?' ('+p.merk+')':''}</td>
         <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${aCls}">${r.aksi}</span></td>
         <td class="py-3 px-3 text-xs text-slate-500">${r.dari||'Gudang'} → ${r.ke}</td>
         <td class="py-3 px-3">
-          ${lokNow.startsWith('Pelanggan:')
-            ? `<div class="flex flex-col gap-0.5">
-                <span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 w-fit">Terpasang</span>
-                <span class="text-[10px] text-slate-500 dark:text-slate-400 pl-0.5">${lokNow.replace('Pelanggan:','').trim()}</span>
-               </div>`
-            : `<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${lokCls}">${lokNow}</span>`
-          }
+          ${lokDisplay}
         </td>
         <td class="py-3 px-3 text-center">
           <button onclick="showDeviceHistory('${r.sn}')"
@@ -1220,12 +1564,17 @@ async function loadLogPerangkat() {
       atl.innerHTML = rows.map(r => {
         const p = pMap[r.sn] || {};
         const tgl = new Date(r.created_at).toLocaleString('id-ID',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'});
-        const lokNow = p.lokasi || p.status || r.ke;
+        const rawLokNow = p.lokasi || p.status || r.ke;
+        const isKabel = p.jenis && p.jenis.toLowerCase().includes('kabel');
+        const saldoKabel = isKabel && p._saldoKabelRekap != null ? Number(p._saldoKabelRekap) : null;
+        const lokText = saldoKabel != null && saldoKabel > 0
+          ? `Kabel parsial — sisa ${saldoKabel}m (riwayat: ${rawLokNow})`
+          : rawLokNow;
         return `
         <div class="p-3.5 bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600 flex items-center justify-between">
           <div class="space-y-0.5">
             <p class="text-xs font-extrabold text-blue-600 dark:text-blue-400 font-mono">${r.sn}</p>
-            <p class="text-[11px] text-slate-500">${p.jenis||'-'}${p.merk?' ('+p.merk+')':''} • ${lokNow} • ${tgl}</p>
+            <p class="text-[11px] text-slate-500">${p.jenis||'-'}${p.merk?' ('+p.merk+')':''} • ${lokText} • ${tgl}</p>
           </div>
           <button onclick="showDeviceHistory('${r.sn}')" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-bold flex items-center gap-1">
             <i class="fa-solid fa-timeline"></i>Timeline
@@ -1309,7 +1658,7 @@ async function loadRekapKabel() {
   try {
     const { data: woData, error: woErr } = await supa
       .from('work_orders')
-      .select('wo_id, pelanggan, tipe, sn_kabel, panjang_kabel, teknisi, created_at, tanggal, status')
+      .select('*')
       .not('sn_kabel', 'is', null)
       .gt('panjang_kabel', 0)
       .order('created_at', { ascending: false });
@@ -1334,7 +1683,7 @@ async function loadRekapKabel() {
     (woData||[]).forEach(wo => {
       const sn = wo.sn_kabel;
       if(!rekapMap[sn]) rekapMap[sn] = { sn, total: 0, lastDate: '', pemakaian: [] };
-      rekapMap[sn].total += (wo.panjang_kabel || 0);
+      rekapMap[sn].total += Number(wo.panjang_kabel) || 0;
       const tgl = wo.tanggal || (wo.created_at ? wo.created_at.substring(0,10) : '');
       if(tgl > rekapMap[sn].lastDate) rekapMap[sn].lastDate = tgl;
       rekapMap[sn].pemakaian.push({
@@ -1351,14 +1700,21 @@ async function loadRekapKabel() {
     // Sort: paling baru dipakai di atas
     const rows = Object.values(rekapMap).sort((a,b) => b.lastDate.localeCompare(a.lastDate));
 
-    targets.forEach(el => el.innerHTML = rows.map((r, idx) => {
+    targets.forEach(el => {
+      // Prefix ID unik per panel agar toggle tidak bentrok antara Admin dan Supervisor.
+      const scope = el.id === 'rekap-kabel-list-spv' ? 'spv' : 'admin';
+      el.innerHTML = rows.map((r, idx) => {
       const p = perangkatMap[r.sn] || {};
-      const panjangAwal = p.panjang_awal || 0;
-      const panjangSisa = p.panjang_sisa != null ? p.panjang_sisa : Math.max(0, panjangAwal - r.total);
+      const panjangAwal = Number(p.panjang_awal) || 0;
+      const totalTerpakai = Number(r.total) || 0;
+      // perangkat.panjang_sisa adalah stok gudang, bukan saldo seluruh roll.
+      // Pickup hanya memindahkan sebagian kabel ke teknisi; yang mengurangi
+      // saldo total adalah kabel yang tercatat terpakai pada work order.
+      const panjangSisa = Math.max(0, panjangAwal - totalTerpakai);
       const pct = panjangAwal > 0 ? Math.max(0, Math.round((panjangSisa / panjangAwal) * 100)) : 0;
       const barColor = pct <= 10 ? 'bg-rose-500' : pct <= 30 ? 'bg-amber-400' : 'bg-emerald-500';
       const sisaColor = pct <= 10 ? 'text-rose-600' : pct <= 30 ? 'text-amber-600' : 'text-emerald-600';
-      const detailId = 'kabel-detail-' + idx;
+      const detailId = 'kabel-detail-' + scope + '-' + idx;
 
       // Sort pemakaian: terbaru di atas
       const sortedPemakaian = r.pemakaian.sort((a,b) => b.tanggal.localeCompare(a.tanggal));
@@ -1431,7 +1787,8 @@ async function loadRekapKabel() {
           </div>
         </div>
       </div>`;
-    }).join(''));
+    }).join('');
+    });
 
   } catch(e) {
     targets.forEach(el => el.innerHTML = `<p class="text-xs text-rose-500 text-center py-4">Gagal memuat rekap: ${e.message}</p>`);
@@ -1445,4 +1802,22 @@ function toggleRekapKabel(detailId, headerEl) {
   const isHidden = detail.classList.contains('hidden');
   detail.classList.toggle('hidden', !isHidden);
   if(icon) icon.style.transform = isHidden ? 'rotate(180deg)' : '';
+}
+
+// ── EDIT KONDISI PERANGKAT ────────────────────────────────────────────
+async function editKondisiPerangkat(sn, kondisiSaat) {
+  var pilihan = ['Baru', 'Dismantle', 'Rusak', 'Bekas Pakai'];
+  var opsi = pilihan.map(function(k,i){ return (i+1)+'. '+k; }).join('\n');
+  var input = prompt('Ubah kondisi SN "'+sn+'"\nKondisi saat ini: '+kondisiSaat+'\n\nPilihan:\n'+opsi+'\n\nKetik nama kondisi baru:');
+  if(!input) return;
+  var kondisiBaru = input.trim();
+  if(!pilihan.includes(kondisiBaru)) { showAlert('Kondisi tidak valid. Pilih: Baru, Dismantle, Rusak, atau Bekas Pakai.', 'Validasi'); return; }
+  try {
+    var res = await supa.from('perangkat').update({ kondisi: kondisiBaru }).eq('sn', sn);
+    if(res.error) throw res.error;
+    showAlert('Kondisi SN "'+sn+'" berhasil diubah ke "'+kondisiBaru+'".', 'Update Berhasil');
+    loadAndRenderListPerangkat();
+  } catch(e) {
+    showAlert('Gagal update: ' + e.message, 'Error');
+  }
 }

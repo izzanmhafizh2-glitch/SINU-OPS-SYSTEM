@@ -1,18 +1,62 @@
 // ===================== DASHBOARD =====================
+let dashboardAttendanceMine={tepat:0,terlambat:0,sakit:0,cuti:0,alpa:0,loaded:false,error:false};
+let dashboardAttendanceRequest=0;
+
 function setDefaultFilterPeriod(){
   const now=new Date(),ms=document.getElementById('recapMonthSelect'),ys=document.getElementById('recapYearSelect');
   if(ms)ms.value=now.getMonth().toString();
   if(ys){const yr=now.getFullYear().toString();let f=false;for(let i=0;i<ys.options.length;i++)if(ys.options[i].value===yr){f=true;break;}if(!f){const o=document.createElement('option');o.value=yr;o.innerText=yr;ys.appendChild(o);}ys.value=yr;}
 }
 
+async function loadDashboardAttendanceMine(){
+  const request=++dashboardAttendanceRequest;
+  const userName=(currentUser&&currentUser.displayName||'').trim();
+  const month=Number((document.getElementById('recapMonthSelect')||{value:new Date().getMonth()}).value);
+  const year=Number((document.getElementById('recapYearSelect')||{value:new Date().getFullYear()}).value);
+  if(!userName||typeof supa==='undefined'){
+    if(request===dashboardAttendanceRequest){dashboardAttendanceMine={tepat:0,terlambat:0,sakit:0,cuti:0,alpa:0,loaded:true,error:false};renderDonutChart();}
+    return;
+  }
+
+  const pad=n=>String(n).padStart(2,'0');
+  const start=`${year}-${pad(month+1)}-01`;
+  const endDate=new Date(year,month+1,0);
+  const end=`${year}-${pad(month+1)}-${pad(endDate.getDate())}`;
+  const next={tepat:0,terlambat:0,sakit:0,cuti:0,alpa:0};
+  try{
+    const {data,error}=await supa.from('absensi').select('status_kehadiran,tanggal').eq('nama',userName).gte('tanggal',start).lte('tanggal',end);
+    if(error)throw error;
+    (data||[]).forEach(row=>{
+      const status=String(row.status_kehadiran||'').toUpperCase();
+      if(status==='TEPAT WAKTU')next.tepat++;
+      else if(status==='TERLAMBAT')next.terlambat++;
+      else if(status==='IZIN SAKIT')next.sakit++;
+      else if(status==='IZIN CUTI')next.cuti++;
+      else if(status==='ALPA')next.alpa++;
+    });
+    if(request!==dashboardAttendanceRequest)return;
+    dashboardAttendanceMine={...next,loaded:true,error:false};
+  }catch(error){
+    if(request!==dashboardAttendanceRequest)return;
+    console.warn('[Dashboard] Gagal memuat komposisi kehadiran akun:',error.message);
+    dashboardAttendanceMine={...dashboardAttendanceMine,loaded:true,error:true};
+  }
+  if(request===dashboardAttendanceRequest)renderDonutChart();
+}
+
 function fetchDashboardData(){
   populateEmployeeDropdowns();updateDashboardStats();renderPodium();renderKPIKlasemen();updateRecapTable();renderMainChart();renderDonutChart();
+  loadDashboardAttendanceMine();
 }
 function onFilterPeriodChange(){fetchDashboardData();}
 
 function populateEmployeeDropdowns(){
-  const html='<option value="" disabled selected>-- Pilih Nama Anda --</option>'+employeeMaster.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
-  ['#employeeName','.employee-select-sakit','.employee-select-cuti'].forEach(sel=>document.querySelectorAll(sel).forEach(el=>{if(el)el.innerHTML=html;}));
+  // employeeName sudah diganti jadi input readonly — tidak perlu populate dropdown
+  // Hanya isi kalau masih ada element select legacy
+  const html='<option value="" disabled selected>-- Pilih Nama --</option>'+employeeMaster.map(e=>`<option value="${e.name}">${e.name}</option>`).join('');
+  document.querySelectorAll('select.employee-legacy').forEach(el=>{ if(el) el.innerHTML=html; });
+  // Auto-fill nama dari currentUser ke semua form absensi
+  if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
 }
 
 function setRoleFilter(role){
@@ -49,19 +93,23 @@ function updateDashboardStats(){
 
 function renderDonutChart(){
   const ctx=document.getElementById('attendanceDonut');if(!ctx)return;
-  const f=getFiltered();let tT=0,tL=0,tS=0,tC=0,tA=0,tH=0;
-  f.forEach(e=>{const s=e.monthly||{};const h=s.hadir||0,l=s.terlambat||0,tw=(s.tepatWaktu!=null)?s.tepatWaktu:Math.max(0,h-l);tH+=h;tT+=tw;tL+=l;tS+=(s.izinSakit||0);tC+=(s.izinCuti||0);tA+=(s.alpa||0);});
-  const tot=tT+tL+tS+tC+tA||1;
-  const pT=Math.round((tT/tot)*100),pL=Math.round((tL/tot)*100),pS=Math.round((tS/tot)*100),pC=Math.round((tC/tot)*100),pA=100-pT-pL-pS-pC;
+  const mine=dashboardAttendanceMine||{};
+  const tT=Number(mine.tepat)||0,tL=Number(mine.terlambat)||0,tS=Number(mine.sakit)||0,tC=Number(mine.cuti)||0,tA=Number(mine.alpa)||0;
+  const total=tT+tL+tS+tC+tA;
+  const pT=total?Math.round((tT/total)*100):0;
+  const pL=total?Math.round((tL/total)*100):0;
+  const pS=total?Math.round((tS/total)*100):0;
+  const pC=total?Math.round((tC/total)*100):0;
+  const pA=total?Math.max(0,100-pT-pL-pS-pC):0;
   const el=id=>document.getElementById(id);
   if(el('donut-tepat'))el('donut-tepat').innerText=pT+'%';
   if(el('donut-terlambat'))el('donut-terlambat').innerText=pL+'%';
   if(el('donut-sakit'))el('donut-sakit').innerText=pS+'%';
   if(el('donut-cuti'))el('donut-cuti').innerText=pC+'%';
-  if(el('donut-alpa'))el('donut-alpa').innerText=Math.max(0,pA)+'%';
+  if(el('donut-alpa'))el('donut-alpa').innerText=pA+'%';
   if(el('donut-center-val'))el('donut-center-val').innerText=(pT+pL)+'%';
   if(donutChartInstance)donutChartInstance.destroy();
-  donutChartInstance=new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[pT,pL,pS,pC,Math.max(0,pA)],backgroundColor:['#22c55e','#f59e0b','#ef4444','#6366f1','#94a3b8'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,cutout:'75%',plugins:{legend:{display:false}}}});
+  donutChartInstance=new Chart(ctx,{type:'doughnut',data:{datasets:[{data:total?[pT,pL,pS,pC,pA]:[1],backgroundColor:total?['#22c55e','#f59e0b','#ef4444','#6366f1','#94a3b8']:['#cbd5e1'],borderWidth:0,hoverOffset:4}]},options:{responsive:true,cutout:'75%',plugins:{legend:{display:false}}}});
 }
 
 function renderMainChart(){
@@ -82,7 +130,7 @@ function calcTotalPoint(emp){
   // KPI kinerja: rata-rata dari tiket yang dikerjakan
   const tikets=kpiWOData.filter(d=>d.teknisi&&d.teknisi.includes(emp.name)&&d.t4);
   let kinerja=0;
-  if(tikets.length){tikets.forEach(t=>{const dur=selisihMenit(t.t2,t.t4);kinerja+=hitungPointTeknisi(dur||0);});kinerja=Math.round(kinerja/tikets.length*10);}
+  if(tikets.length){tikets.forEach(t=>{const dur=selisihMenit(t.t2,t.t4);const teknisiCount=Array.isArray(t.teknisi)?t.teknisi.filter(Boolean).length:([t.teknisi_1,t.teknisi_2].filter(Boolean).length||1);kinerja+=hitungPointTeknisi(dur||0,t.tipe,teknisiCount);});kinerja=Math.round(kinerja/tikets.length*10);}
   return hadir+bonus+kinerja;
 }
 
@@ -121,7 +169,7 @@ function renderKPIKlasemen(){
     const pctH=Math.round((ap.total/ap.max)*100);
     const gradeH=pctH>=90?'A':pctH>=75?'B':pctH>=60?'C':'D';
     const tikets=kpiWOData.filter(d=>d.teknisi&&d.teknisi.includes(e.name)&&d.t4);
-    let avgKinerja=0;if(tikets.length){tikets.forEach(t=>{const dur=selisihMenit(t.t2,t.t4);avgKinerja+=hitungPointTeknisi(dur||0);});avgKinerja=Math.round(avgKinerja/tikets.length*10)/10;}
+    let avgKinerja=0;if(tikets.length){tikets.forEach(t=>{const dur=selisihMenit(t.t2,t.t4);const teknisiCount=Array.isArray(t.teknisi)?t.teknisi.filter(Boolean).length:([t.teknisi_1,t.teknisi_2].filter(Boolean).length||1);avgKinerja+=hitungPointTeknisi(dur||0,t.tipe,teknisiCount);});avgKinerja=Math.round(avgKinerja/tikets.length*10)/10;}
     // untuk CS
     const csTickets=kpiWOData.filter(d=>d.cs===e.name&&d.t1&&d.t2);
     let avgKsCS=0;if(csTickets.length){csTickets.forEach(t=>{const dur=selisihMenit(t.t1,t.t2);avgKsCS+=hitungPointAdmin(dur||0);});avgKsCS=Math.round(avgKsCS/csTickets.length*10)/10;}
@@ -147,7 +195,7 @@ function updateRecapTable(){
   const tbody=document.getElementById('individual-recap-table-body');if(!tbody)return;
   const period=(document.getElementById('recapPeriodSelect')||{value:'monthly'}).value;
   const q=((document.getElementById('searchIndividual')||{value:''}).value||'').toLowerCase();
-  const canEdit=currentUser&&(currentUser.role==='admin'||currentUser.role==='supervisor');
+  const canEdit=currentUser&&['supervisor','owner'].includes(String(currentUser.role||'').toLowerCase());
   let f=getFiltered().filter(e=>e.name.toLowerCase().includes(q));
   const hkMap={daily:1,weekly:7,monthly:30};
   tbody.innerHTML=f.map(e=>{
@@ -161,3 +209,37 @@ function updateRecapTable(){
   if(!f.length)tbody.innerHTML=`<tr><td colspan="${canEdit?11:10}" class="text-center text-xs text-slate-400 py-6">Tidak ada data.</td></tr>`;
 }
 function filterIndividualList(){updateRecapTable();}
+
+// ── LOAD KARYAWAN DARI TABEL AKUN ────────────────────────────────────
+// Pastikan semua akun terdaftar masuk ke employeeMaster untuk rekapitulasi
+async function loadEmployeesFromAkun() {
+  try {
+    var res = await supa.from('akun').select('username, display_name, role, division');
+    if(res.error || !res.data) return;
+    var roleMap = {
+      'admin':'Admin','teknisi':'Teknisi','noc':'NOC',
+      'supervisor':'SPV','finance':'Finance','cs':'CS'
+    };
+    res.data.forEach(function(akun) {
+      var namaAkun = akun.display_name || akun.username;
+      var roleAkun = roleMap[(akun.role||'').toLowerCase()] || 'Teknisi';
+      // Cek apakah sudah ada di employeeMaster
+      var exists = employeeMaster.find(function(e){ return e.name.toLowerCase() === namaAkun.toLowerCase(); });
+      if(!exists) {
+        employeeMaster.push({
+          id: namaAkun.substring(0,2).toUpperCase(),
+          name: namaAkun, role: roleAkun,
+          division: akun.division || '',
+          daily:   {hariKerja:1, hadir:0, tepatWaktu:0, terlambat:0, izinSakit:0, izinCuti:0},
+          weekly:  {hariKerja:7, hadir:0, tepatWaktu:0, terlambat:0, izinSakit:0, izinCuti:0},
+          monthly: {hariKerja:30,hadir:0, tepatWaktu:0, terlambat:0, izinSakit:0, izinCuti:0}
+        });
+      }
+    });
+    // Re-render dashboard dengan data lengkap
+    updateDashboardStats();
+    renderPodium();
+    renderKPIKlasemen();
+    updateRecapTable();
+  } catch(e) { console.warn('[Dashboard] Gagal load dari akun:', e.message); }
+}

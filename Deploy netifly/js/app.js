@@ -8,24 +8,105 @@ function togglePwd(){
   else{i.type='password';ic.className='fa-solid fa-eye text-sm';}
 }
 
+const SINU_AUTH_STORAGE_KEY = 'sinu_user';
+let sinuMidnightLogoutTimer = null;
+
+function sinuTodayKey(date = new Date()) {
+  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+}
+
+function sinuSavePersistentSession(user) {
+  if(!user) return;
+  try {
+    const now = new Date();
+    const nextMidnight = new Date(now);
+    nextMidnight.setHours(24, 0, 0, 0);
+    localStorage.setItem(SINU_AUTH_STORAGE_KEY, JSON.stringify({
+      user,
+      loginDay: sinuTodayKey(now),
+      expiresAt: nextMidnight.getTime()
+    }));
+  } catch(e) { console.warn('[Auth] Gagal menyimpan sesi persistent:', e.message); }
+}
+
+function sinuClearPersistentSession() {
+  try { localStorage.removeItem(SINU_AUTH_STORAGE_KEY); } catch(e) { /* abaikan */ }
+  try { sessionStorage.removeItem(SINU_AUTH_STORAGE_KEY); } catch(e) { /* abaikan */ }
+}
+
+function sinuReadPersistentSession() {
+  try {
+    let raw = localStorage.getItem(SINU_AUTH_STORAGE_KEY);
+    let parsed = raw ? JSON.parse(raw) : null;
+
+    // Migrasi sesi lama dari sessionStorage agar pengguna tidak langsung logout setelah update.
+    if(!parsed) {
+      const legacy = sessionStorage.getItem(SINU_AUTH_STORAGE_KEY);
+      if(legacy) {
+        const legacyUser = JSON.parse(legacy);
+        sinuSavePersistentSession(legacyUser);
+        sessionStorage.removeItem(SINU_AUTH_STORAGE_KEY);
+        return legacyUser;
+      }
+      return null;
+    }
+
+    const user = parsed.user || parsed;
+    const expired = (parsed.loginDay && parsed.loginDay !== sinuTodayKey())
+      || (parsed.expiresAt && Date.now() >= Number(parsed.expiresAt));
+    if(expired || !user || !user.username) {
+      sinuClearPersistentSession();
+      return null;
+    }
+    return user;
+  } catch(e) {
+    sinuClearPersistentSession();
+    return null;
+  }
+}
+
+function sinuScheduleMidnightLogout() {
+  if(sinuMidnightLogoutTimer) clearTimeout(sinuMidnightLogoutTimer);
+  const now = new Date();
+  const nextMidnight = new Date(now);
+  nextMidnight.setHours(24, 0, 0, 0);
+  sinuMidnightLogoutTimer = setTimeout(function() {
+    sinuPerformLogout();
+  }, Math.max(1000, nextMidnight.getTime() - now.getTime() + 500));
+}
+
+function sinuPerformLogout() {
+  if(sinuMidnightLogoutTimer) { clearTimeout(sinuMidnightLogoutTimer); sinuMidnightLogoutTimer = null; }
+  currentUser = null;
+  sinuClearPersistentSession();
+  if(typeof destroySinuNotificationRealtime === 'function') destroySinuNotificationRealtime();
+  document.getElementById('main-app').classList.add('hidden');
+  document.getElementById('login-page').classList.remove('hidden');
+  if(mainChartInstance){mainChartInstance.destroy();mainChartInstance=null;}
+  if(donutChartInstance){donutChartInstance.destroy();donutChartInstance=null;}
+}
+
 function loadMainApp(){
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('main-app').classList.remove('hidden');
   document.getElementById('user-avatar').textContent=currentUser.avatar;
   document.getElementById('user-display-name').textContent=currentUser.displayName;
-  const rLabel={admin:'CS / Admin',teknisi:'Teknisi Field',supervisor:'Supervisor',noc:'NOC Engineer',finance:'Finance'};
+  const rLabel={owner:'Owner (Super Admin)',admin:'Admin/CS',cs:'Admin/CS',teknisi:'Teknisi Field',supervisor:'Supervisor',noc:'NOC Engineer',finance:'Finance'};
   document.getElementById('user-role-badge').textContent=rLabel[currentUser.role]||currentUser.role;
   buildNavigation();initApp();
   // Load foto profil kalau ada
   loadProfilePhoto();
+  sinuScheduleMidnightLogout();
 }
 
 function buildNavigation(){
   const nav=document.getElementById('main-nav');
   const r=(currentUser.role||'').toLowerCase();
-  const isAdmin=r==='admin',isSupervisor=r==='supervisor',isTek=r==='teknisi',isNOC=r==='noc',isFinance=r==='finance';
+  // Owner = super admin. Melihat & mengakses SEMUA menu.
+  const isOwner=r==='owner';
+  const isAdmin=r==='admin'||isOwner,isSupervisor=r==='supervisor'||isOwner,isTek=r==='teknisi'||isOwner,isNOC=r==='noc'||isOwner,isFinance=r==='finance';
   const menus=[
-    {id:'dashboard',icon:'fa-chart-pie',label:'Dashboard',show:!isFinance},
+    {id:'dashboard',icon:'fa-chart-pie',label:'Dashboard',show:!isFinance||isOwner},
     {id:'tugas',icon:'fa-list-check',label:'Tugas',show:isTek},
     {id:'material',icon:'fa-boxes-packing',label:'Material',show:isTek},
     {id:'noc',icon:'fa-headset',label:'NOC',show:isNOC},
@@ -42,26 +123,34 @@ function buildNavigation(){
   nav.className='bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 grid gap-1';
   nav.style.cssText='grid-template-columns:repeat('+Math.min(visible.length,5)+',1fr);';
   nav.innerHTML=visible.map((m,i)=>`<button type="button" onclick="switchMainTab('${m.id}')" id="main-tab-${m.id}" class="tab-btn ${i===0?'active':''} py-2 px-1 rounded-xl text-[9px] sm:text-[10px] lg:text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all flex flex-col items-center gap-1 min-w-0"><i class="fa-solid ${m.icon} text-sm lg:text-base"></i><span class="truncate w-full text-center">${m.label}</span></button>`).join('');
-  // Show tambah karyawan btn
+  // Rekapitulasi karyawan hanya untuk Supervisor dan Owner.
+  // Admin, NOC, dan Teknisi tetap memakai Dashboard tanpa melihat rekap ini.
+  const canViewEmployeeRecap=isSupervisor;
+  const recapHeader=document.getElementById('employee-recap-header');
+  const recapTable=document.getElementById('employee-recap-table');
+  if(recapHeader)recapHeader.classList.toggle('hidden',!canViewEmployeeRecap);
+  if(recapTable)recapTable.classList.toggle('hidden',!canViewEmployeeRecap);
+
+  // Tombol tambah dan aksi hapus hanya untuk Supervisor/Owner.
   const btnTambah=document.getElementById('btn-tambah-karyawan');
   const colAksi=document.getElementById('col-aksi-karyawan');
-  if(btnTambah&&(isAdmin||isSupervisor)){btnTambah.classList.remove('hidden');if(colAksi)colAksi.classList.remove('hidden');}
+  if(btnTambah)btnTambah.classList.toggle('hidden',!isSupervisor);
+  if(colAksi)colAksi.classList.toggle('hidden',!isSupervisor);
 }
 
 function handleLogout(){document.getElementById('logout-modal').classList.remove('hidden');}
 function confirmLogout(){
   document.getElementById('logout-modal').classList.add('hidden');
-  currentUser=null;sessionStorage.removeItem('sinu_user');
-  document.getElementById('main-app').classList.add('hidden');
-  document.getElementById('login-page').classList.remove('hidden');
-  if(mainChartInstance){mainChartInstance.destroy();mainChartInstance=null;}
-  if(donutChartInstance){donutChartInstance.destroy();donutChartInstance=null;}
+  sinuPerformLogout();
 }
 
 window.addEventListener('load',function(){
   initTheme();
-  const saved=sessionStorage.getItem('sinu_user');
-  if(saved){try{currentUser=JSON.parse(saved);loadMainApp();}catch(e){sessionStorage.removeItem('sinu_user');}}
+  const saved=sinuReadPersistentSession();
+  if(saved){
+    currentUser=saved;
+    loadMainApp();
+  }
 });
 
 // ===================== CORE =====================
@@ -173,8 +262,9 @@ function initApp(){
   const lastTab = sessionStorage.getItem('sinu_last_tab') || defaultTab;
   switchMainTab(lastTab);
   renderODPGrid();renderPickupList();
-  if(currentUser&&currentUser.role==='admin')initBuatWOForm();
-  if(currentUser&&currentUser.role==='supervisor'){initKPIFilter();renderKPI();}
+  const _isOwner = currentUser && currentUser.role==='owner';
+  if(currentUser&&(currentUser.role==='admin'||_isOwner)&&typeof initBuatWOForm==='function')initBuatWOForm();
+  if(currentUser&&(currentUser.role==='supervisor'||_isOwner)){if(typeof initKPIFilter==='function')initKPIFilter();if(typeof changeKPIPeriod==='function')changeKPIPeriod();}
   async function tryLoad(){try{if(typeof blazeface!=='undefined')faceModel=await blazeface.load();}catch(e){}}
   tryLoad();
   renderMyPointSection();
@@ -186,11 +276,12 @@ function switchMainTab(tabName){
   // supaya tidak ada yang bocor ke section lain
   var allSubIds = [
     // Tugas
-    'sub-content-pickup-tugas','sub-content-tugas-saya',
-    'sub-content-return-tugas','sub-content-riwayat-tugas',
+    'sub-content-pickup-tugas','sub-content-tugas-saya','sub-content-return-tugas',
+    'sub-content-riwayat-tugas','sub-content-pickup-dismantle','sub-content-tugas-dismantle',
     'form-work-instalasi','form-work-maintenance','form-work-perluasan',
     // NOC
-    'sub-content-pickup-noc','sub-content-tugas-noc','sub-content-registrasi-noc','sub-content-riwayat-noc',
+    'sub-content-pickup-noc','sub-content-tugas-noc','sub-content-registrasi-noc',
+    'sub-content-checking-dismantle','sub-content-riwayat-noc',
     'view-noc-form',
     // Material
     'sub-mat-content-pickup-perangkat','sub-mat-content-waiting-approval',
@@ -201,9 +292,11 @@ function switchMainTab(tabName){
     'sub-abs-content-izin-cuti','sub-abs-content-point-absensi',
     // Admin
     'sub-adm-content-buat-tugas','sub-adm-content-registrasi',
+    'sub-adm-content-buat-dismantle','sub-adm-content-list-tiket',
+    'sub-adm-content-list-tiket-dismantle','sub-adm-content-rl-radius',
     'sub-adm-content-tambah-perangkat','sub-adm-content-list-perangkat',
-    'sub-adm-content-approval-pickup','sub-adm-content-tracking-perangkat',
-    'sub-bt-content-form-wo','sub-bt-content-list-tiket'
+    'sub-adm-content-list-rusak','sub-adm-content-dismantle-items',
+    'sub-adm-content-approval-pickup'
   ];
   allSubIds.forEach(function(id){
     var el = document.getElementById(id);
@@ -215,12 +308,14 @@ function switchMainTab(tabName){
   const s=document.getElementById('section-'+tabName);if(s)s.classList.remove('hidden');
   const b=document.getElementById('main-tab-'+tabName);if(b)b.classList.add('active');
   sessionStorage.setItem('sinu_last_tab', tabName);
-  if(tabName==='kpi'){initKPIFilter();renderKPI();}
+  if(tabName==='kpi'){initKPIFilter();switchSubKPI(sessionStorage.getItem('sinu_last_sub_kpi')||'performance');changeKPIPeriod();}
   if(tabName==='noc'){
     switchSubNOC('pickup-noc');
   }
   if(tabName==='admin'){
-    const lastSub=sessionStorage.getItem('sinu_last_sub_admin')||'buat-tugas';
+    const lastMenu = sessionStorage.getItem('sinu_last_admin_menu') || 'tugas';
+    switchAdminMenu(lastMenu);
+    const lastSub = sessionStorage.getItem('sinu_last_sub_admin') || (lastMenu==='tugas' ? 'buat-tugas' : 'tambah-perangkat');
     switchSubAdmin(lastSub);
   }
   if(tabName==='tugas'){
@@ -232,6 +327,7 @@ function switchMainTab(tabName){
     switchSubMaterial(lastSub);
   }
   if(tabName==='absensi'){
+    if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
     const lastSub=sessionStorage.getItem('sinu_last_sub_absensi')||'form-absensi';
     switchSubAbsensi(lastSub);
   }
@@ -245,14 +341,13 @@ function switchMainTab(tabName){
     loadLogPerangkat();
     if(typeof loadRekapKabel==='function') loadRekapKabel();
   }
-  if(tabName==='kelolaakun')loadDaftarAkun();
+  if(tabName==='kelolaakun'){loadDaftarAkun();if(typeof renderOwnerControlVisibility==='function')renderOwnerControlVisibility();}
 }
 function switchSubTugas(sub){
   const secTugas = document.getElementById('section-tugas');
-  // Hide SEMUA sub-content termasuk yang mungkin di luar querySelectorAll
-  ['pickup-tugas','tugas-saya','return-tugas','riwayat-tugas'].forEach(function(name){
-    var el = document.getElementById('sub-content-'+name);
-    if(el) el.classList.add('hidden');
+  // Pastikan hanya satu sub-view Tugas yang terlihat dalam satu waktu.
+  document.querySelectorAll('#section-tugas .sub-tugas-content').forEach(function(el){
+    el.classList.add('hidden');
   });
   // Sembunyikan semua form kerja aktif saat pindah tab
   ['form-work-instalasi','form-work-maintenance','form-work-perluasan'].forEach(function(id){
@@ -261,12 +356,19 @@ function switchSubTugas(sub){
   // view-tugas-saya-list hanya visible saat di tab tugas-saya
   var listEl=document.getElementById('view-tugas-saya-list');
   if(listEl) listEl.classList.toggle('hidden', sub !== 'tugas-saya');
+  // view-dismantle-list hanya visible saat di tab tugas-dismantle
+  var disListEl=document.getElementById('view-dismantle-list');
+  var disFormEl=document.getElementById('view-dismantle-form');
+  if(disListEl) disListEl.classList.toggle('hidden', sub !== 'tugas-dismantle');
+  if(disFormEl) disFormEl.classList.add('hidden');
   // Aktifkan pill yang dipilih
   document.querySelectorAll('#section-tugas .snpill').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('sub-content-'+sub); if(el) el.classList.remove('hidden');
   const btn=document.getElementById('sub-tugas-'+sub); if(btn) btn.classList.add('active');
   sessionStorage.setItem('sinu_last_sub_tugas', sub);
   if(sub==='pickup-tugas') renderPickupList();
+  if(sub==='pickup-dismantle' && typeof loadPickupDismantle==='function') loadPickupDismantle();
+  if(sub==='tugas-dismantle' && typeof loadTugasDismantle==='function') loadTugasDismantle();
   if(sub==='tugas-saya'){
     if(typeof restoreMyPickedTasks==='function') restoreMyPickedTasks().then(function(){renderMyTaskList();renderReturnSelect();});
     else { renderMyTaskList(); renderReturnSelect(); }
@@ -295,6 +397,7 @@ function switchSubNOC(sub){
   if(sub==='pickup-noc' && typeof loadNOCPickup==='function') loadNOCPickup();
   if(sub==='tugas-noc' && typeof loadNOCTasks==='function') loadNOCTasks();
   if(sub==='registrasi-noc' && typeof loadProvisioningQueueNOC==='function') loadProvisioningQueueNOC();
+  if(sub==='checking-dismantle' && typeof loadCheckingDismantle==='function') loadCheckingDismantle();
   if(sub==='riwayat-noc' && typeof loadRiwayatNOC==='function') loadRiwayatNOC();
 }
 function switchSubAbsensi(sub){
@@ -306,19 +409,56 @@ function switchSubAbsensi(sub){
   sessionStorage.setItem('sinu_last_sub_absensi', sub);
   if(sub==='point-absensi')renderMyPointSection();
 }
+// Mapping sub ke menu utama
+const _admMenuMap = {
+  'buat-tugas':'tugas', 'buat-dismantle':'tugas', 'list-tiket':'tugas',
+  'list-tiket-dismantle':'tugas', 'rl-radius':'tugas', 'registrasi':'tugas',
+  'tambah-perangkat':'asset', 'list-perangkat':'asset', 'list-rusak':'asset',
+  'dismantle-items':'asset', 'approval-pickup':'asset'
+};
+
+function switchAdminMenu(menu) {
+  // Toggle kedua sub-nav
+  const tugasNav  = document.getElementById('admin-sub-tugas');
+  const assetNav  = document.getElementById('admin-sub-asset');
+  if(tugasNav)  tugasNav.classList.toggle('hidden',  menu !== 'tugas');
+  if(assetNav)  assetNav.classList.toggle('hidden',  menu !== 'asset');
+  // Highlight menu utama
+  document.querySelectorAll('#subnav-admin-main .snpill').forEach(b=>b.classList.remove('active'));
+  const menuBtn = document.getElementById('admin-menu-'+menu);
+  if(menuBtn) menuBtn.classList.add('active');
+  sessionStorage.setItem('sinu_last_admin_menu', menu);
+  // Auto-pilih default sub
+  if(menu==='tugas')  switchSubAdmin('buat-tugas');
+  if(menu==='asset')  switchSubAdmin('tambah-perangkat');
+}
+
 function switchSubAdmin(sub){
   const secAdm = document.getElementById('section-admin');
   if(secAdm) secAdm.querySelectorAll('.sub-adm-content').forEach(el=>el.classList.add('hidden'));
-  document.querySelectorAll('#section-admin .snpill').forEach(b=>b.classList.remove('active'));
+  // Jangan remove active dari SEMUA snpill — hanya dari sub-nav yang aktif
+  const activeMenu = _admMenuMap[sub] || 'tugas';
+  const activeSubNav = document.getElementById('admin-sub-'+activeMenu);
+  if(activeSubNav) activeSubNav.querySelectorAll('.snpill').forEach(b=>b.classList.remove('active'));
   const el=document.getElementById('sub-adm-content-'+sub);if(el)el.classList.remove('hidden');
   const btn=document.getElementById('sub-adm-'+sub);if(btn)btn.classList.add('active');
   sessionStorage.setItem('sinu_last_sub_admin', sub);
-  if(sub==='buat-tugas')initBuatWOForm();
-  if(sub==='list-perangkat')loadAndRenderListPerangkat();
-  if(sub==='tracking-perangkat'){
-    loadLogPerangkat();
+  if(sub==='buat-tugas'){
+    initBuatWOForm();
+    var fw = document.getElementById('sub-bt-content-form-wo');
+    if(fw) fw.classList.remove('hidden');
+  }
+  if(sub==='list-perangkat'){
+    loadAndRenderListPerangkat();
+    if(typeof loadLogPerangkat==='function') loadLogPerangkat();
     if(typeof loadRekapKabel==='function') loadRekapKabel();
   }
+  if(sub==='list-rusak' && typeof loadListPerangkatRusak==='function') loadListPerangkatRusak();
+  if(sub==='dismantle-items' && typeof loadDismantleItems==='function') loadDismantleItems();
+  if(sub==='buat-dismantle' && typeof initBuatDismantle==='function') initBuatDismantle();
+  if(sub==='list-tiket' && typeof refreshAdminTicketList==='function') refreshAdminTicketList();
+  if(sub==='list-tiket-dismantle' && typeof loadListTiketDismantle==='function') loadListTiketDismantle();
+  if(sub==='rl-radius' && typeof loadRLRadiusList==='function') loadRLRadiusList();
 }
 
 function switchSubBuatTugas(sub) {
@@ -399,7 +539,7 @@ function openProfileSettings() {
   const name = currentUser ? currentUser.displayName : '--';
   const role = currentUser ? currentUser.role : '--';
   const initials = currentUser ? currentUser.avatar || name.substring(0,2).toUpperCase() : '--';
-  const rLabel = {admin:'CS / Admin', teknisi:'Teknisi Field', supervisor:'Supervisor', noc:'NOC Engineer', finance:'Finance'};
+  const rLabel = {admin:'Admin/CS', cs:'Admin/CS', teknisi:'Teknisi Field', supervisor:'Supervisor', noc:'NOC Engineer', finance:'Finance'};
 
   const nameEl = document.getElementById('profile-name-display');
   const roleEl = document.getElementById('profile-role-display');
@@ -489,7 +629,7 @@ async function saveProfilePhoto(base64) {
 
     // Simpan ke session dan localStorage
     currentUser.photoUrl = base64;
-    sessionStorage.setItem('sinu_user', JSON.stringify(currentUser));
+    sinuSavePersistentSession(currentUser);
     localStorage.setItem('sinu_photo_' + currentUser.username, base64);
 
     showAlert('Foto profil berhasil disimpan!', 'Foto Profil');
@@ -497,7 +637,7 @@ async function saveProfilePhoto(base64) {
     // Fallback: simpan lokal saja
     if(currentUser) {
       currentUser.photoUrl = base64;
-      sessionStorage.setItem('sinu_user', JSON.stringify(currentUser));
+      sinuSavePersistentSession(currentUser);
       localStorage.setItem('sinu_photo_' + currentUser.username, base64);
     }
     console.warn('[Profile] Simpan ke DB gagal, tersimpan lokal:', e.message);

@@ -5,12 +5,18 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>SINU OPS SYSTEM - PT. Sinergi Internet Nusantara</title>
 
+  <!-- PWA / WEB PUSH -->
+  <link rel="manifest" href="manifest.json?v=1000182">
+  <meta name="theme-color" content="#ffffff">
+  <link rel="apple-touch-icon" href="assets/logo-s.png?v=1000182">
+
   <!-- FONTS & ICONS -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <!-- APP CSS -->
-  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/main.css?v=1000192">
+  <link rel="icon" type="image/png" href="assets/logo-s.png?v=1000182">
 
   <!-- CDN LIBRARIES (harus sebelum JS kita) -->
   <script src="https://cdn.tailwindcss.com"></script>
@@ -24,6 +30,22 @@
 </head>
 <body class="bg-[#eef2f6] dark:bg-slate-900 min-h-screen text-slate-800 dark:text-slate-100 transition-colors duration-300">
 
+<!-- SPLASH SCREEN LOGO S (INTRO ANIMASI) -->
+<div id="sinu-splash" class="sinu-splash" role="status" aria-label="Memuat PT SINu">
+  <span class="sinu-splash-ambient" aria-hidden="true"></span>
+  <div class="sinu-splash-stage">
+    <span class="sinu-splash-glow"></span>
+    <img src="assets/logo-s.png?v=1000182" alt="PT SINu" class="sinu-splash-logo">
+    <span class="sinu-splash-sweep" aria-hidden="true"></span>
+  </div>
+  <div class="sinu-splash-line" aria-hidden="true"></div>
+  <div class="sinu-splash-wordmark" aria-hidden="true">
+    <strong>PT. SINERGI</strong>
+    <span>INTERNET NUSANTARA</span>
+  </div>
+</div>
+<script src="js/splash.js?v=1000192"></script>
+
 <!-- TOAST CONTAINER -->
 <div id="toast-container"></div>
 
@@ -32,7 +54,10 @@
   <div class="w-full max-w-sm fade-up">
     <div class="bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-2xl border border-slate-100 dark:border-slate-700 space-y-6">
       <div class="text-center space-y-3">
-        <img src="assets/logo.png" alt="PT SINu" class="h-12 object-contain mx-auto">
+        <div class="sinu-brand-lockup sinu-brand-lockup-login">
+          <img src="assets/logo-s.png?v=1000182" alt="Simbol SINU" class="sinu-brand-icon sinu-brand-icon-login">
+          <span class="sinu-wordmark"><strong>PT. SINERGI</strong><span>INTERNET NUSANTARA</span></span>
+        </div>
         <div><h1 class="text-xl font-black text-slate-900 dark:text-white tracking-tight">SINU OPS SYSTEM</h1><p class="text-xs text-slate-400 font-medium mt-0.5">Field Operations Portal v2.0</p></div>
       </div>
       <div id="login-error" class="hidden bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-800 rounded-2xl px-4 py-3 flex items-center gap-2 text-rose-600 dark:text-rose-400 text-xs font-semibold">
@@ -77,7 +102,10 @@
       <!-- HEADER CARD -->
       <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 fade-up">
         <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700 mb-3">
-          <img src="assets/logo.png" alt="PT SINu" class="h-9 lg:h-11 object-contain">
+          <div class="sinu-brand-lockup">
+            <img src="assets/logo-s.png?v=1000182" alt="Simbol SINU" class="sinu-brand-icon">
+            <span class="sinu-wordmark"><strong>PT. SINERGI</strong><span>INTERNET NUSANTARA</span></span>
+          </div>
           <div class="flex items-center gap-2">
             <button type="button" onclick="toggleTheme()" class="p-2 rounded-full bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-600 transition-all">
               <i id="theme-icon" class="fa-solid fa-moon text-sm"></i>
@@ -105,10 +133,30 @@
               <p id="user-role-badge" class="text-[10px] font-bold text-blue-600 dark:text-blue-400">--</p>
             </div>
           </div>
-          <!-- Tombol pengaturan -->
-          <button type="button" onclick="openProfileSettings()" class="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all px-2.5 py-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30" title="Pengaturan">
-            <i class="fa-solid fa-gear text-xs"></i>
-          </button>
+          <div class="flex items-center gap-1.5">
+            <!-- Bell notifikasi -->
+            <button type="button" id="notification-bell" onclick="toggleSinuNotificationPanel()" class="relative flex items-center justify-center w-9 h-9 text-slate-500 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 transition-all rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30" title="Notifikasi">
+              <i class="fa-regular fa-bell text-sm"></i>
+              <span id="notification-unread-badge" class="hidden absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-rose-500 text-white text-[9px] font-black leading-4 text-center">0</span>
+            </button>
+            <!-- Tombol pengaturan -->
+            <button type="button" onclick="openProfileSettings()" class="flex items-center gap-1 text-[10px] font-bold text-slate-500 hover:text-blue-600 dark:hover:text-blue-400 transition-all px-2.5 py-1.5 rounded-xl hover:bg-blue-50 dark:hover:bg-blue-950/30" title="Pengaturan">
+              <i class="fa-solid fa-gear text-xs"></i>
+            </button>
+          </div>
+        </div>
+        <!-- PANEL NOTIFIKASI -->
+        <div id="notification-panel" class="hidden fixed top-20 right-4 z-[100] w-[min(22rem,calc(100vw-2rem))] bg-white dark:bg-slate-800 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden">
+          <div class="flex items-center justify-between gap-3 px-4 py-3 border-b border-slate-100 dark:border-slate-700">
+            <div><h3 class="text-sm font-extrabold text-slate-900 dark:text-white">Notifikasi</h3><p class="text-[10px] text-slate-400">Tugas baru & request provisioning</p></div>
+            <button type="button" onclick="markAllSinuNotificationsRead()" class="text-[10px] font-bold text-blue-600 hover:text-blue-700 dark:text-blue-400">Tandai dibaca</button>
+          </div>
+          <div id="notification-list" class="max-h-[min(28rem,65vh)] overflow-y-auto"></div>
+          <div class="px-4 py-3 border-t border-slate-100 dark:border-slate-700">
+            <button type="button" id="notification-permission-button" onclick="requestSinuNotificationPermission()" class="w-full py-2 rounded-xl bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 text-[10px] font-bold hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors">Aktifkan Notifikasi Browser</button>
+            <button type="button" id="btn-enable-push" class="hidden w-full mt-2 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-[10px] font-bold transition-colors flex items-center justify-center gap-1.5"><i class="fa-solid fa-bell"></i> Aktifkan Notifikasi HP</button>
+            <p class="text-[9px] text-slate-400 mt-1.5 text-center leading-relaxed">Notifikasi HP tetap masuk walau aplikasi ditutup. Di iPhone, buka lewat "Add to Home Screen".</p>
+          </div>
         </div>
         <!-- CLOCK -->
         <div class="mt-3 bg-slate-50/80 dark:bg-slate-700/50 rounded-2xl p-3 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300 border border-slate-100 dark:border-slate-700">
@@ -130,7 +178,7 @@
         </div>
         <p class="text-xs text-blue-100 leading-relaxed font-medium">Sistem terintegrasi Field Operations, WO, Absensi & Asset Management PT. SINu v2.0</p>
         <div class="grid grid-cols-2 gap-2 pt-1">
-          <div class="bg-white/10 rounded-xl p-2 text-center"><p class="text-[10px] text-blue-200">Build</p><p class="text-xs font-black">2026.08-v2</p></div>
+          <div class="bg-white/10 rounded-xl p-2 text-center"><p class="text-[10px] text-blue-200">Build</p><p class="text-xs font-black">2026.09-v12</p></div>
           <div class="bg-white/10 rounded-xl p-2 text-center"><p class="text-[10px] text-blue-200">Status</p><p class="text-xs font-black text-emerald-400">Active</p></div>
         </div>
       </div>
@@ -166,27 +214,27 @@
           <!-- WO STATS -->
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
             <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400"></i>Work Order Hari Ini ganti</h2><p class="text-[11px] text-slate-400 mt-0.5">Status real-time aktivitas WO</p></div>
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400"></i>Work Order Hari Ini</h2><p class="text-[11px] text-slate-400 mt-0.5">Status real-time aktivitas WO</p></div>
             </div>
             <div class="grid grid-cols-2 gap-2.5">
               <div class="bg-blue-50 dark:bg-blue-950/40 rounded-2xl p-3.5 border border-blue-100 dark:border-blue-900">
                 <p class="text-[10px] font-extrabold text-blue-500 uppercase tracking-wider">Total WO</p>
-                <p class="text-3xl font-black text-blue-600 dark:text-blue-400 mt-1 leading-none wo-summary-total">12</
-                <p class="text-[10px] text-blue-400 mt-1">Tiket masuk hari ini</p>
+                <p class="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 leading-none wo-summary-total truncate">12</p>
+                <p class="text-[10px] text-blue-400 mt-1">Tiket masuk</p>
               </div>
               <div class="bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl p-3.5 border border-emerald-100 dark:border-emerald-900">
                 <p class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider">Selesai</p>
-                <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400 mt-1 leading-none wo-summary-selesai">8</p>
-                <p class="text-[10px] text-emerald-400 mt-1">Berhasil dikerjakan</p>
+                <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 leading-none wo-summary-selesai truncate">8</p>
+                <p class="text-[10px] text-emerald-400 mt-1">Dikerjakan</p>
               </div>
               <div class="bg-amber-50 dark:bg-amber-950/40 rounded-2xl p-3.5 border border-amber-100 dark:border-amber-900">
                 <p class="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">Proses</p>
-                <p class="text-3xl font-black text-amber-600 dark:text-amber-400 mt-1 leading-none wo-summary-proses">3</p>
-                <p class="text-[10px] text-amber-400 mt-1">Sedang dikerjakan</p>
+                <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 leading-none wo-summary-proses truncate">3</p>
+                <p class="text-[10px] text-amber-400 mt-1">Dikerjakan</p>
               </div>
               <div class="bg-rose-50 dark:bg-rose-950/40 rounded-2xl p-3.5 border border-rose-100 dark:border-rose-900">
                 <p class="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">Return</p>
-                <p class="text-3xl font-black text-rose-600 dark:text-rose-400 mt-1 leading-none wo-summary-return">1</p>
+                <p class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 leading-none wo-summary-return truncate">1</p>
                 <p class="text-[10px] text-rose-400 mt-1">Dikembalikan</p>
               </div>
             </div>
@@ -196,7 +244,7 @@
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
             <div class="pb-3 border-b border-slate-100 dark:border-slate-700">
               <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-600 dark:text-indigo-400"></i>Komposisi Kehadiran</h2>
-              <p class="text-[11px] text-slate-400 mt-0.5">Distribusi status kehadiran bulan ini</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Status kehadiran akun Anda bulan ini</p>
             </div>
             <div class="flex items-center gap-4">
               <div class="relative w-28 h-28 shrink-0">
@@ -261,7 +309,7 @@
             <div class="h-52 relative"><canvas id="mainAttendanceChart"></canvas></div>
           </div>
           <!-- REKAP HEADER -->
-          <div class="px-5 lg:px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-700/20">
+          <div id="employee-recap-header" class="px-5 lg:px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-700/20">
             <div class="flex items-center gap-2"><i class="fa-solid fa-users text-blue-600 dark:text-blue-400 text-sm"></i><h3 class="text-sm font-extrabold text-slate-800 dark:text-slate-100">Rekapitulasi Karyawan</h3></div>
             <div class="flex items-center gap-2 flex-wrap">
               <button type="button" id="btn-tambah-karyawan" onclick="openAddEmployeeModal()" class="hidden px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-user-plus text-xs"></i>Tambah</button>
@@ -272,7 +320,7 @@
             </div>
           </div>
           <!-- TABEL REKAP -->
-          <div class="overflow-x-auto">
+          <div id="employee-recap-table" class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
               <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
                 <th class="py-3 px-4">Nama</th><th class="py-3 px-3 text-center">Peran</th><th class="py-3 px-3 text-center">Hadir</th><th class="py-3 px-3 text-center">Tepat</th><th class="py-3 px-3 text-center">Terlambat</th><th class="py-3 px-3 text-center">Sakit</th><th class="py-3 px-3 text-center">Cuti</th><th class="py-3 px-3 text-center">%</th><th class="py-3 px-3 text-center">Pt.Hadir</th><th class="py-3 px-3 text-center">Grade</th><th id="col-aksi-karyawan" class="py-3 px-3 text-center hidden">Aksi</th>
@@ -288,9 +336,10 @@
         <!-- SUBNAV PILL -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
           <div class="subnav-wrap">
-            <button type="button" onclick="switchSubTugas('pickup-tugas')" id="sub-tugas-pickup-tugas" class="snpill active"><i class="fa-solid fa-hand-holding-hand text-blue-600 dark:text-blue-400"></i><span>Pickup Tugas</span></button>
+            <button type="button" onclick="switchSubTugas('pickup-tugas')" id="sub-tugas-pickup-tugas" class="snpill active"><i class="fa-solid fa-hand-holding-hand text-blue-600 dark:text-blue-400"></i><span>Pickup</span></button>
             <button type="button" onclick="switchSubTugas('tugas-saya')" id="sub-tugas-tugas-saya" class="snpill"><i class="fa-solid fa-user-gear text-indigo-600 dark:text-indigo-400"></i><span>Tugas Saya</span></button>
-            <button type="button" onclick="switchSubTugas('return-tugas')" id="sub-tugas-return-tugas" class="snpill"><i class="fa-solid fa-rotate-left text-rose-500"></i><span>Return</span></button>
+            <button type="button" onclick="switchSubTugas('pickup-dismantle')" id="sub-tugas-pickup-dismantle" class="snpill"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i><span>Pickup Dismantle</span></button>
+            <button type="button" onclick="switchSubTugas('tugas-dismantle')" id="sub-tugas-tugas-dismantle" class="snpill"><i class="fa-solid fa-boxes-packing text-orange-600"></i><span>Dismantle</span></button>
             <button type="button" onclick="switchSubTugas('riwayat-tugas')" id="sub-tugas-riwayat-tugas" class="snpill"><i class="fa-solid fa-clock-rotate-left text-slate-500"></i><span>Riwayat</span></button>
           </div>
         </div>
@@ -325,7 +374,7 @@
           <!-- FORM INSTALASI -->
           <div id="form-work-instalasi" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-5 lg:p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-5">
             <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
-              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white">Pelaporan Instalasi Baru</h2><p class="text-xs text-slate-400" id="instalasi-wo-info">WO ID: --</p></div>
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white">Pelaporan Instalasi Baru</h2></div>
               <div class="flex items-center gap-2">
                 <button type="button" onclick="backToTugasSaya('instalasi')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1"><i class="fa-solid fa-arrow-left text-xs"></i>Kembali</button>
                 <button type="button" onclick="showCancelWOModal('instalasi')" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold transition-all flex items-center gap-1"><i class="fa-solid fa-ban text-xs"></i>Cancel</button>
@@ -338,6 +387,29 @@
 
             <!-- STEP 1 -->
             <div id="instalasi-step-1-content" class="space-y-4">
+              <!-- INFO PELANGGAN (read-only) -->
+              <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600 p-4 space-y-2.5">
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">No. Tiket</label>
+                  <input type="text" id="info-no-tiket" readonly value="--" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Pelanggan</label>
+                  <input type="text" id="info-nama-pelanggan" readonly value="--" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">No. Layanan</label>
+                  <input type="text" id="info-no-layanan" readonly value="--" class="w-full p-2.5 border rounded-xl text-xs font-bold cursor-not-allowed" style="">
+                </div>
+              </div>
+              <!-- TIM TEKNISI -->
+              <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800 p-4 space-y-3">
+                <div><p class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-people-group"></i>Tim Teknisi</p><p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Teknisi 1 otomatis adalah pemilik akun. Partner opsional; jika kosong, tugas dihitung sebagai pekerjaan teknisi tunggal.</p></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 1</label><input type="text" id="instalasi-teknisi-1" readonly class="w-full p-2.5 bg-slate-100 dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed"></div>
+                  <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 2 / Partner (Opsional)</label><select id="instalasi-teknisi-2" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100"><option value="">Memuat daftar teknisi...</option></select></div>
+                </div>
+              </div>
               <div class="space-y-2">
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Titik Koordinat Pelanggan <span class="text-rose-500">*</span></label>
                 <button type="button" onclick="getTaskLocation('instalasi')" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-location-crosshairs"></i>GET LOCATION</button>
@@ -466,6 +538,7 @@
               </div>
               <!-- Panjang Kabel -->
               <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Panjang Kabel (meter)</label><input type="number" id="instalasi-panjang-kabel" placeholder="0" min="0" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+              <!-- No. Layanan -->
               <!-- PROVISIONING -->
               <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 space-y-3">
                 <p class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-server"></i>Request Registrasi Provisioning</p>
@@ -475,7 +548,7 @@
               </div>
               <div class="flex items-center gap-2 pt-2">
                 <button type="button" onclick="goToInstalasiStep1()" class="w-1/3 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl transition-all">Kembali</button>
-                <button type="button" onclick="submitWorkInstalasi()" class="w-2/3 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i>Submit & Aktifkan</button>
+                <button type="button" id="btn-submit-aktivasi" onclick="submitWorkInstalasi()" disabled class="w-2/3 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i>Submit & Aktifkan</button>
               </div>
             </div>
           </div>
@@ -489,11 +562,22 @@
                 <button type="button" onclick="showCancelWOModal('maintenance')" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold transition-all">Cancel</button>
               </div>
             </div>
+            <!-- TIM TEKNISI -->
+            <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800 p-4 space-y-3">
+              <div><p class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-people-group"></i>Tim Teknisi</p><p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Teknisi 1 otomatis adalah pemilik akun. Partner opsional; jika kosong, tugas dihitung sebagai pekerjaan teknisi tunggal.</p></div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 1</label><input type="text" id="maintenance-teknisi-1" readonly class="w-full p-2.5 bg-slate-100 dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed"></div>
+                <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 2 / Partner (Opsional)</label><select id="maintenance-teknisi-2" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100"><option value="">Memuat daftar teknisi...</option></select></div>
+              </div>
+            </div>
             <div class="space-y-2">
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Koordinat Lokasi <span class="text-rose-500">*</span></label>
               <button type="button" onclick="getTaskLocation('maintenance')" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-location-crosshairs"></i>GET LOCATION</button>
               <p id="maintenance-coord-status" class="text-[11px] text-slate-400 italic">Koordinat belum terdeteksi.</p>
-              <div id="maintenance-map" class="hidden w-full h-44 rounded-2xl border border-slate-200 dark:border-slate-600 z-0"></div>
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Keterangan Penanganan Teknisi <span class="text-rose-500">*</span></label>
+                <textarea id="maint-keterangan" required rows="3" placeholder="Jelaskan kerusakan yang ditemukan dan penanganan yang dilakukan teknisi..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea>
+              </div>
             </div>
             <!-- FOTO MAINTENANCE GRID -->
             <div>
@@ -544,6 +628,29 @@
                 <button type="button" onclick="showCancelWOModal('perluasan')" class="px-3 py-1.5 bg-rose-100 hover:bg-rose-200 dark:bg-rose-950/50 text-rose-600 dark:text-rose-400 rounded-xl text-xs font-bold">Cancel</button>
               </div>
             </div>
+            <!-- INFO PELANGGAN PERLUASAN (read-only) -->
+            <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl border border-slate-200 dark:border-slate-600 p-4 space-y-2.5">
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">No. Tiket</label>
+                <input type="text" id="perluasan-info-no-tiket" readonly value="--" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">Nama Pelanggan</label>
+                <input type="text" id="perluasan-info-nama-pelanggan" readonly value="--" class="w-full p-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed">
+              </div>
+              <div>
+                <label class="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">No. Layanan</label>
+                <input type="text" id="perluasan-info-no-layanan" readonly value="--" class="w-full p-2.5 border rounded-xl text-xs font-bold cursor-not-allowed">
+              </div>
+            </div>
+            <!-- TIM TEKNISI -->
+            <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl border border-indigo-200 dark:border-indigo-800 p-4 space-y-3">
+              <div><p class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-people-group"></i>Tim Teknisi</p><p class="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">Teknisi 1 otomatis adalah pemilik akun. Partner opsional; jika kosong, tugas dihitung sebagai pekerjaan teknisi tunggal.</p></div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 1</label><input type="text" id="perluasan-teknisi-1" readonly class="w-full p-2.5 bg-slate-100 dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed"></div>
+                <div><label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Teknisi 2 / Partner (Opsional)</label><select id="perluasan-teknisi-2" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-indigo-200 dark:border-indigo-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100"><option value="">Memuat daftar teknisi...</option></select></div>
+              </div>
+            </div>
             <div class="space-y-2">
               <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider">Titik Koordinat <span class="text-rose-500">*</span></label>
               <button type="button" onclick="getTaskLocation('perluasan')" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-location-crosshairs"></i>GET LOCATION</button>
@@ -580,6 +687,8 @@
               <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">SN Kabel (Opsional)</label><select id="perluasan-sn-kabel" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"><option value="">-- Tidak ada --</option></select></div>
             </div>
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Panjang Kabel Terpakai (meter)</label><input type="number" id="perluasan-panjang-kabel" placeholder="0" min="0" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+            <!-- Nomor layanan diambil dari data RL Radius, seperti Instalasi Baru. -->
+            <input type="hidden" id="perluasan-no-layanan" value="">
             <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Catatan</label><textarea id="perluasan-catatan" rows="2" placeholder="Catatan tambahan..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
             <button type="button" onclick="submitWorkPerluasan()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-check-circle"></i>Submit Perluasan</button>
           </div>
@@ -626,6 +735,89 @@
             </div>
           </div>
         </div>
+
+        <!-- PICKUP DISMANTLE -->
+        <div id="sub-content-pickup-dismantle" class="sub-tugas-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i>Pickup Tugas Dismantle</h2><p class="text-xs text-slate-400">Tiket dismantle yang perlu dijemput</p></div>
+              <button type="button" onclick="loadPickupDismantle()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div id="pickup-dismantle-list" class="space-y-2 max-h-96 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-6">Klik Refresh untuk memuat tiket dismantle.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- TUGAS DISMANTLE (sudah dipickup) -->
+        <div id="sub-content-tugas-dismantle" class="sub-tugas-content hidden space-y-3">
+          <!-- LIST TUGAS DISMANTLE SAYA -->
+          <div id="view-dismantle-list">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+              <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+                <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-boxes-packing text-orange-600"></i>Tugas Dismantle Saya</h2><p class="text-xs text-slate-400">Dismantle yang sudah Anda pickup</p></div>
+                <button type="button" onclick="loadTugasDismantle()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+              </div>
+              <div id="tugas-dismantle-list" class="space-y-2 max-h-72 overflow-y-auto">
+                <p class="text-xs text-slate-400 text-center py-6">Klik Refresh untuk memuat.</p>
+              </div>
+            </div>
+          </div>
+          <!-- FORM ISI PERANGKAT DISMANTLE -->
+          <div id="view-dismantle-form" class="hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+              <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+                <div>
+                  <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i>Input Perangkat Dismantle</h2>
+                  <p class="text-xs text-slate-400" id="dis-wo-info-form">WO: --</p>
+                </div>
+                <button type="button" onclick="backFromDismantleForm()" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 text-slate-500 rounded-xl text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-arrow-left text-[9px]"></i>Kembali</button>
+              </div>
+              <!-- Info pelanggan -->
+              <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-2xl p-3 space-y-1">
+                <p class="text-[10px] font-extrabold text-orange-700 dark:text-orange-300 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-user"></i>Info Pelanggan</p>
+                <p class="text-xs text-slate-700 dark:text-slate-200 font-medium" id="dis-pelanggan-info">—</p>
+                <p class="text-[10px] text-slate-400" id="dis-alamat-info">—</p>
+              </div>
+              <!-- Form tambah perangkat -->
+              <div id="dismantle-perangkat-list" class="space-y-2">
+                <!-- Perangkat yang sudah ditambahkan muncul di sini -->
+              </div>
+              <!-- Input perangkat baru -->
+              <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-4 space-y-3 border border-slate-200 dark:border-slate-600">
+                <p class="text-xs font-extrabold text-slate-600 dark:text-slate-300 flex items-center gap-2"><i class="fa-solid fa-plus text-orange-500"></i>Tambah Perangkat</p>
+                <div class="grid grid-cols-2 gap-2">
+                  <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Serial Number <span class="text-rose-500">*</span></label><input type="text" id="dis-item-sn" placeholder="SN-xxx" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium uppercase"></div>
+                  <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Jenis <span class="text-rose-500">*</span></label>
+                    <select id="dis-item-jenis" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold">
+                      <option value="Modem/ONT">Modem / ONT</option>
+                      <option value="Kabel Dropcore">Kabel Dropcore</option>
+                      <option value="Kabel RJ45">Kabel RJ45</option>
+                      <option value="Access Point">Access Point</option>
+                      <option value="STB">STB</option>
+                      <option value="Lainnya">Lainnya</option>
+                    </select>
+                  </div>
+                  <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Merk / Model</label><input type="text" id="dis-item-merk" placeholder="ZTE F609" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                  <div><label class="block text-[10px] font-bold text-slate-500 uppercase mb-1">Kondisi Fisik</label>
+                    <select id="dis-item-kondisi" class="w-full p-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold">
+                      <option value="Dismantle">Dismantle (Normal)</option>
+                      <option value="Rusak">Rusak / Tidak Berfungsi</option>
+                    </select>
+                  </div>
+                </div>
+                <button type="button" onclick="addDismantleItem()" class="w-full py-2 bg-orange-500 hover:bg-orange-600 text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5">
+                  <i class="fa-solid fa-plus"></i>Tambah ke Daftar
+                </button>
+              </div>
+              <!-- Submit -->
+              <button type="button" onclick="submitDismantleForm()" id="btn-submit-dismantle"
+                class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+                <i class="fa-solid fa-circle-check"></i>Selesai & Kirim ke NOC
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- ===== NOC ===== -->
@@ -635,6 +827,7 @@
             <button type="button" onclick="switchSubNOC('pickup-noc')" id="sub-noc-pickup-noc" class="snpill active"><i class="fa-solid fa-inbox text-amber-500"></i><span>Pickup</span></button>
             <button type="button" onclick="switchSubNOC('tugas-noc')" id="sub-noc-tugas-noc" class="snpill"><i class="fa-solid fa-headset text-violet-600 dark:text-violet-400"></i><span>Tugas Saya</span></button>
             <button type="button" onclick="switchSubNOC('registrasi-noc')" id="sub-noc-registrasi-noc" class="snpill"><i class="fa-solid fa-server text-indigo-500"></i><span>Registrasi</span></button>
+            <button type="button" onclick="switchSubNOC('checking-dismantle')" id="sub-noc-checking-dismantle" class="snpill"><i class="fa-solid fa-magnifying-glass text-orange-500"></i><span>Checking</span></button>
             <button type="button" onclick="switchSubNOC('riwayat-noc')" id="sub-noc-riwayat-noc" class="snpill"><i class="fa-solid fa-clock-rotate-left text-slate-500"></i><span>Riwayat</span></button>
           </div>
         </div>
@@ -663,12 +856,12 @@
           </div>
           <div id="view-noc-form" class="hidden">
             <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 lg:p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-              <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
-                <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-headset text-violet-600"></i>Penanganan NOC</h2>
-                <p class="text-xs text-slate-400" id="noc-wo-info-form">WO ID: --</p>
+              <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between gap-3">
+                <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-headset text-violet-600"></i>Penanganan NOC</h2><p class="text-xs text-slate-400" id="noc-wo-info-form">WO ID: --</p></div>
+                <button type="button" onclick="closeNOCForm()" class="shrink-0 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 dark:bg-slate-700 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold transition-all flex items-center gap-1"><i class="fa-solid fa-arrow-left text-xs"></i>Kembali</button>
               </div>
               <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-3 space-y-1">
-                <p class="text-[10px] font-extrabold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i>Kendala dari CS</p>
+                <p class="text-[10px] font-extrabold text-amber-700 dark:text-amber-300 uppercase tracking-wider flex items-center gap-1.5"><i class="fa-solid fa-triangle-exclamation"></i>Keterangan Kerusakan dari CS</p>
                 <p class="text-xs text-slate-700 dark:text-slate-200 font-medium" id="noc-kendala-info-form">—</p>
               </div>
               <!-- Foto kendala dari CS -->
@@ -720,6 +913,25 @@
           </div>
         </div>
 
+        <!-- CHECKING DISMANTLE NOC -->
+        <div id="sub-content-checking-dismantle" class="sub-noc-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-magnifying-glass text-orange-500"></i>Checking Perangkat Dismantle</h2><p class="text-xs text-slate-400">Periksa kondisi perangkat yang masuk dari teknisi</p></div>
+              <button type="button" onclick="loadCheckingDismantle()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <!-- Filter -->
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="filterCheckingDismantle('PENDING')" id="filter-chk-PENDING" class="filter-chk-btn active px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-800 text-white">Pending</button>
+              <button onclick="filterCheckingDismantle('BERFUNGSI')" id="filter-chk-BERFUNGSI" class="filter-chk-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Berfungsi</button>
+              <button onclick="filterCheckingDismantle('RUSAK')" id="filter-chk-RUSAK" class="filter-chk-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Rusak</button>
+            </div>
+            <div id="checking-dismantle-list" class="space-y-3 max-h-96 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-6">Klik Refresh untuk memuat perangkat dismantle.</p>
+            </div>
+          </div>
+        </div>
+
         <!-- RIWAYAT NOC -->
         <div id="sub-content-riwayat-noc" class="sub-noc-content hidden space-y-3">
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
@@ -750,7 +962,38 @@
               <button type="button" onclick="checkAndScanSN()" class="px-4 py-3 bg-slate-700 hover:bg-slate-800 text-white font-bold text-xs rounded-2xl shadow-md transition-all shrink-0"><i class="fa-solid fa-magnifying-glass"></i></button>
             </div>
             <div id="scan-result-card" class="hidden p-4 rounded-2xl border transition-all"><p id="scan-result-status" class="text-xs font-bold"></p><p id="scan-result-details" class="text-[11px] text-slate-500 dark:text-slate-400 mt-1"></p></div>
-            <button type="button" id="btn-submit-pickup-mat" onclick="submitPickupMaterial()" class="hidden w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-hand-holding-hand"></i>Minta Approval Pickup</button>
+            <!-- INPUT METERAN KABEL — muncul hanya saat SN kabel -->
+            <div id="meter-kabel-wrap" class="hidden bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-4 space-y-3">
+              <p class="text-xs font-extrabold text-amber-700 dark:text-amber-300 flex items-center gap-2"><i class="fa-solid fa-ruler"></i>Pengambilan Kabel (per gulungan)</p>
+              <div class="grid grid-cols-2 gap-3">
+                <div>
+                  <label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Dari Meter <span class="text-slate-400">(otomatis)</span></label>
+                  <input type="number" id="input-meter-dari" readonly
+                    class="w-full p-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-extrabold text-slate-600 dark:text-slate-300 cursor-not-allowed">
+                </div>
+                <div>
+                  <label class="block text-[10px] font-extrabold text-slate-500 uppercase mb-1">Sampai Meter <span class="text-rose-500">*</span></label>
+                  <input type="number" id="input-meter-sampai" placeholder="cth: 120" min="0" oninput="hitungMeterKabel()"
+                    class="w-full p-2.5 bg-white dark:bg-slate-700 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-extrabold focus:outline-none focus:border-amber-500 text-slate-800 dark:text-slate-100">
+                </div>
+              </div>
+              <div id="meter-preview" class="hidden bg-white dark:bg-slate-800 rounded-xl p-2.5 border border-amber-200 dark:border-amber-700">
+                <p class="text-[11px] text-slate-600 dark:text-slate-300">
+                  Total diambil: <strong id="meter-total-text" class="text-emerald-600 text-sm">0m</strong>
+                  <span class="text-slate-400 mx-2">|</span>
+                  Sisa di gudang setelah ini: <strong id="meter-sisa-text" class="text-amber-600">-</strong>
+                </p>
+              </div>
+            </div>
+            <button type="button" id="btn-submit-pickup-mat" onclick="addPickupDraft()" class="hidden w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-plus"></i>Tambah ke Daftar Pickup</button>
+            <div id="pickup-draft-panel" class="hidden border-t border-slate-100 dark:border-slate-700 pt-4 space-y-3">
+              <div class="flex items-center justify-between gap-2">
+                <div><p class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Daftar Pickup</p><p class="text-[10px] text-slate-400">Periksa perangkat sebelum mengirim request.</p></div>
+                <span id="pickup-draft-count" class="px-2 py-1 rounded-full bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 text-[10px] font-extrabold">0 perangkat</span>
+              </div>
+              <div id="pickup-draft-list" class="space-y-2"></div>
+              <button type="button" id="btn-submit-pickup-batch" onclick="submitPickupMaterial()" class="w-full py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i>Ajukan Semua Pickup</button>
+            </div>
           </div>
         </div>
         <div id="sub-mat-content-waiting-approval" class="sub-mat-content hidden space-y-3">
@@ -784,9 +1027,9 @@
             <div class="space-y-3">
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih Perangkat <span class="text-rose-500">*</span></label>
-                <select id="send-sn-select" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold">
-                  <option value="" disabled selected>-- Pilih SN Perangkat --</option>
+                <select id="send-sn-select" multiple size="5" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold">
                 </select>
+                <p class="text-[10px] text-slate-400 mt-1">Tekan Ctrl/Cmd untuk memilih beberapa perangkat.</p>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Transfer Ke <span class="text-rose-500">*</span></label>
@@ -811,9 +1054,9 @@
             <div class="space-y-3">
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Pilih Perangkat <span class="text-rose-500">*</span></label>
-                <select id="return-sn-select" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold">
-                  <option value="" disabled selected>-- Pilih SN Perangkat --</option>
+                <select id="return-sn-select" multiple size="5" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold">
                 </select>
+                <p class="text-[10px] text-slate-400 mt-1">Tekan Ctrl/Cmd untuk memilih beberapa perangkat.</p>
               </div>
               <div>
                 <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alasan Return <span class="text-rose-500">*</span></label>
@@ -852,8 +1095,8 @@
               <label class="block text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Nama Karyawan <span class="text-rose-500">*</span></label>
               <div class="relative">
                 <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div>
-                <select id="employeeName" onchange="autoSelectRoleByName(this.value)" required class="w-full pl-10 pr-8 py-3 bg-slate-50/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-emerald-600 transition-all appearance-none"></select>
-                <div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-chevron-down text-xs"></i></div>
+                <input type="text" id="employeeName" readonly
+                  class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed">
               </div>
             </div>
             <!-- DIVISI -->
@@ -940,7 +1183,7 @@
         <div id="sub-abs-content-izin-sakit" class="sub-abs-content hidden">
           <form id="form-sakit" onsubmit="handleLeaveSubmit(event,'Izin Sakit')" class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
             <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-notes-medical text-rose-500"></i>Form Izin Sakit</h2></div>
-            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><select name="nama" required class="employee-select-sakit w-full pl-10 pr-8 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-rose-500 appearance-none"></select><div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-chevron-down text-xs"></i></div></div></div>
+            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><input type="text" id="izin-sakit-nama" name="nama" readonly class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Keterangan Sakit <span class="text-rose-500">*</span></label><textarea name="keterangan" required rows="3" placeholder="Demam / Flu berat / Dirawat..." class="w-full p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-rose-500 resize-none"></textarea></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Ada Surat Dokter?</label><div class="grid grid-cols-2 gap-2">
               <button type="button" onclick="setSickDocStatus(true,this)" id="btn-ada-surat" class="sick-doc-btn py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all"><i class="fa-solid fa-file-medical"></i>Ada Surat</button>
@@ -957,7 +1200,7 @@
         <div id="sub-abs-content-izin-cuti" class="sub-abs-content hidden">
           <form id="form-cuti" onsubmit="handleLeaveSubmit(event,'Izin Cuti')" class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
             <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-minus text-indigo-600"></i>Form Izin Cuti</h2></div>
-            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><select name="nama" required class="employee-select-cuti w-full pl-10 pr-8 py-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-indigo-600 appearance-none"></select><div class="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-chevron-down text-xs"></i></div></div></div>
+            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><input type="text" id="izin-cuti-nama" name="nama" readonly class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Alasan Cuti <span class="text-rose-500">*</span></label><textarea name="keterangan" required rows="3" placeholder="Keperluan keluarga..." class="w-full p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-indigo-600 resize-none"></textarea></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Surat Cuti (TTD Supervisor) <span class="text-rose-500">*</span></label><div class="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 text-center relative bg-indigo-50/30 dark:bg-indigo-950/20"><i class="fa-solid fa-file-signature text-2xl text-indigo-500 mb-1"></i><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300" id="label-file-cuti">Upload Surat Cuti</p><p class="text-[10px] text-slate-400">Harus ada TTD Supervisor</p><input type="file" name="file" required accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer" onchange="updateFileName(this,'label-file-cuti')"></div></div>
             <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-3"><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300">Estimasi Point: <span class="text-lg font-black">5 poin</span></p></div>
@@ -1006,27 +1249,39 @@
 
       <!-- ===== ADMIN ===== -->
       <div id="section-admin" class="main-section hidden space-y-4 fade-up">
+        <!-- ADMIN NAV: 2 MENU UTAMA -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-          <div class="subnav-wrap">
-            <button type="button" onclick="switchSubAdmin('buat-tugas')" id="sub-adm-buat-tugas" class="snpill active"><i class="fa-solid fa-plus-circle text-blue-600 dark:text-blue-400"></i><span>Buat Tugas</span></button>
-            <button type="button" onclick="switchSubAdmin('registrasi')" id="sub-adm-registrasi" class="snpill"><i class="fa-solid fa-server text-indigo-500"></i><span>Registrasi</span></button>
-            <button type="button" onclick="switchSubAdmin('tambah-perangkat')" id="sub-adm-tambah-perangkat" class="snpill"><i class="fa-solid fa-plus-square text-emerald-500"></i><span>Tambah Perangkat</span></button>
-            <button type="button" onclick="switchSubAdmin('list-perangkat')" id="sub-adm-list-perangkat" class="snpill"><i class="fa-solid fa-cubes text-slate-500"></i><span>List Perangkat</span></button>
-            <button type="button" onclick="switchSubAdmin('approval-pickup')" id="sub-adm-approval-pickup" class="snpill"><i class="fa-solid fa-user-check text-amber-500"></i><span>Approval</span></button>
-            <button type="button" onclick="switchSubAdmin('tracking-perangkat')" id="sub-adm-tracking-perangkat" class="snpill"><i class="fa-solid fa-route text-rose-500"></i><span>Tracking</span></button>
+          <div class="subnav-wrap" id="subnav-admin-main">
+            <button type="button" onclick="switchAdminMenu('tugas')" id="admin-menu-tugas" class="snpill active"><i class="fa-solid fa-list-check text-blue-600 dark:text-blue-400"></i><span>Tugas</span></button>
+            <button type="button" onclick="switchAdminMenu('asset')" id="admin-menu-asset" class="snpill"><i class="fa-solid fa-boxes-packing text-emerald-500"></i><span>Asset</span></button>
           </div>
         </div>
 
-        <!-- BUAT TUGAS: sub-nav + 2 konten -->
-        <div id="sub-adm-content-buat-tugas" class="sub-adm-content space-y-3">
-          <!-- SUB-NAV -->
-          <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
-            <div class="subnav-wrap" id="subnav-buat-tugas">
-              <button type="button" onclick="switchSubBuatTugas('form-wo')" id="sub-bt-form-wo" class="snpill active"><i class="fa-solid fa-plus-circle text-blue-600 dark:text-blue-400"></i><span>Buat WO</span></button>
-              <button type="button" onclick="switchSubBuatTugas('list-tiket')" id="sub-bt-list-tiket" class="snpill"><i class="fa-solid fa-list-check text-slate-500"></i><span>List Tiket</span></button>
-            </div>
+        <!-- MENU TUGAS: sub-nav -->
+        <div id="admin-sub-tugas" class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap">
+            <button type="button" onclick="switchSubAdmin('buat-tugas')" id="sub-adm-buat-tugas" class="snpill active"><i class="fa-solid fa-plus-circle text-blue-600 dark:text-blue-400"></i><span>Buat WO</span></button>
+            <button type="button" onclick="switchSubAdmin('buat-dismantle')" id="sub-adm-buat-dismantle" class="snpill"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i><span>Dismantle</span></button>
+            <button type="button" onclick="switchSubAdmin('list-tiket')" id="sub-adm-list-tiket" class="snpill"><i class="fa-solid fa-list-check text-slate-500"></i><span>List Tiket</span></button>
+            <button type="button" onclick="switchSubAdmin('list-tiket-dismantle')" id="sub-adm-list-tiket-dismantle" class="snpill"><i class="fa-solid fa-clipboard-list text-orange-400"></i><span>List Dismantle</span></button>
+            <button type="button" onclick="switchSubAdmin('rl-radius')" id="sub-adm-rl-radius" class="snpill"><i class="fa-solid fa-network-wired text-violet-500"></i><span>RL Radius</span></button>
+            <button type="button" onclick="switchSubAdmin('registrasi')" id="sub-adm-registrasi" class="snpill"><i class="fa-solid fa-server text-indigo-500"></i><span>Registrasi</span></button>
           </div>
+        </div>
 
+        <!-- MENU ASSET: sub-nav -->
+        <div id="admin-sub-asset" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap">
+            <button type="button" onclick="switchSubAdmin('tambah-perangkat')" id="sub-adm-tambah-perangkat" class="snpill active"><i class="fa-solid fa-plus-square text-emerald-500"></i><span>Tambah</span></button>
+            <button type="button" onclick="switchSubAdmin('list-perangkat')" id="sub-adm-list-perangkat" class="snpill"><i class="fa-solid fa-cubes text-slate-500"></i><span>List</span></button>
+            <button type="button" onclick="switchSubAdmin('list-rusak')" id="sub-adm-list-rusak" class="snpill"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i><span>Rusak</span></button>
+            <button type="button" onclick="switchSubAdmin('dismantle-items')" id="sub-adm-dismantle-items" class="snpill"><i class="fa-solid fa-boxes-packing text-orange-500"></i><span>Dismantle</span></button>
+            <button type="button" onclick="switchSubAdmin('approval-pickup')" id="sub-adm-approval-pickup" class="snpill"><i class="fa-solid fa-user-check text-amber-500"></i><span>Approval</span></button>
+          </div>
+        </div>
+
+        <!-- BUAT TUGAS: form WO langsung tanpa sub-nav -->
+        <div id="sub-adm-content-buat-tugas" class="sub-adm-content space-y-3">
           <!-- SUB: FORM BUAT WO -->
           <div id="sub-bt-content-form-wo" class="sub-bt-content">
             <form onsubmit="handleCreateTaskWithDB(event)" id="form-buat-wo" class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
@@ -1039,7 +1294,7 @@
               </div>
               <!-- T1 -->
               <div class="bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 rounded-2xl p-3 space-y-2">
-                <div class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-500"></i><label class="block text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase">T1 — Jam Permintaan Masuk <span class="text-rose-500">*</span></label></div>
+                <div class="flex items-center gap-2"><i class="fa-brands fa-whatsapp text-emerald-500"></i><label class="block text-xs font-extrabold text-slate-700 dark:text-slate-200 uppercase">Jam Permintaan Masuk (WA) <span class="text-rose-500">*</span></label></div>
                 <input type="time" id="wo-t1-time" required class="w-full p-2.5 bg-white dark:bg-slate-700 border border-amber-300 dark:border-amber-700 rounded-xl text-sm font-extrabold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-amber-500 tracking-widest">
               </div>
               <!-- TIPE WO — trigger show/hide field -->
@@ -1058,11 +1313,11 @@
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. HP <span class="text-rose-500">*</span></label><input type="tel" id="wo-nohp" placeholder="08xx-xxxx-xxxx" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat <span class="text-rose-500">*</span></label><textarea id="wo-alamat" rows="2" placeholder="Alamat lengkap..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
                 <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Registrasi (Rp)</label><input type="number" id="wo-registrasi" placeholder="50000" oninput="hitungTotalWO()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
-                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Paket Mbps (Rp)</label><input type="number" id="wo-paket" placeholder="150000" oninput="hitungTotalWO()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Registrasi (Rp)</label><input type="text" inputmode="numeric" id="wo-registrasi" placeholder="Rp 50.000" oninput="formatRupiahInput(this);hitungTotalWO()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Paket Mbps (Rp)</label><input type="text" inputmode="numeric" id="wo-paket" placeholder="Rp 150.000" oninput="formatRupiahInput(this);hitungTotalWO()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 </div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Paket</label><input type="text" id="wo-nama-paket" placeholder="Paket 20 Mbps" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Keseluruhan (Rp)</label><input type="number" id="wo-total" readonly placeholder="Auto dihitung" class="w-full p-2.5 bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-emerald-600"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Keseluruhan (Rp)</label><input type="text" id="wo-total" readonly placeholder="Rp 0" class="w-full p-2.5 bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-emerald-600"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Marketing</label><input type="text" id="wo-marketing" placeholder="Nama marketing" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Titik Koordinat <span class="text-rose-500">*</span></label><div class="flex gap-2"><input type="text" id="wo-koordinat-instalasi" placeholder="-6.xxxx, 106.xxxx" class="flex-1 p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"><button type="button" onclick="pasteGPSKoordinat('wo-koordinat-instalasi')" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-slate-200 dark:border-slate-600 rounded-xl text-[10px] font-bold text-slate-500 hover:text-blue-600 transition-all shrink-0" title="Deteksi GPS"><i class="fa-solid fa-crosshairs"></i></button></div></div>
                 <div class="grid grid-cols-2 gap-3">
@@ -1082,10 +1337,10 @@
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. HP <span class="text-rose-500">*</span></label><input type="tel" id="wo-nohp-reseller" placeholder="08xx-xxxx-xxxx" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat <span class="text-rose-500">*</span></label><textarea id="wo-alamat-reseller" rows="2" placeholder="Alamat reseller..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
                 <div class="grid grid-cols-2 gap-3">
-                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Registrasi (Rp)</label><input type="number" id="wo-registrasi-reseller" value="250000" oninput="hitungTotalWOReseller()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
-                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Paket Voucher (Rp)</label><input type="number" id="wo-paket-voucher" value="240000" oninput="hitungTotalWOReseller()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Registrasi (Rp)</label><input type="text" inputmode="numeric" id="wo-registrasi-reseller" value="Rp 250.000" oninput="formatRupiahInput(this);hitungTotalWOReseller()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                  <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Paket Voucher (Rp)</label><input type="text" inputmode="numeric" id="wo-paket-voucher" value="Rp 240.000" oninput="formatRupiahInput(this);hitungTotalWOReseller()" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 </div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Keseluruhan (Rp)</label><input type="number" id="wo-total-reseller" readonly placeholder="Auto dihitung" class="w-full p-2.5 bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-emerald-600"></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Total Keseluruhan (Rp)</label><input type="text" id="wo-total-reseller" readonly placeholder="Rp 490.000" class="w-full p-2.5 bg-slate-100 dark:bg-slate-600 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-emerald-600"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Marketing</label><input type="text" id="wo-marketing-reseller" placeholder="Nama marketing" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Titik Koordinat <span class="text-rose-500">*</span></label><div class="flex gap-2"><input type="text" id="wo-koordinat-reseller" placeholder="-6.xxxx, 106.xxxx" class="flex-1 p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"><button type="button" onclick="pasteGPSKoordinat('wo-koordinat-reseller')" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-slate-200 dark:border-slate-600 rounded-xl text-[10px] font-bold text-slate-500 hover:text-blue-600 transition-all shrink-0" title="Deteksi GPS"><i class="fa-solid fa-crosshairs"></i></button></div></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Status Koneksi</label><select id="wo-status-koneksi-reseller" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold"><option value="Reseller">Reseller</option><option value="Rumahan">Rumahan</option></select></div>
@@ -1093,7 +1348,17 @@
 
               <!-- === FIELDS: PERLUASAN RESELLER === -->
               <div id="wo-fields-perluasan" class="space-y-3 hidden">
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Reseller <span class="text-rose-500">*</span></label><input type="text" id="wo-reseller-perluasan" placeholder="Nama reseller" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Reseller <span class="text-rose-500">*</span></label>
+                  <div class="relative">
+                    <input type="text" id="wo-reseller-perluasan" placeholder="Pilih atau ketik nama reseller" autocomplete="off"
+                      onfocus="searchResellerPerluasan(this.value)" oninput="searchResellerPerluasan(this.value)"
+                      class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-500">
+                    <div id="wo-search-dropdown-reseller-perluasan" class="hidden absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"></div>
+                  </div>
+                  <p class="text-[10px] text-slate-400 mt-1">Pilih reseller yang sudah terdaftar agar nomor HP terisi otomatis.</p>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. HP Reseller <span class="text-rose-500">*</span></label><input type="tel" id="wo-nohp-perluasan" placeholder="08xx-xxxx-xxxx" autocomplete="tel" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Pelanggan <span class="text-rose-500">*</span></label><input type="text" id="wo-pelanggan-perluasan" placeholder="Nama pelanggan baru" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat <span class="text-rose-500">*</span></label><textarea id="wo-alamat-perluasan" rows="2" placeholder="Alamat pelanggan..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Jumlah Titik <span class="text-rose-500">*</span></label><input type="number" id="wo-titik-perluasan" placeholder="3" min="1" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
@@ -1103,10 +1368,21 @@
 
               <!-- === FIELDS: MAINTENANCE === -->
               <div id="wo-fields-maintenance" class="space-y-3 hidden">
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Pelanggan <span class="text-rose-500">*</span></label><input type="text" id="wo-pelanggan-maint" placeholder="Bpk. Hendra Wijaya" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+                <!-- SEARCH PELANGGAN -->
+                <div>
+                  <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Pelanggan <span class="text-rose-500">*</span></label>
+                  <div class="relative">
+                    <input type="text" id="wo-pelanggan-maint" placeholder="Ketik nama pelanggan..." autocomplete="off"
+                      oninput="searchPelangganWO(this.value,'maint')"
+                      class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500">
+                    <div id="wo-search-dropdown-maint" class="hidden absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"></div>
+                  </div>
+                  <div id="wo-maint-source-badge" class="hidden mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i><span>Data diambil dari riwayat instalasi</span><button type="button" onclick="clearPelangganMaint()" class="ml-auto text-rose-400 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button></div>
+                </div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. HP</label><input type="tel" id="wo-nohp-maint" placeholder="08xx-xxxx-xxxx" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat <span class="text-rose-500">*</span></label><textarea id="wo-alamat-maint" rows="2" placeholder="Alamat lengkap..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
                 <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Titik Koordinat <span class="text-rose-500">*</span></label><div class="flex gap-2"><input type="text" id="wo-koordinat-maint" placeholder="-6.xxxx, 106.xxxx" class="flex-1 p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"><button type="button" onclick="pasteGPSKoordinat('wo-koordinat-maint')" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 dark:hover:bg-blue-950/30 border border-slate-200 dark:border-slate-600 rounded-xl text-[10px] font-bold text-slate-500 hover:text-blue-600 transition-all shrink-0" title="Deteksi GPS"><i class="fa-solid fa-crosshairs"></i></button></div></div>
-                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Kendala <span class="text-rose-500">*</span></label><textarea id="wo-kendala-maint" rows="3" placeholder="Jelaskan kendala yang dialami pelanggan..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
+                <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Keterangan Kerusakan <span class="text-rose-500">*</span></label><textarea id="wo-kendala-maint" rows="3" placeholder="Jelaskan kerusakan atau keluhan pelanggan..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
                 <!-- FOTO/VIDEO KENDALA -->
                 <div>
                   <p class="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">Foto / Video Kendala <span class="text-slate-400 font-normal">(opsional, untuk diagnosa NOC)</span></p>
@@ -1128,40 +1404,166 @@
             </form>
           </div>
 
-          <!-- SUB: LIST TIKET -->
-          <div id="sub-bt-content-list-tiket" class="sub-bt-content hidden">
-            <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
-              <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
-                <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-slate-600 dark:text-slate-400"></i>List Tiket Aktif</h2><p class="text-[11px] text-slate-400">Semua WO dari database</p></div>
-                <button onclick="refreshAdminTicketList()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+        </div>
+
+        <!-- LIST TIKET (section mandiri) -->
+        <div id="sub-adm-content-list-tiket" class="sub-adm-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list-check text-slate-600 dark:text-slate-400"></i>List Tiket Aktif</h2><p class="text-[11px] text-slate-400">Semua WO dari database</p></div>
+              <button onclick="refreshAdminTicketList()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div class="flex flex-col gap-2">
+              <div class="flex gap-2 flex-wrap">
+                <select id="ticket-filter-status" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
+                  <option value="ALL">Semua Status</option>
+                  <option value="RELEASE">Release</option>
+                  <option value="PICKUP">Pickup</option>
+                  <option value="PROSES">Proses</option>
+                  <option value="SELESAI">Selesai</option>
+                  <option value="RETURN">Return</option>
+                </select>
+                <select id="ticket-filter-tipe" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
+                  <option value="ALL">Semua Tipe</option>
+                  <option value="INSTALASI">Instalasi</option>
+                  <option value="MAINTENANCE">Maintenance</option>
+                  <option value="GANGGUAN">Gangguan</option>
+                </select>
               </div>
-              <div class="flex flex-col gap-2">
-                <div class="flex gap-2 flex-wrap">
-                  <select id="ticket-filter-status" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
-                    <option value="ALL">Semua Status</option>
-                    <option value="RELEASE">Release</option>
-                    <option value="PICKUP">Pickup</option>
-                    <option value="PROSES">Proses</option>
-                    <option value="SELESAI">Selesai</option>
-                    <option value="RETURN">Return</option>
-                  </select>
-                  <select id="ticket-filter-tipe" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
-                    <option value="ALL">Semua Tipe</option>
-                    <option value="INSTALASI">Instalasi</option>
-                    <option value="MAINTENANCE">Maintenance</option>
-                    <option value="GANGGUAN">Gangguan</option>
-                  </select>
+              <div class="flex items-center gap-2 flex-wrap">
+                <input type="date" id="ticket-filter-date-from" onchange="filterTicketList()"
+                  aria-label="Tanggal mulai"
+                  class="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600">
+                <span class="text-xs text-slate-400 self-center">sampai</span>
+                <input type="date" id="ticket-filter-date-to" onchange="filterTicketList()"
+                  aria-label="Tanggal akhir"
+                  class="flex-1 min-w-[140px] px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600">
+              </div>
+              <button type="button" onclick="resetTicketFilters()"
+                class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-xl text-[10px] font-bold flex items-center gap-1 shrink-0 transition-all">
+                <i class="fa-solid fa-xmark"></i>Reset
+              </button>
+            </div>
+            <div id="admin-ticket-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST TIKET DISMANTLE (section mandiri) -->
+        <div id="sub-adm-content-list-tiket-dismantle" class="sub-adm-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-orange-500"></i>List Tiket Dismantle</h2><p class="text-[11px] text-slate-400">Semua tiket dismantle dari database</p></div>
+              <button onclick="loadListTiketDismantle()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div id="list-tiket-dismantle" class="space-y-2 max-h-[60vh] overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- INPUT RL RADIUS -->
+        <div id="sub-adm-content-rl-radius" class="sub-adm-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-network-wired text-violet-500"></i>Input RL Radius</h2><p class="text-[11px] text-slate-400">Input No. Layanan & konfirmasi RL Radius per tiket</p></div>
+              <button onclick="loadRLRadiusList()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="filterRLRadius('BELUM')" id="filter-rl-BELUM" class="filter-rl-btn active px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-800 text-white">Belum Input</button>
+              <button onclick="filterRLRadius('SUDAH')" id="filter-rl-SUDAH" class="filter-rl-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Sudah Input</button>
+              <button onclick="filterRLRadius('ALL')" id="filter-rl-ALL" class="filter-rl-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Semua</button>
+            </div>
+            <div id="rl-radius-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- BUAT TIKET DISMANTLE -->
+        <div id="sub-adm-content-buat-dismantle" class="sub-adm-content hidden space-y-4">
+          <form id="form-buat-dismantle" onsubmit="handleCreateDismantle(event)" class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i>Buat Tiket Dismantle</h2>
+              <p class="text-[11px] text-slate-400">Penarikan perangkat dari lokasi pelanggan</p>
+            </div>
+            <!-- CS Info -->
+            <div class="bg-orange-50 dark:bg-orange-950/40 border border-orange-100 dark:border-orange-900 rounded-2xl px-3 py-2.5 flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-xl bg-orange-500 text-white font-black text-xs flex items-center justify-center shrink-0" id="dis-cs-avatar">--</div>
+              <div><p class="text-xs font-extrabold text-slate-800 dark:text-slate-100" id="dis-cs-name">--</p><p class="text-[10px] text-orange-600 dark:text-orange-400 font-semibold">CS pembuat tiket</p></div>
+              <span class="ml-auto text-[10px] bg-orange-500 text-white font-bold px-2 py-0.5 rounded-full" id="dis-timestamp-now">--</span>
+            </div>
+            <!-- FIELDS -->
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase mb-1">Nama Pelanggan <span class="text-rose-500">*</span></label>
+                <div class="relative">
+                  <input type="text" id="dis-nama-pelanggan" required placeholder="Ketik nama pelanggan..." autocomplete="off"
+                    oninput="searchPelangganWO(this.value,'dis')"
+                    class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500">
+                  <div id="wo-search-dropdown-dis" class="hidden absolute z-20 left-0 right-0 top-full mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"></div>
                 </div>
-                <input type="date" id="ticket-filter-date" onchange="filterTicketList()"
-                  class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600">
-                <button onclick="document.getElementById('ticket-filter-date').value='';refreshAdminTicketList()"
-                  class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-500 dark:text-slate-400 rounded-xl text-[10px] font-bold flex items-center gap-1 shrink-0 transition-all">
-                  <i class="fa-solid fa-xmark"></i>Reset
-                </button>
+                <div id="wo-dis-source-badge" class="hidden mt-1.5 flex items-center gap-1.5 text-[10px] text-emerald-600 font-bold"><i class="fa-solid fa-circle-check"></i><span>Data diambil dari riwayat instalasi</span><button type="button" onclick="clearPelangganDis()" class="ml-auto text-rose-400 hover:text-rose-600"><i class="fa-solid fa-xmark"></i></button></div>
               </div>
-              <div id="admin-ticket-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
-                <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. Layanan</label><input type="text" id="dis-no-layanan" placeholder="Terisi otomatis dari data pelanggan atau isi manual" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. Telepon</label><input type="tel" id="dis-no-telp" placeholder="Terisi otomatis atau isi manual" class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium"></div>
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alamat <span class="text-rose-500">*</span></label><textarea id="dis-alamat" required rows="2" placeholder="Terisi otomatis atau isi manual..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium resize-none"></textarea></div>
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Titik Koordinat <span class="text-rose-500">*</span></label>
+                <div class="flex gap-2">
+                  <input type="text" id="dis-koordinat" required placeholder="Terisi otomatis atau input manual" class="flex-1 p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium">
+                  <button type="button" onclick="pasteGPSKoordinat('dis-koordinat')" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-blue-50 border border-slate-200 dark:border-slate-600 rounded-xl text-[10px] font-bold text-slate-500 hover:text-blue-600 transition-all shrink-0" title="Deteksi GPS"><i class="fa-solid fa-crosshairs"></i></button>
+                </div>
               </div>
+            </div>
+            <div class="bg-orange-50 dark:bg-orange-950/30 border border-orange-200 dark:border-orange-800 rounded-2xl p-3 text-[11px] text-orange-700 dark:text-orange-300 flex items-start gap-2">
+              <i class="fa-solid fa-circle-info mt-0.5 shrink-0"></i>
+              <span>Tiket dismantle akan masuk ke <strong>Pickup Tugas Dismantle</strong> teknisi.</span>
+            </div>
+            <button type="submit" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+              <i class="fa-solid fa-paper-plane"></i>Release Tiket Dismantle
+            </button>
+          </form>
+          <!-- LIST TIKET DISMANTLE AKTIF -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list text-orange-500"></i>Tiket Dismantle Aktif</h2><p class="text-[11px] text-slate-400">Tiket yang belum selesai diproses</p></div>
+              <button onclick="loadTiketDismantleAdmin()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div id="tiket-dismantle-admin-list" class="space-y-2 max-h-72 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST DISMANTLE ITEMS (Asset) -->
+        <div id="sub-adm-content-dismantle-items" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-boxes-packing text-orange-500"></i>Perangkat Dismantle</h2><p class="text-[11px] text-slate-400">Perangkat hasil dismantle — menunggu pengecekan NOC</p></div>
+              <button onclick="loadDismantleItems()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div class="flex gap-2 flex-wrap">
+              <button onclick="filterDismantleItems('ALL')" id="filter-dis-ALL" class="filter-dis-btn active px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-800 bg-slate-800 text-white">Semua</button>
+              <button onclick="filterDismantleItems('PENDING')" id="filter-dis-PENDING" class="filter-dis-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100">Pending NOC</button>
+              <button onclick="filterDismantleItems('BERFUNGSI')" id="filter-dis-BERFUNGSI" class="filter-dis-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100">Berfungsi</button>
+              <button onclick="filterDismantleItems('RUSAK')" id="filter-dis-RUSAK" class="filter-dis-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100">Rusak</button>
+            </div>
+            <div id="dismantle-items-list" class="space-y-2 max-h-96 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIST PERANGKAT RUSAK -->
+        <div id="sub-adm-content-list-rusak" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i>Perangkat Rusak</h2><p class="text-[11px] text-slate-400">Perangkat yang dinyatakan rusak oleh NOC</p></div>
+              <button onclick="loadListPerangkatRusak()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div id="list-perangkat-rusak" class="space-y-2 max-h-96 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
             </div>
           </div>
         </div>
@@ -1241,6 +1643,26 @@
               </table>
             </div>
           </div>
+          <!-- TRACKING LOG PERANGKAT (digabung ke List) -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-route text-blue-600"></i>Tracking Log Perangkat</h2>
+              <button onclick="loadLogPerangkat()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+            </div>
+            <div id="admin-tracking-list" class="space-y-2 max-h-72 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
+            </div>
+          </div>
+          <!-- REKAP KABEL -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ruler text-emerald-600"></i>Rekap Penggunaan Kabel</h2><p class="text-[11px] text-slate-400">Per SN kabel — total terpakai & daftar pelanggan</p></div>
+              <button onclick="loadRekapKabel()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+            </div>
+            <div id="rekap-kabel-list" class="space-y-3 max-h-96 overflow-y-auto">
+              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat rekap.</p>
+            </div>
+          </div>
         </div>
 
         <!-- APPROVAL -->
@@ -1266,28 +1688,6 @@
           </div>
         </div>
 
-        <!-- TRACKING -->
-        <div id="sub-adm-content-tracking-perangkat" class="sub-adm-content hidden space-y-3">
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
-              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-route text-blue-600"></i>Tracking Log Perangkat</h2>
-              <button onclick="loadLogPerangkat()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
-            </div>
-            <div id="admin-tracking-list" class="space-y-2 max-h-72 overflow-y-auto">
-              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
-            </div>
-          </div>
-          <!-- REKAP KABEL -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
-              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ruler text-emerald-600"></i>Rekap Penggunaan Kabel</h2><p class="text-[11px] text-slate-400">Per SN kabel — total terpakai & daftar pelanggan</p></div>
-              <button onclick="loadRekapKabel()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
-            </div>
-            <div id="rekap-kabel-list" class="space-y-3 max-h-96 overflow-y-auto">
-              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat rekap.</p>
-            </div>
-          </div>
-        </div>
       </div>
 
       <!-- ===== ASSET ODP ===== -->
@@ -1321,13 +1721,20 @@
 
       <!-- ===== KPI (Supervisor) ===== -->
       <div id="section-kpi" class="main-section hidden space-y-4 fade-up">
-        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
-          <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ranking-star text-amber-500"></i>KPI Performance Board</h2><p class="text-[11px] text-slate-400">Monitoring SLA Tim Admin & Teknisi</p></div>
-          <div class="flex items-center gap-2">
-            <select id="kpi-month-select" onchange="renderKPI()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option></select>
-            <select id="kpi-year-select" onchange="renderKPI()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap">
+            <button type="button" onclick="switchSubKPI('performance')" id="sub-kpi-performance" class="snpill sub-kpi-pill active"><i class="fa-solid fa-chart-line text-amber-500"></i><span>Performance</span></button>
+            <button type="button" onclick="switchSubKPI('aturan-point')" id="sub-kpi-aturan-point" class="snpill sub-kpi-pill"><i class="fa-solid fa-circle-info text-blue-500"></i><span>Aturan Sistem Point</span></button>
           </div>
         </div>
+        <div id="sub-kpi-content-performance" class="sub-kpi-content space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
+            <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ranking-star text-amber-500"></i>KPI Performance Board</h2><p class="text-[11px] text-slate-400">Monitoring SLA Tim Admin & Teknisi</p></div>
+            <div class="flex items-center gap-2">
+              <select id="kpi-month-select" onchange="changeKPIPeriod()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="0">Jan</option><option value="1">Feb</option><option value="2">Mar</option><option value="3">Apr</option><option value="4">Mei</option><option value="5">Jun</option><option value="6">Jul</option><option value="7">Agu</option><option value="8">Sep</option><option value="9">Okt</option><option value="10">Nov</option><option value="11">Des</option></select>
+              <select id="kpi-year-select" onchange="changeKPIPeriod()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
+            </div>
+          </div>
         <!-- KARTU TOTAL POINT -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-5 text-white shadow-md space-y-2 relative overflow-hidden">
@@ -1341,8 +1748,8 @@
             <div class="absolute -right-3 -bottom-4 opacity-10 pointer-events-none"><i class="fa-solid fa-screwdriver-wrench text-8xl"></i></div>
             <p class="text-[10px] font-extrabold tracking-wider uppercase text-blue-200">Total Point Teknisi</p>
             <p id="kpi-tek-total-point" class="text-5xl font-black leading-none">--</p>
-            <p class="text-[11px] text-blue-200">dari <span id="kpi-tek-total-tiket" class="font-bold text-white">--</span> tiket selesai</p>
-            <div class="pt-2 border-t border-white/20 flex justify-between"><span class="text-[10px] text-blue-200">Rata-rata/tiket</span><span id="kpi-tek-avg-per-tiket" class="text-sm font-black">-- poin</span></div>
+            <p class="text-[11px] text-blue-200">dari <span id="kpi-tek-total-tiket" class="font-bold text-white">--</span> assignment anggota</p>
+            <div class="pt-2 border-t border-white/20 flex justify-between"><span class="text-[10px] text-blue-200">Rata-rata/assignment</span><span id="kpi-tek-avg-per-tiket" class="text-sm font-black">-- poin</span></div>
           </div>
         </div>
         <!-- KARTU SLA -->
@@ -1358,7 +1765,7 @@
             </div>
           </div>
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700"><div class="flex items-center gap-2"><div class="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400"><i class="fa-solid fa-screwdriver-wrench text-base"></i></div><div><p class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Tim Teknisi</p><p class="text-[10px] text-slate-400">SLA: &lt; 15 menit</p></div></div><div id="kpi-teknisi-badge" class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-500">-- Tiket</div></div>
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700"><div class="flex items-center gap-2"><div class="w-9 h-9 rounded-2xl bg-blue-100 dark:bg-blue-950/60 flex items-center justify-center text-blue-600 dark:text-blue-400"><i class="fa-solid fa-screwdriver-wrench text-base"></i></div><div><p class="text-xs font-extrabold text-slate-800 dark:text-slate-100">Tim Teknisi</p><p class="text-[10px] text-slate-400">Target: 90 mnt / Maintenance 60 mnt</p></div></div><div id="kpi-teknisi-badge" class="px-3 py-1 rounded-full text-[10px] font-extrabold bg-slate-100 text-slate-500">-- Assignment</div></div>
             <div class="flex items-end justify-between"><div><p class="text-[10px] text-slate-400 uppercase">Rata-rata Point</p><p id="kpi-teknisi-avg-point" class="text-4xl font-black text-slate-900 dark:text-white mt-1">--</p></div><div class="text-right"><div class="text-[11px] text-slate-500">Rata-rata Durasi</div><div id="kpi-teknisi-avg-dur" class="text-lg font-black text-blue-600 dark:text-blue-400">-- mnt</div></div></div>
             <div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2.5"><div id="kpi-teknisi-bar" class="h-2.5 rounded-full bg-blue-500 transition-all duration-700" style="width:0%"></div></div>
             <div class="grid grid-cols-3 gap-2 text-center text-[10px]">
@@ -1370,7 +1777,7 @@
         </div>
         <!-- TABEL POINT INDIVIDU (kehadiran + kinerja) -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-          <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Point Per Individu — Kehadiran & Kinerja</h2><p class="text-[11px] text-slate-400">Akumulasi point kehadiran dan KPI kerja per orang bulan ini</p></div>
+          <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Point Per Individu — Kehadiran & Kinerja</h2><p class="text-[11px] text-slate-400">Akumulasi point kehadiran dan KPI kerja per orang pada periode terpilih</p></div>
           <div class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700">
             <table class="w-full text-left border-collapse">
               <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
@@ -1385,17 +1792,69 @@
         <!-- DETAIL TIKET -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3"><div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Detail KPI Per Tiket WO</h2></div><button type="button" onclick="exportKPIData()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-file-export"></i>Export</button></div>
-          <div class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700">
-            <table class="w-full text-left border-collapse"><thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700"><th class="py-3 px-3">Tiket</th><th class="py-3 px-3">Pelanggan</th><th class="py-3 px-3 text-center">CS</th><th class="py-3 px-3 text-center">T1</th><th class="py-3 px-3 text-center">T2</th><th class="py-3 px-3 text-center">Dur.Admin</th><th class="py-3 px-3 text-center">Poin Admin</th><th class="py-3 px-3 text-center">Teknisi</th><th class="py-3 px-3 text-center">T4</th><th class="py-3 px-3 text-center">Dur.Tek</th><th class="py-3 px-3 text-center">Poin Tek</th></tr></thead>
-            <tbody id="kpi-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200"><tr><td colspan="11" class="text-center py-8 text-slate-400 text-xs">Belum ada data.</td></tr></tbody></table>
+          <div class="overflow-x-auto overflow-y-auto max-h-[60vh] rounded-2xl border border-slate-100 dark:border-slate-700">
+            <table class="w-full text-left border-collapse"><thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700"><th class="py-3 px-3">Tiket</th><th class="py-3 px-3">Pelanggan</th><th class="py-3 px-3 text-center">CS</th><th class="py-3 px-3 text-center">Durasi Rilis–Selesai</th><th class="py-3 px-3 text-center">Poin Admin</th><th class="py-3 px-3 text-center">Teknisi</th><th class="py-3 px-3 text-center">Poin Tek</th></tr></thead>
+            <tbody id="kpi-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200"><tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Belum ada data.</td></tr></tbody></table>
           </div>
         </div>
-        <!-- HISTORI -->
+      </div>
+
+      <div id="sub-kpi-content-aturan-point" class="sub-kpi-content hidden space-y-4">
         <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-          <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clock-rotate-left text-slate-500"></i>Histori KPI Bulanan</h2></div>
-          <div id="kpi-history-list" class="space-y-2"><p class="text-xs text-slate-400 text-center py-4">Belum ada histori.</p></div>
+          <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-circle-info text-blue-500"></i>Aturan Sistem Point</h2>
+            <p class="text-[11px] text-slate-400">Pedoman perhitungan point kehadiran dan kinerja pada periode terpilih</p>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div class="rounded-2xl border border-amber-100 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
+              <h3 class="text-xs font-extrabold text-amber-700 dark:text-amber-300 flex items-center gap-2"><i class="fa-solid fa-user-check"></i>Point Kehadiran Harian</h3>
+              <div class="grid grid-cols-2 gap-2 text-[11px]">
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Tepat waktu</p><p class="text-lg font-black text-emerald-600">10 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat &lt; 30 menit</p><p class="text-lg font-black text-amber-600">7 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat 30–59 menit</p><p class="text-lg font-black text-amber-600">5 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat ≥ 60 menit</p><p class="text-lg font-black text-rose-600">3 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit + surat</p><p class="text-lg font-black text-blue-600">6 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit tanpa surat</p><p class="text-lg font-black text-blue-600">4 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin cuti</p><p class="text-lg font-black text-indigo-600">5 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Alpa/status lainnya</p><p class="text-lg font-black text-slate-600">0 point</p></div>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-indigo-100 dark:border-indigo-900 bg-indigo-50/70 dark:bg-indigo-950/20 p-4 space-y-3">
+              <h3 class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-calendar-check"></i>Akumulasi Kehadiran Bulanan</h3>
+              <ul class="space-y-2 text-[11px] text-slate-600 dark:text-slate-300 list-disc pl-4">
+                <li>Point dijumlahkan berdasarkan bulan dan tahun yang dipilih pada filter KPI.</li>
+                <li>Point maksimal = jumlah hari kerja Senin–Jumat × 10.</li>
+                <li>Bonus <strong>+10 point</strong> diberikan jika seluruh hari kerja tercatat tepat waktu.</li>
+                <li>Grade kehadiran: <strong>A ≥ 90%</strong>, <strong>B ≥ 75%</strong>, <strong>C ≥ 60%</strong>, dan <strong>D &lt; 60%</strong>.</li>
+              </ul>
+            </div>
+            <div class="rounded-2xl border border-purple-100 dark:border-purple-900 bg-purple-50/70 dark:bg-purple-950/20 p-4 space-y-3">
+              <h3 class="text-xs font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-2"><i class="fa-solid fa-headset"></i>Point Kinerja Admin/CS</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300">Durasi dihitung dari <strong>WA masuk sampai Rilis</strong>.</p>
+              <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-3 text-[11px] space-y-1.5">
+                <p><strong>&lt; 5 menit:</strong> 10 point</p>
+                <p><strong>≥ 5 menit:</strong> point berkurang 2 setiap kelipatan 2 menit</p>
+                <p><strong>Minimum:</strong> 1 point</p>
+              </div>
+            </div>
+            <div class="rounded-2xl border border-blue-100 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
+              <h3 class="text-xs font-extrabold text-blue-700 dark:text-blue-300 flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench"></i>Point Kinerja Teknisi</h3>
+              <p class="text-[11px] text-slate-600 dark:text-slate-300">Durasi dihitung dari <strong>Rilis sampai Selesai</strong> dan diberikan untuk setiap assignment teknisi.</p>
+              <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-3 text-[11px] space-y-1.5">
+                <p><strong>Instalasi Baru / Instalasi Reseller tanpa partner:</strong> 1 teknisi = 13 point</p>
+                <p><strong>Instalasi Baru, Instalasi Reseller, Perluasan dengan partner:</strong> maksimal 1 jam 30 menit = 10 point</p>
+                <p><strong>Maintenance:</strong> maksimal 1 jam = 10 point</p>
+                <p><strong>Jika melewati batas:</strong> point berkurang 2 setiap kelipatan 5 menit</p>
+                <p><strong>Minimum:</strong> 1 point</p>
+              </div>
+            </div>
+          </div>
+          <div class="rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 p-3 text-[11px] text-slate-500 dark:text-slate-300">
+            <i class="fa-solid fa-calculator mr-1 text-slate-400"></i><strong>Total Point Individu</strong> = point kehadiran + akumulasi point kinerja pada periode yang dipilih.
+          </div>
         </div>
       </div>
+    </div>
 
       <!-- ===== LOG TUGAS (Supervisor) ===== -->
       <div id="section-logtugas" class="main-section hidden space-y-4 fade-up">
@@ -1408,9 +1867,27 @@
           <div class="flex flex-wrap items-center gap-2">
             <button onclick="loadLogTugas()" class="px-2.5 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
             <div class="relative"><input type="text" id="logtugas-search" oninput="filterLogTugasDom()" placeholder="Cari WO..." class="pl-8 pr-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:border-blue-600 w-36"><i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2.5 text-slate-400 text-[10px]"></i></div>
-            <input type="date" id="logtugas-date-from" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
-            <span class="text-xs text-slate-400 font-bold">s/d</span>
-            <input type="date" id="logtugas-date-to" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+            <div id="logtugas-date-range" class="relative">
+              <button type="button" id="logtugas-date-range-trigger" onclick="toggleLogTugasDatePicker()" aria-haspopup="dialog" aria-expanded="false" class="min-w-[205px] px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-left focus:outline-none focus:border-blue-600 flex items-center gap-2">
+                <i class="fa-regular fa-calendar text-blue-500"></i><span id="logtugas-date-range-label">Pilih rentang tanggal</span>
+              </button>
+              <div id="logtugas-date-range-panel" class="hidden absolute left-0 top-full mt-2 z-40 w-[310px] max-w-[calc(100vw-2rem)] bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-2xl shadow-2xl p-3">
+                <div class="flex items-center justify-between mb-3">
+                  <button type="button" onclick="changeLogTugasCalendar(-1)" aria-label="Bulan sebelumnya" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"><i class="fa-solid fa-chevron-left"></i></button>
+                  <span id="logtugas-calendar-title" class="text-xs font-extrabold text-slate-800 dark:text-slate-100"></span>
+                  <button type="button" onclick="changeLogTugasCalendar(1)" aria-label="Bulan berikutnya" class="w-8 h-8 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+                <div class="grid grid-cols-7 gap-1 text-center text-[10px] font-extrabold text-slate-400 mb-1"><span>Min</span><span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span></div>
+                <div id="logtugas-calendar-grid" class="grid grid-cols-7 gap-1"></div>
+                <p id="logtugas-calendar-hint" class="mt-3 text-[10px] text-blue-600 dark:text-blue-300 font-semibold">Pilih tanggal mulai</p>
+                <div class="flex items-center justify-between mt-2 pt-2 border-t border-slate-100 dark:border-slate-700">
+                  <button type="button" onclick="clearLogTugasDateRange()" class="px-2 py-1 text-[10px] font-bold text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg">Bersihkan</button>
+                  <button type="button" onclick="closeLogTugasDatePicker()" class="px-2 py-1 text-[10px] font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg">Tutup</button>
+                </div>
+              </div>
+              <input type="date" id="logtugas-date-from" class="hidden" tabindex="-1" aria-hidden="true">
+              <input type="date" id="logtugas-date-to" class="hidden" tabindex="-1" aria-hidden="true">
+            </div>
             <select id="logtugas-filter-tipe" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="ALL">Semua Tipe</option><option value="INSTALASI">Instalasi</option><option value="INSTALASI_RESELLER">Instalasi Reseller</option><option value="PERLUASAN_RESELLER">Perluasan Reseller</option><option value="MAINTENANCE">Maintenance</option></select>
             <select id="logtugas-filter-status" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="ALL">Semua Status</option><option value="RELEASE">Release</option><option value="PICKUP">Pickup</option><option value="PROSES">Proses</option><option value="SELESAI">Selesai</option><option value="RETURN">Return</option></select>
           </div>
@@ -1427,10 +1904,10 @@
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div class="max-h-96 overflow-y-auto overflow-x-auto">
             <table class="w-full text-left border-collapse"><thead class="sticky top-0 z-10"><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-              <th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Tiket</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Pelanggan</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Tipe</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">CS</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">WA Masuk</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Tiket Dibuat</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Teknisi</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Selesai</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Status</th>
+              <th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Tiket</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">No. Layanan</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Pelanggan</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Tipe</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Detail</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Perangkat Terpasang</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Status</th>
             </tr></thead>
             <tbody id="logtugas-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200">
-              <tr><td colspan="9" class="text-center py-8 text-slate-400 text-xs">Klik Refresh untuk memuat data.</td></tr>
+              <tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Klik Refresh untuk memuat data.</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -1483,6 +1960,81 @@
 
       <!-- ===== KELOLA AKUN (Supervisor) ===== -->
       <div id="section-kelolaakun" class="main-section hidden space-y-4 fade-up">
+
+        <!-- OWNER CONTROL (khusus role owner) -->
+        <div id="owner-control-panel" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border-2 border-rose-200 dark:border-rose-900 p-5 space-y-4">
+          <div class="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
+            <div class="w-9 h-9 rounded-xl bg-rose-100 dark:bg-rose-950/50 flex items-center justify-center shrink-0"><i class="fa-solid fa-crown text-rose-600 dark:text-rose-400"></i></div>
+            <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Owner Control — Super Admin</h2><p class="text-[11px] text-slate-400">Kontrol penuh aplikasi. Gunakan dengan hati-hati.</p></div>
+          </div>
+          <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-200 dark:border-rose-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-start gap-2">
+              <i class="fa-solid fa-triangle-exclamation text-rose-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-extrabold text-rose-700 dark:text-rose-300">Reset Semua Data Operasional</p>
+                <p class="text-[11px] text-rose-600/80 dark:text-rose-400/80">Menghapus Work Order, tiket dismantle, item dismantle, request pickup/material/provisioning, riwayat perangkat, alokasi teknisi, foto WO, dan perangkat gudang. Tidak bisa dibatalkan. Akun & karyawan tidak ikut terhapus.</p>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <input type="text" id="owner-reset-confirm" autocomplete="off" placeholder='Ketik RESET untuk konfirmasi'
+                class="flex-1 px-3.5 py-2.5 bg-white dark:bg-slate-700 border border-rose-300 dark:border-rose-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-bold focus:outline-none focus:border-rose-500 transition-all">
+              <button type="button" id="btn-owner-reset" onclick="ownerResetSemuaData()"
+                class="px-4 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95 shrink-0">
+                <i class="fa-solid fa-triangle-exclamation"></i> Reset Semua Data
+              </button>
+            </div>
+            <div id="owner-reset-log" class="text-[11px] font-mono leading-relaxed"></div>
+          </div>
+
+          <!-- OPER TUGAS (RELEASE WO) -->
+          <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-start gap-2">
+              <i class="fa-solid fa-arrows-rotate text-blue-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-extrabold text-blue-700 dark:text-blue-300">Oper Tugas ke Teknisi Lain</p>
+                <p class="text-[11px] text-blue-600/80 dark:text-blue-400/80">Menarik WO dari teknisi yang susah dihubungi. WO dilepas kembali (RELEASE) ke antrian Pickup agar bisa diambil teknisi lain.</p>
+              </div>
+            </div>
+            <div class="flex flex-col sm:flex-row gap-2">
+              <select id="owner-wo-select" class="flex-1 px-3.5 py-2.5 bg-white dark:bg-slate-700 border border-blue-300 dark:border-blue-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-medium focus:outline-none focus:border-blue-500 transition-all">
+                <option value="" disabled selected>Memuat WO...</option>
+              </select>
+              <div class="flex gap-2 shrink-0">
+                <button type="button" onclick="ownerLoadReleaseWO()" title="Muat ulang" class="px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold"><i class="fa-solid fa-rotate-right"></i></button>
+                <button type="button" id="btn-owner-release-wo" onclick="ownerReleaseWO()" class="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-arrows-rotate"></i> Oper Tugas (Release)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- PINDAH PERANGKAT INSTAN -->
+          <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 space-y-3">
+            <div class="flex items-start gap-2">
+              <i class="fa-solid fa-truck-fast text-indigo-500 mt-0.5 shrink-0"></i>
+              <div>
+                <p class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300">Pindah Perangkat Instan</p>
+                <p class="text-[11px] text-indigo-600/80 dark:text-indigo-400/80">Memindahkan perangkat milik teknisi ke teknisi lain atau ke gudang tanpa approval. Sisa alokasi kabel ikut dipindahkan.</p>
+              </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <select id="owner-device-select" class="px-3.5 py-2.5 bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all">
+                <option value="" disabled selected>Memuat perangkat...</option>
+              </select>
+              <select id="owner-device-target" class="px-3.5 py-2.5 bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-medium focus:outline-none focus:border-indigo-500 transition-all">
+                <option value="" disabled selected>Memuat tujuan...</option>
+              </select>
+            </div>
+            <div class="flex gap-2">
+              <button type="button" onclick="ownerLoadDeviceMove()" title="Muat ulang" class="px-3 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold shrink-0"><i class="fa-solid fa-rotate-right"></i></button>
+              <button type="button" id="btn-owner-move-device" onclick="ownerMoveDevice()" class="flex-1 px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-95"><i class="fa-solid fa-truck-fast"></i> Pindahkan Perangkat</button>
+            </div>
+          </div>
+
+          <div class="bg-slate-50 dark:bg-slate-700/40 border border-slate-200 dark:border-slate-600 rounded-2xl p-3 text-[11px] text-slate-500 dark:text-slate-400 flex items-start gap-2">
+            <i class="fa-solid fa-circle-info mt-0.5 shrink-0 text-blue-500"></i>
+            <span>Owner juga bisa mengganti nama, username, password, dan role akun lain lewat tombol edit di Daftar Akun bawah.</span>
+          </div>
+        </div>
+
         <!-- FORM TAMBAH AKUN -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 p-5 space-y-4">
           <div class="flex items-center gap-2 pb-3 border-b border-slate-100 dark:border-slate-700">
@@ -1511,10 +2063,11 @@
                 <select id="akun-role" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
                   <option value="">-- Pilih Role --</option>
                   <option value="teknisi">Teknisi Field</option>
-                  <option value="admin">CS / Admin</option>
+                  <option value="admin">Admin/CS</option>
                   <option value="noc">NOC Engineer</option>
                   <option value="finance">Finance</option>
                   <option value="supervisor">Supervisor</option>
+                  <option value="owner">Owner (Super Admin)</option>
                 </select>
               </div>
               <div class="space-y-1.5 sm:col-span-2">
@@ -1609,6 +2162,33 @@
     <div><h3 class="text-base font-extrabold text-slate-900 dark:text-white">Cancel WO</h3><p class="text-xs text-slate-400 mt-0.5">WO dikembalikan ke Pickup Tugas</p></div>
     <div class="text-left space-y-1"><label class="block text-[11px] font-bold text-slate-500 uppercase">Alasan <span class="text-rose-500">*</span></label><textarea id="cancel-modal-reason" rows="2" placeholder="Alasan pembatalan..." class="w-full p-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs resize-none focus:outline-none focus:border-rose-500"></textarea></div>
     <div class="flex items-center gap-2"><button type="button" onclick="closeCancelWOModal()" class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl">Batal</button><button type="button" onclick="confirmCancelWO()" class="w-1/2 py-2.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-xs rounded-xl shadow-md">Confirm Cancel</button></div>
+  </div>
+</div>
+
+<!-- MODAL INPUT RL RADIUS -->
+<div id="rl-radius-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-3xl w-full max-w-sm shadow-2xl border border-slate-100 dark:border-slate-700 overflow-hidden">
+    <div class="bg-gradient-to-r from-violet-600 to-indigo-600 px-6 py-5 text-white relative">
+      <button type="button" onclick="closeRLRadiusForm()" class="absolute top-4 right-4 w-7 h-7 rounded-full bg-white/20 hover:bg-white/30 flex items-center justify-center transition-all"><i class="fa-solid fa-xmark text-xs"></i></button>
+      <h2 class="text-base font-extrabold flex items-center gap-2"><i class="fa-solid fa-network-wired"></i>Input RL Radius</h2>
+      <p class="text-xs text-violet-200 mt-0.5">Konfirmasi input No. Layanan ke RL Radius</p>
+    </div>
+    <div class="p-5 space-y-4">
+      <div class="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-3.5 space-y-2 max-h-64 overflow-y-auto" id="rl-modal-detail">
+        <p class="text-[10px] text-slate-400 text-center">Memuat detail...</p>
+      </div>
+      <div>
+        <label class="block text-xs font-bold text-slate-500 uppercase mb-1">No. Layanan <span class="text-rose-500">*</span></label>
+        <input type="text" id="rl-modal-no-layanan" placeholder="cth: 26000135102" class="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-extrabold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-violet-500">
+      </div>
+      <label class="flex items-start gap-3 p-3 bg-violet-50 dark:bg-violet-950/30 border border-violet-200 dark:border-violet-800 rounded-2xl cursor-pointer">
+        <input type="checkbox" id="rl-modal-checklist" class="mt-0.5 w-5 h-5 rounded accent-violet-600 shrink-0">
+        <span class="text-xs font-semibold text-slate-700 dark:text-slate-200">Apakah Anda sudah mengisi RL Radius? <span class="text-rose-500">(wajib dicentang jika sudah)</span></span>
+      </label>
+      <button type="button" onclick="submitRLRadius()" class="w-full py-3 bg-violet-600 hover:bg-violet-700 text-white font-bold text-sm rounded-2xl shadow-md transition-all flex items-center justify-center gap-2 active:scale-[0.98]">
+        <i class="fa-solid fa-circle-check"></i>Submit
+      </button>
+    </div>
   </div>
 </div>
 
@@ -1743,26 +2323,37 @@
 -->
 
 <!-- 1. Data Master & Konfigurasi -->
-<script src="js/config.js?v=1000133"></script>
+<script src="js/config.js?v=1000195"></script>
 
 <!-- 2. Supabase Client Initialization -->
-<script src="js/supabase-init.js?v=1000133"></script>
+<script src="js/supabase-init.js?v=1000203"></script>
 
 <!-- 3. Core Application (Auth, Navigation, Init) -->
-<script src="js/app.js?v=1000133"></script>
+<script src="js/app.js?v=1000195"></script>
 
 <!-- 4. Feature Modules -->
-<script src="js/dashboard.js?v=1000133"></script>
-<script src="js/tugas.js?v=1000133"></script>
-<script src="js/material.js?v=1000133"></script>
-<script src="js/noc.js?v=1000133"></script>
-<script src="js/absensi.js?v=1000133"></script>
-<script src="js/admin.js?v=1000133"></script>
-<script src="js/kpi.js?v=1000133"></script>
-<script src="js/rekap.js?v=1000133"></script>
+<script src="js/dashboard.js?v=1000203"></script>
+<script src="js/tugas.js?v=1000205"></script>
+<script src="js/material.js?v=1000195"></script>
+<script src="js/noc.js?v=1000204"></script>
+<script src="js/absensi.js?v=1000195"></script>
+<script src="js/admin.js?v=1000196"></script>
+<script src="js/kpi.js?v=1000203"></script>
+<script src="js/rekap.js?v=1000195"></script>
+<script src="js/dismantle.js?v=1000195"></script>
+<script src="js/rl-radius.js?v=1000195"></script>
 
 <!-- 5. Supabase Extended Functions -->
-<script src="js/supabase-extended.js?v=1000133"></script>
+<script src="js/supabase-extended.js?v=1000196"></script>
+
+<!-- 6. Notification Center -->
+<script src="js/notifications.js?v=1000195"></script>
+
+<!-- 7. Owner / Super Admin Control -->
+<script src="js/owner.js?v=1000195"></script>
+
+<!-- 8. Web Push Notification -->
+<script src="js/push.js?v=1000195"></script>
 
 <!-- MODAL EDIT AKUN -->
 <div id="edit-akun-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
@@ -1775,12 +2366,17 @@
         <i class="fa-solid fa-xmark text-lg"></i>
       </button>
     </div>
-    <div class="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 dark:text-slate-400">
+    <div id="edit-akun-username-readonly" class="bg-slate-50 dark:bg-slate-700/50 rounded-xl px-3 py-2 text-xs font-bold text-slate-500 dark:text-slate-400">
       Username: <span id="edit-akun-username-display" class="font-extrabold text-blue-600 dark:text-blue-400 font-mono"></span>
       <span class="text-[10px] font-normal ml-1">(tidak bisa diubah)</span>
     </div>
     <form id="form-edit-akun" onsubmit="simpanEditAkun(event)" class="space-y-3">
       <input type="hidden" id="edit-akun-username-hidden">
+      <div id="edit-akun-username-owner-wrap" class="space-y-1 hidden">
+        <label class="block text-xs font-bold text-amber-600 dark:text-amber-400 uppercase">Username <span class="text-[10px] font-normal">(khusus Owner)</span></label>
+        <input type="text" id="edit-akun-username-input" autocomplete="off" placeholder="username login"
+          class="w-full px-3.5 py-2.5 bg-amber-50 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-800 text-slate-800 dark:text-slate-100 rounded-xl text-sm font-mono font-bold focus:outline-none focus:border-amber-500 transition-all">
+      </div>
       <div class="space-y-1">
         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Nama Lengkap <span class="text-rose-500">*</span></label>
         <input type="text" id="edit-akun-displayname" required placeholder="Nama lengkap"
@@ -1796,12 +2392,11 @@
         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Role <span class="text-rose-500">*</span></label>
         <select id="edit-akun-role" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
           <option value="teknisi">Teknisi Field</option>
-          <option value="admin">CS / Admin</option>
+          <option value="admin">Admin/CS</option>
           <option value="noc">NOC Engineer</option>
           <option value="finance">Finance</option>
           <option value="supervisor">Supervisor</option>
-          <option value="noc">NOC Engineer</option>
-          <option value="supervisor">Supervisor</option>
+          <option value="owner">Owner (Super Admin)</option>
         </select>
       </div>
       <div class="space-y-1">

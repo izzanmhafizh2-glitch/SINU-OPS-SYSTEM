@@ -77,7 +77,7 @@ function exportRekapWO(){
   const bulanNames=['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
   // Buat data untuk Excel
-  const headers=['No. Tiket','Pelanggan','Tipe','Input CS','T1 WA Masuk','T2 Tiket Dibuat','Teknisi','T4 Selesai','Durasi (mnt)','Status','Bulan','Tahun'];
+  const headers=['No. Tiket','Pelanggan','Tipe','Input CS','WA Masuk','Tiket Dibuat','Teknisi','Selesai','Durasi (mnt)','Status','Bulan','Tahun'];
   const rows=data.map(d=>{
     const dur=d.t4&&d.t1?selisihMenit(d.t1,d.t4):null;
     return[
