@@ -12,7 +12,8 @@ let employeeMaster = [];
 // State global aplikasi
 let currentUser = null, locationData = null, capturedImageData = null, faceModel = null;
 let mainChartInstance = null, donutChartInstance = null;
-let currentRoleFilter = 'All', currentChartPeriod = 'monthly';
+let currentRoleFilter = 'All';
+let absensiRawData = []; // Raw data absensi untuk chart
 let activeCancelWOType = null, myPickedTasks = [];
 let sickHasDoc = true;
 

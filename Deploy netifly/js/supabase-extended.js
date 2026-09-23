@@ -226,19 +226,80 @@ async function loadApprovalList() {
 // ── WO SUMMARY DASHBOARD ──────────────────────────────────────────────
 async function loadWOSummaryDashboard() {
   try {
-    const { data } = await supa.from('work_orders').select('status');
-    const all = data || kpiWOData;
+    // Ambil semua WO
+    const { data: allWO } = await supa.from('work_orders').select('wo_id,tipe,status');
+    const all = allWO || [];
     const total = all.length;
-    const selesai = all.filter(d => d.status === 'SELESAI').length;
-    const proses = all.filter(d => d.status === 'PROSES' || d.status === 'PICKUP').length;
-    const ret = all.filter(d => d.status === 'RETURN').length;
-    document.querySelectorAll('.wo-summary-total').forEach(el => el.textContent = total || '--');
-    document.querySelectorAll('.wo-summary-selesai').forEach(el => el.textContent = selesai || '--');
-    document.querySelectorAll('.wo-summary-proses').forEach(el => el.textContent = proses || '--');
-    document.querySelectorAll('.wo-summary-return').forEach(el => el.textContent = ret || '--');
+    
+    console.log('[WO Summary] Total WO:', total);
+    
+    // Hitung per STATUS
+    const selesai = all.filter(d => String(d.status || '').toUpperCase() === 'SELESAI').length;
+    
+    // NOC = Query langsung seperti di menu NOC (status PICKUP + tipe MAINTENANCE)
+    const { data: nocData } = await supa.from('work_orders')
+      .select('wo_id')
+      .eq('status', 'PICKUP')
+      .eq('tipe', 'MAINTENANCE');
+    const noc = (nocData || []).length;
+    console.log('[WO Summary] NOC dari query:', noc, nocData);
+    
+    // Proses = RELEASE + PROSES + PICKUP (kecuali PICKUP maintenance yang masuk NOC)
+    const proses = all.filter(d => {
+      const status = String(d.status || '').toUpperCase().trim();
+      const tipe = String(d.tipe || '').toUpperCase().trim();
+      // Skip PICKUP maintenance (sudah masuk NOC)
+      if (status === 'PICKUP' && tipe === 'MAINTENANCE') return false;
+      return status === 'RELEASE' || status === 'PICKUP' || status === 'PROSES';
+    }).length;
+    
+    const ret = all.filter(d => String(d.status || '').toUpperCase() === 'RETURN').length;
+    
+    console.log('[WO Summary] Selesai:', selesai, 'Proses:', proses, 'NOC:', noc, 'Return:', ret);
+    console.log('[WO Summary] Total:', (selesai + proses + noc + ret), 'dari', total);
+    
+    // Hitung per TIPE
+    const instalasiBaru = all.filter(d => {
+      const tipe = String(d.tipe || '').toUpperCase().replace(/\s+/g, '_').trim();
+      return tipe === 'INSTALASI' || tipe === 'INSTALASI_BARU';
+    }).length;
+    
+    const instalasiReseller = all.filter(d => {
+      const tipe = String(d.tipe || '').toUpperCase().replace(/\s+/g, '_').trim();
+      return tipe === 'INSTALASI_RESELLER';
+    }).length;
+    
+    const perluasan = all.filter(d => {
+      const tipe = String(d.tipe || '').toUpperCase().replace(/\s+/g, '_').trim();
+      return tipe === 'PERLUASAN' || tipe === 'PERLUASAN_RESELLER';
+    }).length;
+    
+    const maintenance = all.filter(d => {
+      const tipe = String(d.tipe || '').toUpperCase().trim();
+      return tipe === 'MAINTENANCE';
+    }).length;
+    
+    const dismantle = all.filter(d => {
+      const tipe = String(d.tipe || '').toUpperCase().trim();
+      return tipe === 'DISMANTLE';
+    }).length;
+    
+    // Update STATUS cards
+    document.querySelectorAll('.wo-summary-total').forEach(el => el.textContent = total || '0');
+    document.querySelectorAll('.wo-summary-selesai').forEach(el => el.textContent = selesai || '0');
+    document.querySelectorAll('.wo-summary-proses').forEach(el => el.textContent = proses || '0');
+    document.querySelectorAll('.wo-summary-noc').forEach(el => el.textContent = noc || '0');
+    document.querySelectorAll('.wo-summary-return').forEach(el => el.textContent = ret || '0');
+    
+    // Update TIPE cards
+    document.querySelectorAll('.wo-summary-instalasi-baru').forEach(el => el.textContent = instalasiBaru || '0');
+    document.querySelectorAll('.wo-summary-instalasi-reseller').forEach(el => el.textContent = instalasiReseller || '0');
+    document.querySelectorAll('.wo-summary-perluasan').forEach(el => el.textContent = perluasan || '0');
+    document.querySelectorAll('.wo-summary-maintenance').forEach(el => el.textContent = maintenance || '0');
+    document.querySelectorAll('.wo-summary-dismantle').forEach(el => el.textContent = dismantle || '0');
   } catch(e) {
-    document.querySelectorAll('.wo-summary-total').forEach(el => el.textContent = kpiWOData.length);
-    document.querySelectorAll('.wo-summary-selesai').forEach(el => el.textContent = kpiWOData.filter(d=>d.status==='SELESAI').length);
+    console.error('[WO Summary] ERROR:', e);
+    document.querySelectorAll('.wo-summary-total, .wo-summary-selesai, .wo-summary-proses, .wo-summary-noc, .wo-summary-return, .wo-summary-instalasi-baru, .wo-summary-instalasi-reseller, .wo-summary-perluasan, .wo-summary-maintenance, .wo-summary-dismantle').forEach(el => el.textContent = '0');
   }
 }
 
@@ -258,13 +319,21 @@ function updatePointDisplay(userName, total, max, perfect) {
     elGrade.innerHTML = `<span class="${gColor} font-black">Grade ${grade}</span>`;
   }
 }
+const ATTENDANCE_SCORE_MAX=100;
+function normalizeAttendanceScore(rawTotal,hariKerja,perfect){
+  const rawMax=Math.max(0,Number(hariKerja)||0)*100;
+  if(!rawMax)return 0;
+  const bonus=perfect?100:0;
+  return Math.min(ATTENDANCE_SCORE_MAX,Math.max(0,Math.round(((Number(rawTotal)||0)+bonus)/rawMax*ATTENDANCE_SCORE_MAX)));
+}
+
 async function loadAbsensiPointFromDB() {
   if(!currentUser) return;
   const userName = currentUser.displayName;
   const now = new Date();
   const bulan = now.getMonth(), tahun = now.getFullYear();
   const hk = hitungHariKerja(tahun, bulan);
-  const maxPoint = hk * 10;
+  const maxPoint = ATTENDANCE_SCORE_MAX;
   try {
     const { data, error } = await supa
       .from('absensi')
@@ -276,11 +345,11 @@ async function loadAbsensiPointFromDB() {
       const tgl = new Date(d.tanggal);
       return tgl.getMonth() === bulan && tgl.getFullYear() === tahun;
     });
-    const total = bulanIni.reduce((s,d) => s+(d.point||0), 0);
+    const rawTotal = bulanIni.reduce((s,d) => s+(Number(d.point)||0), 0);
     const perfect = bulanIni.length >= hk && bulanIni.every(d => d.status_kehadiran === 'TEPAT WAKTU');
-    const bonus = perfect ? 10 : 0;
-    absensiPoints[userName] = {total: total+bonus, max: maxPoint, perfect};
-    updatePointDisplay(userName, total+bonus, maxPoint, perfect);
+    const total = normalizeAttendanceScore(rawTotal,hk,perfect);
+    absensiPoints[userName] = {total, max: maxPoint, perfect};
+    updatePointDisplay(userName, total, maxPoint, perfect);
   } catch(e) { updatePointDisplay(userName, 0, maxPoint, false); }
 }
 
@@ -309,8 +378,9 @@ async function loadAllAbsensiPoints(bulan, tahun, requestId) {
     });
     const hk = hitungHariKerja(tahun, bulan);
     Object.entries(grouped).forEach(([nama, val]) => {
-      const bonus = (val.count >= hk && val.allTepat) ? 10 : 0;
-      absensiPoints[nama] = {total: val.total+bonus, max: hk*10, perfect: val.count>=hk&&val.allTepat};
+      const perfect = val.count>=hk && val.allTepat;
+      // Langsung pakai raw total tanpa normalize
+      absensiPoints[nama] = {total: val.total, perfect};
     });
   } catch(e) { console.warn('loadAllAbsensiPoints failed:', e); }
 }
@@ -403,9 +473,17 @@ async function handleTambahAkun(e) {
   const nama      = document.getElementById('akun-displayname').value.trim();
   const role      = document.getElementById('akun-role').value;
   const division  = document.getElementById('akun-division').value.trim();
+  const mitraId   = document.getElementById('akun-mitra-id') ? document.getElementById('akun-mitra-id').value : '';
+
+  const MITRA_ROLES = ['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+  const isMitraRole = MITRA_ROLES.includes(role);
 
   if(!username || !password || !nama || !role) {
     showAlert('Lengkapi semua field yang wajib diisi.', 'Form Tidak Lengkap');
+    return;
+  }
+  if(isMitraRole && !mitraId) {
+    showAlert('Pilih Nama Mitra untuk akun bertipe Mitra.', 'Mitra Wajib Dipilih');
     return;
   }
 
@@ -413,18 +491,10 @@ async function handleTambahAkun(e) {
   btn.disabled = true;
   btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...';
 
-  // Auto-generate avatar dari 2 huruf pertama nama
-  const avatar = nama.trim().split(' ')
-    .map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const avatar = nama.trim().split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
 
   try {
-    // Cek apakah username sudah ada
-    const { data: existing } = await supa
-      .from('akun')
-      .select('username')
-      .ilike('username', username)
-      .maybeSingle();
-
+    const { data: existing } = await supa.from('akun').select('username').ilike('username', username).maybeSingle();
     if(existing) {
       showAlert(`Username "${username}" sudah digunakan. Pilih username lain.`, 'Username Duplikat');
       btn.disabled = false;
@@ -432,19 +502,23 @@ async function handleTambahAkun(e) {
       return;
     }
 
-    const { error } = await supa.from('akun').insert({
+    const insertData = {
       username, password, role,
       display_name: nama,
       avatar,
-      division: division || role
-    });
+      division: division || role,
+      account_type: isMitraRole ? 'mitra' : 'internal',
+      mitra_id: isMitraRole && mitraId ? mitraId : null
+    };
 
+    const { error } = await supa.from('akun').insert(insertData);
     if(error) throw error;
 
-    showAlert(`Akun "${nama}" (${username}) berhasil dibuat!\nRole: ${role}`, 'Akun Dibuat ✅');
+    showAlert(`Akun "${nama}" (${username}) berhasil dibuat!\nRole: ${role}\nTipe: ${isMitraRole ? 'Mitra' : 'Internal'}`, 'Akun Dibuat ✅');
     document.getElementById('form-tambah-akun').reset();
-    loadDaftarAkun(); // Refresh list
-
+    const wrap = document.getElementById('akun-mitra-wrap');
+    if(wrap) wrap.style.display = 'none';
+    loadDaftarAkun();
   } catch(err) {
     showAlert('Gagal membuat akun: ' + (err.message || 'Cek koneksi Supabase.'), 'Error');
   }
@@ -457,39 +531,61 @@ async function handleTambahAkun(e) {
 async function loadDaftarAkun() {
   const tbody = document.getElementById('daftar-akun-tbody');
   if(!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" class="text-center py-6"><i class="fa-solid fa-spinner animate-spin text-blue-500 mr-2"></i>Memuat...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="6" class="text-center py-6"><i class="fa-solid fa-spinner animate-spin text-blue-500 mr-2"></i>Memuat...</td></tr>';
 
+  const MITRA_ROLES = ['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
   const roleBadge = {
-    supervisor: 'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
-    admin:      'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-    cs:         'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
-    finance:    'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
-    noc:        'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
-    teknisi:    'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300'
+    supervisor:     'bg-purple-100 text-purple-700 dark:bg-purple-950 dark:text-purple-300',
+    admin:          'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300',
+    cs:             'bg-cyan-100 text-cyan-700 dark:bg-cyan-950 dark:text-cyan-300',
+    finance:        'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
+    noc:            'bg-violet-100 text-violet-700 dark:bg-violet-950 dark:text-violet-300',
+    teknisi:        'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
+    manager:        'bg-indigo-100 text-indigo-700 dark:bg-indigo-950 dark:text-indigo-300',
+    koordinator:    'bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300',
+    teknisi_mitra:  'bg-teal-100 text-teal-700 dark:bg-teal-950 dark:text-teal-300',
+    noc_mitra:      'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950 dark:text-fuchsia-300',
+    cs_mitra:       'bg-sky-100 text-sky-700 dark:bg-sky-950 dark:text-sky-300'
   };
   const roleLabel = {
-    supervisor: 'Supervisor',
-    admin:      'Admin/CS',
-    cs:         'Admin/CS',
-    finance:    'Finance',
-    noc:        'NOC Engineer',
-    teknisi:    'Teknisi Field'
+    supervisor:    'Supervisor',
+    admin:         'Admin',
+    cs:            'CS',
+    finance:       'Finance',
+    noc:           'NOC Engineer',
+    teknisi:       'Teknisi Field',
+    manager:       'Manager',
+    koordinator:   'Koordinator',
+    teknisi_mitra: 'Teknisi Mitra',
+    noc_mitra:     'NOC Mitra',
+    cs_mitra:      'CS Mitra'
   };
 
   try {
     const { data, error } = await supa
       .from('akun')
-      .select('username, display_name, role, division, avatar')
+      .select('username, display_name, role, division, avatar, account_type, mitra_id, mitra(nama)')
+      .order('account_type')
       .order('role')
       .order('display_name');
 
     if(error) throw error;
-    if(!data || !data.length) {
-      tbody.innerHTML = '<tr><td colspan="5" class="text-center py-8 text-slate-400">Belum ada akun.</td></tr>';
+    const visibleData = (data || []).filter(function(a){
+      return !window.sinuRememberHiddenAccount(a);
+    });
+    if(!visibleData.length) {
+      tbody.innerHTML = '<tr><td colspan="6" class="text-center py-8 text-slate-400">Belum ada akun.</td></tr>';
       return;
     }
 
-    tbody.innerHTML = data.map(a => `
+    tbody.innerHTML = visibleData.map(a => {
+      const roleKey = (a.role || '').toLowerCase();
+      const isMitra = a.account_type === 'mitra' || MITRA_ROLES.includes(roleKey);
+      const mitraNama = a.mitra ? a.mitra.nama : (isMitra ? '—' : '');
+      const tipeBadge = isMitra
+        ? `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-orange-100 text-orange-700 dark:bg-orange-950 dark:text-orange-300"><i class="fa-solid fa-handshake mr-1"></i>${mitraNama||'Mitra'}</span>`
+        : `<span class="px-2 py-0.5 rounded-full text-[9px] font-black bg-slate-100 text-slate-600 dark:bg-slate-700 dark:text-slate-300"><i class="fa-solid fa-building mr-1"></i>Internal</span>`;
+      return `
       <tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all">
         <td class="py-3 px-4 font-bold font-mono text-slate-800 dark:text-slate-100">${a.username}</td>
         <td class="py-3 px-4">
@@ -499,12 +595,13 @@ async function loadDaftarAkun() {
           </div>
         </td>
         <td class="py-3 px-4 text-center">
-          <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${roleBadge[(a.role || '').toLowerCase()]||'bg-slate-100 text-slate-600'}">${roleLabel[(a.role || '').toLowerCase()]||a.role||'-'}</span>
+          <span class="px-2.5 py-1 rounded-full text-[10px] font-extrabold ${roleBadge[roleKey]||'bg-slate-100 text-slate-600'}">${roleLabel[roleKey]||a.role||'-'}</span>
         </td>
         <td class="py-3 px-4 text-slate-500 dark:text-slate-400">${a.division||'-'}</td>
+        <td class="py-3 px-4 text-center">${tipeBadge}</td>
         <td class="py-3 px-4 text-center">
           <div class="flex items-center justify-center gap-1.5">
-            <button onclick="bukaEditAkun('${a.username}','${(a.display_name||'').replace(/'/g,"\\'")}','${a.role}','${(a.division||'').replace(/'/g,"\\'")}' )"
+            <button onclick="bukaEditAkun('${a.username}','${(a.display_name||'').replace(/'/g,"\\'")}','${a.role}','${(a.division||'').replace(/'/g,"\\'")}','${a.account_type||'internal'}','${a.mitra_id||''}')"
               class="px-2.5 py-1 bg-blue-100 hover:bg-blue-200 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 rounded-xl text-[10px] font-bold transition-all">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
@@ -514,10 +611,41 @@ async function loadDaftarAkun() {
             </button>
           </div>
         </td>
-      </tr>`).join('');
+      </tr>`;
+    }).join('');
 
   } catch(err) {
-    tbody.innerHTML = `<tr><td colspan="5" class="text-center py-6 text-rose-500 text-xs">Gagal load: ${err.message}</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-6 text-rose-500 text-xs">Gagal load: ${err.message}</td></tr>`;
+  }
+}
+
+// ── HELPER AKUN MITRA ────────────────────────────────────────────────
+
+// Konstanta role mitra — dipakai di seluruh modul
+const SINU_MITRA_ROLES = ['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+
+// Toggle show/hide field mitra dropdown saat role berubah
+function onAkunRoleChange(prefix) {
+  const roleEl  = document.getElementById(prefix === 'akun' ? 'akun-role' : 'edit-akun-role');
+  const wrapEl  = document.getElementById(prefix === 'akun' ? 'akun-mitra-wrap' : 'edit-akun-mitra-wrap');
+  const selectEl = document.getElementById(prefix === 'akun' ? 'akun-mitra-id' : 'edit-akun-mitra-id');
+  if(!roleEl || !wrapEl) return;
+  const isMitra = SINU_MITRA_ROLES.includes(roleEl.value);
+  wrapEl.style.display = isMitra ? 'block' : 'none';
+  if(isMitra && selectEl) loadMitraDropdown(selectEl.id, '');
+}
+
+// Load daftar mitra ke dropdown
+async function loadMitraDropdown(selectId, selectedId) {
+  const select = document.getElementById(selectId);
+  if(!select) return;
+  try {
+    const { data, error } = await supa.from('mitra').select('id, nama').eq('aktif', true).order('nama');
+    if(error) throw error;
+    select.innerHTML = '<option value="">-- Pilih Mitra --</option>' +
+      (data || []).map(m => `<option value="${m.id}" ${m.id === selectedId ? 'selected' : ''}>${m.nama}</option>`).join('');
+  } catch(err) {
+    select.innerHTML = '<option value="">Gagal load mitra</option>';
   }
 }
 
@@ -542,7 +670,7 @@ async function hapusAkun(username) {
 // ── EDIT AKUN ────────────────────────────────────────────────────────
 
 // Buka modal edit akun
-function bukaEditAkun(username, displayName, role, division) {
+function bukaEditAkun(username, displayName, role, division, accountType, mitraId) {
   const modal = document.getElementById('edit-akun-modal');
   if(!modal) return;
   document.getElementById('edit-akun-username-display').textContent = username;
@@ -552,7 +680,18 @@ function bukaEditAkun(username, displayName, role, division) {
   document.getElementById('edit-akun-role').value = role || 'teknisi';
   document.getElementById('edit-akun-division').value = division || '';
 
-  // Owner boleh mengganti username akun lain; role lain tetap terkunci.
+  // Tampilkan field mitra jika role mitra
+  const MITRA_ROLES = ['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+  const isMitraRole = MITRA_ROLES.includes((role||'').toLowerCase());
+  const mitraWrap = document.getElementById('edit-akun-mitra-wrap');
+  if(mitraWrap) mitraWrap.style.display = isMitraRole ? 'block' : 'none';
+
+  // Load dan set dropdown mitra
+  if(isMitraRole) {
+    loadMitraDropdown('edit-akun-mitra-id', mitraId || '');
+  }
+
+  // Owner boleh mengganti username
   const isOwner = currentUser && String(currentUser.role||'').toLowerCase() === 'owner';
   const ownerWrap = document.getElementById('edit-akun-username-owner-wrap');
   const readonlyWrap = document.getElementById('edit-akun-username-readonly');
@@ -577,6 +716,10 @@ async function simpanEditAkun(e) {
   const password     = document.getElementById('edit-akun-password').value.trim();
   const role         = document.getElementById('edit-akun-role').value;
   const division     = document.getElementById('edit-akun-division').value.trim();
+  const mitraId      = document.getElementById('edit-akun-mitra-id') ? document.getElementById('edit-akun-mitra-id').value : '';
+
+  const MITRA_ROLES = ['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+  const isMitraRole = MITRA_ROLES.includes((role||'').toLowerCase());
 
   const isOwner = currentUser && String(currentUser.role||'').toLowerCase() === 'owner';
   const usernameBaru = isOwner
@@ -585,6 +728,10 @@ async function simpanEditAkun(e) {
 
   if(!nama || !role) {
     showAlert('Nama dan Role tidak boleh kosong.', 'Form Tidak Lengkap');
+    return;
+  }
+  if(isMitraRole && !mitraId) {
+    showAlert('Pilih Nama Mitra untuk akun bertipe Mitra.', 'Mitra Wajib Dipilih');
     return;
   }
   if(isOwner && !usernameBaru) {
@@ -597,8 +744,12 @@ async function simpanEditAkun(e) {
   btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Menyimpan...';
 
   const avatar = nama.trim().split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
-  const update = { display_name: nama, role, division: division || role, avatar };
-  if(password) update.password = password; // hanya update password kalau diisi
+  const update = {
+    display_name: nama, role, division: division || role, avatar,
+    account_type: isMitraRole ? 'mitra' : 'internal',
+    mitra_id: isMitraRole && mitraId ? mitraId : null
+  };
+  if(password) update.password = password;
 
   try {
     // Owner mengganti username: pastikan username baru belum dipakai akun lain.

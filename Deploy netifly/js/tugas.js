@@ -1129,17 +1129,26 @@ function getTaskLocation(type){
     const mapId=type+'-map';const mapEl=document.getElementById(mapId);
     if(mapEl){mapEl.classList.remove('hidden');
       if(type==='instalasi'){
+        const mapPlaceholder=document.getElementById('instalasi-map-placeholder');
+        if(mapPlaceholder)mapPlaceholder.remove();
         if(!taskMap){taskMap=L.map(mapId).setView([lat,lng],16);}else taskMap.setView([lat,lng],16);
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(taskMap);
-        L.marker([lat,lng]).addTo(taskMap).bindPopup('Lokasi Pelanggan').openPopup();
+        if(!taskMap._odpBaseLayer){taskMap._odpBaseLayer=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{attribution:'© OSM'}).addTo(taskMap);}
+        if(taskMap._odpCustomerMarker)taskMap.removeLayer(taskMap._odpCustomerMarker);
+        taskMap._odpCustomerMarker=L.marker([lat,lng]).addTo(taskMap).bindPopup('Lokasi Pelanggan').openPopup();
+        if(taskMap._odpDetectionRadius)taskMap.removeLayer(taskMap._odpDetectionRadius);
+        taskMap._odpDetectionRadius=L.circle([lat,lng],{radius:150,color:'#2563eb',weight:3,opacity:.95,fillColor:'#60a5fa',fillOpacity:.14}).addTo(taskMap);
+        taskMap._odpDetectionRadius.bindTooltip('Radius deteksi ODP: 150 meter',{sticky:true});
+        if(taskMap._odpMarkers)taskMap.removeLayer(taskMap._odpMarkers);
+        taskMap.eachLayer(function(layer){if(layer instanceof L.CircleMarker)taskMap.removeLayer(layer);});
+        taskMap._odpMarkers=L.layerGroup().addTo(taskMap);
+        const odpMapIcon=L.divIcon({className:'odp-map-marker',html:'<span aria-label="Marker ODP"><i class="fa-solid fa-tower-broadcast"></i></span>',iconSize:[34,42],iconAnchor:[17,42],popupAnchor:[0,-38]});
         odpMaster.filter(o=>calculateDistance(lat,lng,o.lat,o.lng)<=150).forEach(o=>{
-          const pct=Math.round((o.terisi/o.kapasitas)*100);
-          L.circleMarker([o.lat,o.lng],{color:getODPColor(pct),radius:8,fillColor:getODPColor(pct),fillOpacity:.8}).addTo(taskMap).bindPopup(`<b>${o.id}</b><br>${o.lokasi}<br>${o.terisi}/${o.kapasitas} port`);
+          L.marker([o.lat,o.lng],{icon:odpMapIcon}).addTo(taskMap._odpMarkers).bindPopup(`<b>${o.id}</b><br>ODC: ${o.odc||'--'}<br>${o.lokasi}<br>${o.terisi}/${o.kapasitas} port`);
         });
         updateODPDropdown(lat,lng);
         const nearby=odpMaster.filter(o=>calculateDistance(lat,lng,o.lat,o.lng)<=150);
         const nbEl=document.getElementById('instalasi-odp-nearby'),lsEl=document.getElementById('instalasi-odp-list');
-        if(nearby.length&&nbEl&&lsEl){nbEl.classList.remove('hidden');lsEl.innerHTML=nearby.map(o=>{const d=Math.round(calculateDistance(lat,lng,o.lat,o.lng));return`<div class="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-900"><div><p class="text-xs font-extrabold text-blue-700 dark:text-blue-300">${o.id}</p><p class="text-[10px] text-slate-500">${o.lokasi} • ${d}m</p></div><p class="text-[10px] font-bold" style="color:${getODPColor(Math.round((o.terisi/o.kapasitas)*100))}">${o.terisi}/${o.kapasitas}</p></div>`;}).join('');}
+        if(nearby.length&&nbEl&&lsEl){nbEl.classList.remove('hidden');lsEl.innerHTML=nearby.map(o=>{const d=Math.round(calculateDistance(lat,lng,o.lat,o.lng));return`<div class="flex items-center justify-between bg-white dark:bg-slate-800 rounded-xl px-3 py-2 border border-blue-100 dark:border-blue-900"><div><p class="text-xs font-extrabold text-blue-700 dark:text-blue-300">${o.id}</p><p class="text-[10px] text-slate-500">${o.odc||'ODC --'} • ${o.lokasi} • ${d}m</p></div><p class="text-[10px] font-bold" style="color:${getODPColor(Math.round((o.terisi/o.kapasitas)*100))}">${o.terisi}/${o.kapasitas}</p></div>`;}).join('');}
         setTimeout(()=>{if(taskMap)taskMap.invalidateSize();},300);
       } else {
         if(!taskMapMaint){taskMapMaint=L.map(mapId).setView([lat,lng],16);}else taskMapMaint.setView([lat,lng],16);
@@ -1154,7 +1163,7 @@ function updateODPDropdown(lat,lng){
   const sel=document.getElementById('select-odp-instalasi');if(!sel)return;
   const nearby=odpMaster.filter(o=>calculateDistance(lat,lng,o.lat,o.lng)<=150);
   if(!nearby.length){sel.innerHTML='<option value="" disabled selected>-- Tidak ada ODP dalam radius 150m --</option>';return;}
-  sel.innerHTML='<option value="" disabled selected>-- Pilih ODP --</option>'+nearby.map(o=>{const d=Math.round(calculateDistance(lat,lng,o.lat,o.lng));return`<option value="${o.id}">${o.id} (${d}m) — ${o.kapasitas-o.terisi} port sisa</option>`;}).join('');
+  sel.innerHTML='<option value="" disabled selected>-- Pilih ODP --</option>'+nearby.map(o=>{const d=Math.round(calculateDistance(lat,lng,o.lat,o.lng));return`<option value="${o.id}">${o.id}${o.odc?' • '+o.odc:''} (${d}m) — ${o.kapasitas-o.terisi} port sisa</option>`;}).join('');
 }
 
 async function requestProvisioning(){

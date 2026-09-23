@@ -11,7 +11,8 @@
 | `akun` | Login user (username, password, role, display_name) |
 | `karyawan` | Data karyawan (nama, role, avatar) |
 | `absensi` | Rekap absensi harian |
-| `odp` | Data ODP (lokasi, kapasitas, terisi, lat, lng) |
+| `odp` | Data ODP (ODC, lokasi, kapasitas, terisi, lat, lng) |
+| `attendance_shift_swap_requests` | Pengajuan tukar shift Teknisi/CS |
 | `work_orders` | Semua tiket WO (status, tipe, pelanggan, dll) |
 | `perangkat` | Inventaris perangkat di gudang |
 | `perangkat_teknisi` | Perangkat yang sedang di tangan teknisi |
@@ -103,3 +104,29 @@ pg_dump "postgresql://postgres:[password]@db.pasmdewdganfgdnntwam.supabase.co:54
 - [ ] Setup SSL (Let's Encrypt) + domain/subdomain
 - [ ] Setup backup otomatis PostgreSQL
 - [ ] Setup VPN (opsional, untuk akses dari luar)
+
+
+## Admin Approval Shift Swap
+
+Fitur approval tukar shift diakses dari menu **ADMIN → Approval Shift**.
+
+### Flow Approval
+1. Karyawan ajukan tukar shift via **Absensi → Tukar Shift** → status: `WAITING`
+2. Admin buka **Admin → Approval Shift**
+3. Admin klik **Setujui** (approve):
+   - Status: `WAITING` → `APPROVED`
+   - Jadwal kedua pihak otomatis ter-swap
+   - `requester_schedule_id` & `target_schedule_id` shift_code di-tukar
+4. Admin klik **Tolak** (reject):
+   - Status: `WAITING` → `REJECTED`
+   - Jadwal tidak berubah
+   - Admin bisa input alasan penolakan via prompt
+
+### Database Schema
+- `status`: WAITING, PARTNER_ACCEPTED, APPROVED, REJECTED, CANCELLED
+- `swap_scope`: SINGLE_DAY (hari biasa) atau WEEKEND_PAIR (Sabtu-Minggu)
+- `requester_weekend_snapshot`, `target_weekend_snapshot`: snapshot jadwal untuk validasi pada saat approval
+
+### Modul Baru
+- `js/shift-swap-approval.js` — approval UI & logic di Admin section
+- Migration SQL sudah di `supabase/shift_swap_setup.sql`

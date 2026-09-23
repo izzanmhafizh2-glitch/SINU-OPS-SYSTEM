@@ -4,14 +4,17 @@ const NON_SHIFT_ROLES=['NOC','Admin','Finance','SPV','CS'];
 
 function selectRole(roleName,element){
   document.getElementById('selectedRole').value=roleName;
+  const roleText=document.getElementById('account-role-text');
+  if(roleText)roleText.textContent=roleName;
   document.querySelectorAll('.role-btn').forEach(b=>{b.className='role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300';});
-  element.className='role-btn active py-2.5 px-2 rounded-xl border-2 border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 transition-all flex flex-col items-center gap-1';
+  if(element)element.className='role-btn active py-2.5 px-2 rounded-xl border-2 border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 transition-all flex flex-col items-center gap-1';
   // Update label jam di tombol shift sesuai role
   const s1=document.getElementById('shift1-jam-label'),s2=document.getElementById('shift2-jam-label'),ns=document.getElementById('nonshift-jam-label');
   if(roleName==='CS'){if(s1)s1.textContent='07:00 WIB';if(s2)s2.textContent='13:00 WIB';if(ns)ns.textContent='09:00 WIB';}
   else if(roleName==='NOC'){if(s1)s1.textContent='08:00 WIB';if(s2)s2.textContent='14:00 WIB';if(ns)ns.textContent='10:00 WIB';}
   else{if(s1)s1.textContent='08:00 WIB';if(s2)s2.textContent='14:00 WIB';if(ns)ns.textContent='09:00 WIB';}
   updateShiftVisibility(roleName);updateGPSLabel(roleName);
+  if(typeof applyJadwalHariIni==='function') applyJadwalHariIni();
 }
 
 function updateShiftVisibility(role){
@@ -26,17 +29,17 @@ function updateShiftVisibility(role){
       else infoTxt.textContent='Shift 1: masuk 07:00 (batas 07:15) | Shift 2: masuk 13:00 (batas 13:15) | Non Shift: 09:15';
     }
   } else if(role==='NOC'){
-    if(infoTxt)infoTxt.textContent='NOC: Non Shift — masuk 10:00 WIB, batas 10:15 (setiap hari kecuali Minggu).';
-    // Otomatis pilih Non Shift
-    document.querySelectorAll('.shift-btn').forEach((b,i)=>{if(i===2){b.classList.add('border-blue-600','bg-blue-50','dark:bg-blue-950/40','text-blue-900','dark:text-blue-300');b.classList.remove('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}else{b.classList.remove('border-blue-600','bg-blue-50','dark:bg-blue-950/40','text-blue-900','dark:text-blue-300');b.classList.add('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}});
-    document.getElementById('selectedShift').value='NonShift';
+    if(infoTxt)infoTxt.textContent='NOC: pilih Shift 1 atau Shift 2 sesuai jadwal yang diberikan Admin. Toleransi keterlambatan 15 menit.';
+    // NOC tidak lagi dipaksa Non Shift; applyJadwalHariIni akan memilih shift dari jadwal terpublikasi.
+    const selected=document.getElementById('selectedShift');
+    if(selected && !['Shift1','Shift2','NonShift'].includes(selected.value))selected.value='';
   } else if(['Admin','Finance','SPV'].includes(role)){
     if(infoTxt){
       if(dow===0)infoTxt.textContent='Minggu — hari libur.';
       else if(dow===6)infoTxt.textContent='Sabtu: Non Shift — masuk 10:00 (batas 10:15).';
       else infoTxt.textContent='Non Shift: masuk 09:00 WIB, batas 09:15 (Senin-Jumat).';
     }
-    document.querySelectorAll('.shift-btn').forEach((b,i)=>{if(i===2){b.classList.add('border-blue-600','bg-blue-50','dark:bg-blue-950/40','text-blue-900','dark:text-blue-300');b.classList.remove('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}else{b.classList.remove('border-blue-600','bg-blue-50','dark:bg-blue-950/40','text-blue-900','dark:text-blue-300');b.classList.add('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}});
+    document.querySelectorAll('.shift-btn').forEach((b,i)=>{if(i===2){b.classList.add('border-emerald-500','bg-emerald-50','dark:bg-emerald-950/40','text-emerald-900','dark:text-emerald-300');b.classList.remove('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}else{b.classList.remove('border-emerald-500','bg-emerald-50','dark:bg-emerald-950/40','text-emerald-900','dark:text-emerald-300');b.classList.add('border-slate-100','dark:border-slate-700','bg-slate-50','dark:bg-slate-700/50','text-slate-700','dark:text-slate-300');}});
     document.getElementById('selectedShift').value='NonShift';
   } else {
     // Teknisi
@@ -58,9 +61,16 @@ function autoSelectRoleByName(name){
 }
 
 function selectShift(shiftName,element){
+  if(typeof _sinuAttendanceScheduleLoading !== 'undefined' && _sinuAttendanceScheduleLoading){showAlert('Sedang membaca jadwal Anda.','Jadwal Absensi');return;}
+  const schedule=typeof getJadwalAbsensiHariIni==='function' ? getJadwalAbsensiHariIni() : null;
+  const role=document.getElementById('selectedRole') ? document.getElementById('selectedRole').value : '';
+  const scheduledRoles=['Teknisi','CS','Admin','Finance','SPV','NOC'];
+  if(!schedule&&scheduledRoles.includes(role)){showAlert('Shift belum dapat dipilih karena jadwal hari ini belum tersedia. Hubungi Admin.','Jadwal Absensi');return;}
+  if(schedule && schedule.shift_code!==shiftName){showAlert('Shift mengikuti jadwal yang dipublish Admin: '+(schedule.shift_code==='NonShift'?'Non Shift':schedule.shift_code.replace('Shift','Shift '))+'.','Shift Terkunci');return;}
   document.getElementById('selectedShift').value=shiftName;
   document.querySelectorAll('.shift-btn').forEach(b=>{b.className='shift-btn py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 transition-all flex items-center justify-center gap-2 hover:border-slate-300';});
-  element.className='shift-btn active py-2.5 rounded-xl border-2 border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 transition-all flex items-center justify-center gap-2';
+  const activeClasses=shiftName==='NonShift' ? 'border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-900 dark:text-emerald-300' : shiftName==='Shift1' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-950/40 text-yellow-900 dark:text-yellow-300' : 'border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300';
+  element.className='shift-btn active py-2.5 rounded-xl border-2 '+activeClasses+' transition-all flex items-center justify-center gap-2';
 }
 
 function calculateDistance(lat1,lon1,lat2,lon2){
@@ -88,19 +98,26 @@ function getLocation(){
   },()=>{locationData=null;status.innerHTML="<span class='text-rose-500 font-semibold'>Gagal ambil GPS.</span>";},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
 }
 
-// Hitung point kehadiran per hari
+// Hitung point kehadiran per hari (skala 100)
 function hitungPointKehadiran(statusKehadiran,mntTerlambat,jenisCuti,adaSurat){
-  if(statusKehadiran==='TEPAT WAKTU')return 10;
-  if(statusKehadiran==='TERLAMBAT'){if(mntTerlambat<30)return 7;if(mntTerlambat<60)return 5;return 3;}
-  if(statusKehadiran==='IZIN SAKIT')return adaSurat?6:4;
-  if(statusKehadiran==='IZIN CUTI')return 5;
+  if(statusKehadiran==='TEPAT WAKTU')return 100;
+  if(statusKehadiran==='TERLAMBAT'){if(mntTerlambat<30)return 70;if(mntTerlambat<60)return 50;return 30;}
+  if(statusKehadiran==='IZIN SAKIT')return adaSurat?60:40;
+  if(statusKehadiran==='IZIN CUTI')return 50;
   return 0; // ALPA
 }
 
 function cekKeterlambatan(){
   const role=document.getElementById('selectedRole').value;
   const shift=document.getElementById('selectedShift').value;
+  const scheduled=typeof getJadwalAbsensiHariIni==='function' ? getJadwalAbsensiHariIni() : null;
   const now=new Date();const dow=now.getDay();const tot=now.getHours()*60+now.getMinutes();
+  if(scheduled){
+    const parts=String(scheduled.jam_masuk).slice(0,5).split(':').map(Number);
+    const batas=(parts[0]*60+parts[1])+15;
+    const isLate=tot>batas;
+    return{isLate,mntLate:isLate?tot-(parts[0]*60+parts[1]):0,statusKehadiran:isLate?'TERLAMBAT':'TEPAT WAKTU'};
+  }
   let batas=555,isLate=false,mntLate=0;
 
   if(role==='CS'){
@@ -151,7 +168,11 @@ async function handleNativeFileSelect(event){
 
 async function handleFormSubmit(event){
   event.preventDefault();const btn=document.getElementById('btn-submit');
-  const empName=document.getElementById('employeeName').value;const role=document.getElementById('selectedRole').value;const shift=document.getElementById('selectedShift').value;const lateReason=document.getElementById('lateReason').value;
+  const empName=document.getElementById('employeeName').value;const role=document.getElementById('selectedRole').value;const selectedShift=document.getElementById('selectedShift').value;const lateReason=document.getElementById('lateReason').value;
+  const schedule=typeof getJadwalAbsensiHariIni==='function' ? getJadwalAbsensiHariIni() : null;
+  const shift=schedule ? schedule.shift_code : selectedShift;
+  const scheduledRoles=['Teknisi','CS','Admin','NOC','Finance','SPV'];
+  if(scheduledRoles.includes(role) && typeof getJadwalAbsensiHariIni==='function' && !schedule){showAlert('Anda belum memiliki jadwal yang dipublish untuk hari ini. Hubungi Admin.','Jadwal Absensi');return;}
   if(!empName){showAlert('Silakan pilih Nama Karyawan.');return;}
   if(!locationData){showAlert('Silakan dapatkan lokasi GPS terlebih dahulu.');return;}
   if(!capturedImageData){showAlert('Silakan ambil foto selfie presensi.');return;}
@@ -160,7 +181,20 @@ async function handleFormSubmit(event){
   const point=hitungPointKehadiran(statusKehadiran,mntLate,'',false);
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengirim...</span>';
   try {
-    if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({nama:empName,role,shift,statusKehadiran,mntTerlambat:mntLate,point,lat:locationData.lat,lng:locationData.lng});
+    if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({
+      nama:empName,
+      username:currentUser ? currentUser.username : '',
+      role,
+      shift,
+      scheduleId:schedule ? schedule.id : null,
+      jamMasukAktual:new Date().toISOString(),
+      alasanKeterlambatan:lateReason.trim(),
+      statusKehadiran,
+      mntTerlambat:mntLate,
+      point,
+      lat:locationData.lat,
+      lng:locationData.lng
+    });
   } catch(error) {
     btn.disabled=false;btn.innerHTML=orig;
     showAlert('Absensi gagal disimpan: '+(error.message||'Periksa koneksi Supabase.'),'Gagal Menyimpan');
@@ -172,7 +206,7 @@ async function handleFormSubmit(event){
     const badge=document.getElementById('screen-status-badge'),ptVal=document.getElementById('screen-point-val');
     if(isLate){badge.innerText='HADIR (TERLAMBAT)';badge.className='inline-block px-4 py-2 rounded-2xl border text-sm font-extrabold bg-amber-50 dark:bg-amber-950/50 text-amber-600 dark:text-amber-400 border-amber-200 dark:border-amber-800';}
     else{badge.innerText='HADIR (TEPAT WAKTU)';badge.className='inline-block px-4 py-2 rounded-2xl border text-sm font-extrabold bg-emerald-50 dark:bg-emerald-950/50 text-emerald-600 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800';}
-    if(ptVal)ptVal.textContent='+'+point;
+    if(ptVal)ptVal.textContent='+'+(Number(point)||0);
   },1000);
 }
 
@@ -180,7 +214,7 @@ function setSickDocStatus(ada,el){
   sickHasDoc=ada;
   document.querySelectorAll('.sick-doc-btn').forEach(b=>{b.className='sick-doc-btn py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all hover:border-slate-300';});
   el.className='sick-doc-btn py-2.5 rounded-xl border-2 border-emerald-500 bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-300 font-bold text-xs flex items-center justify-center gap-2 transition-all';
-  const pt=ada?6:4;const prev=document.getElementById('sick-point-preview');if(prev)prev.textContent=pt+' poin '+(ada?'(dengan surat)':'(tanpa surat)');
+  const pt=ada?60:40;const prev=document.getElementById('sick-point-preview');if(prev)prev.textContent=pt+' poin '+(ada?'(dengan surat)':'(tanpa surat)');
   const upld=document.getElementById('sick-doc-upload');if(upld){if(ada)upld.classList.remove('hidden');else upld.classList.add('hidden');}
 }
 
@@ -219,20 +253,52 @@ function autoFillNamaAbsensi(){
   };
   const mappedRole = roleMap[role.toLowerCase()] || 'Teknisi';
   const roleBtn = document.getElementById('role-btn-'+mappedRole);
-  if(roleBtn) selectRole(mappedRole, roleBtn);
+  selectRole(mappedRole, roleBtn);
 }
 
 function renderMyPointSection(){
   const el=document.getElementById('my-attendance-point'),elMax=document.getElementById('my-max-point'),elGrade=document.getElementById('my-grade-badge');
   if(!el)return;
   const name=currentUser?currentUser.displayName:'';
-  const ap=absensiPoints[name]||{total:0,max:200,perfect:false};
-  const pct=Math.round((ap.total/ap.max)*100);
-  const grade=pct>=90?'A':pct>=75?'B':pct>=60?'C':'D';
-  const gColor=pct>=90?'text-emerald-300':pct>=75?'text-blue-300':pct>=60?'text-amber-300':'text-rose-300';
-  if(el)el.textContent=ap.total+(ap.perfect?' ⭐':'');
-  if(elMax)elMax.textContent=ap.max+' poin';
-  if(elGrade)elGrade.innerHTML=`<span class="${gColor} font-black">Grade ${grade}</span>`;
+  
+  // Load point dari database untuk user ini (async)
+  loadMyPointFromDB(name);
+}
+
+// Load point individual user dari database
+async function loadMyPointFromDB(userName) {
+  if(!userName || typeof supa === 'undefined') return;
+  
+  const now = new Date();
+  const bulan = now.getMonth() + 1;
+  const tahun = now.getFullYear();
+  
+  try {
+    const { data, error } = await supa.from('absensi')
+      .select('point, status_kehadiran, tanggal')
+      .eq('nama', userName);
+    
+    if(error || !data) return;
+    
+    // Filter hanya bulan ini
+    const bulanIni = data.filter(d => {
+      if(!d.tanggal) return false;
+      const t = new Date(d.tanggal);
+      return t.getMonth() + 1 === bulan && t.getFullYear() === tahun;
+    });
+    
+    // TOTAL MENTAH dari semua point bulan ini (kumulatif)
+    const total = bulanIni.reduce((sum, d) => sum + (Number(d.point) || 0), 0);
+    const perfect = bulanIni.length >= 30 && bulanIni.every(d => d.status_kehadiran === 'TEPAT WAKTU');
+    
+    absensiPoints[userName] = {total, perfect};
+    
+    // Update UI - hanya tampilkan total kumulatif
+    const el=document.getElementById('my-attendance-point');
+    if(el)el.textContent=total+(perfect?' ⭐':'');
+  } catch(e) {
+    console.error('Error loading my point:', e);
+  }
 }
 
 function resetForm(){document.getElementById('attendance-form').reset();document.getElementById('photo-preview').classList.add('hidden');document.getElementById('camera-placeholder').classList.remove('hidden');document.getElementById('success-screen').classList.add('hidden');document.getElementById('attendance-form').classList.remove('hidden');capturedImageData=null;locationData=null;document.getElementById('location-status').innerText='Klik tombol untuk mendeteksi GPS.';}

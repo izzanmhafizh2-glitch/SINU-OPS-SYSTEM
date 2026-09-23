@@ -9,6 +9,39 @@ function togglePwd(){
 }
 
 const SINU_AUTH_STORAGE_KEY = 'sinu_user';
+const ADMIN_RESTRICTED_SUBS = ['buat-tugas','buat-dismantle','registrasi'];
+
+// Akun Owner/Super Admin dipakai untuk bantuan darurat, bukan sebagai anggota operasional.
+window.sinuHiddenOperationalNames = window.sinuHiddenOperationalNames || new Set();
+window.sinuIsSuperAdminRole = function(role){
+  return ['owner','superadmin','super admin'].includes(String(role||'').trim().toLowerCase());
+};
+window.sinuRememberHiddenAccount = function(account){
+  const identityValues = [account && account.username, account && (account.display_name || account.displayName), account && account.name]
+    .filter(Boolean)
+    .map(function(value){ return String(value).trim().toLowerCase(); });
+  const isSpecialIdentity = identityValues.some(function(value){
+    return value === 'superadmin' || value === 'super admin' || value.replace(/\s+/g,'') === 'superadmin';
+  });
+  if(!window.sinuIsSuperAdminRole(account && account.role) && !isSpecialIdentity) return false;
+  identityValues.forEach(function(name){ window.sinuHiddenOperationalNames.add(name); });
+  return true;
+};
+window.sinuIsHiddenOperationalName = function(name){
+  const clean=String(name||'').trim().toLowerCase();
+  return !!clean && window.sinuHiddenOperationalNames.has(clean);
+};
+window.sinuResolveOperationalDivision = function(name,fallback='CS'){
+  const key=String(name||'').trim().toLowerCase();
+  const staff=typeof employeeMaster!=='undefined' && Array.isArray(employeeMaster) ? employeeMaster : [];
+  const person=staff.find(function(e){return String(e.name||'').trim().toLowerCase()===key;});
+  const role=String(person && person.role||'').trim().toLowerCase();
+  const division=String(person && person.division||'').trim().toLowerCase();
+  if(role==='admin'||division.includes('admin'))return 'Admin';
+  if(role==='cs'||division==='cs'||division.includes('customer service')||division.includes('cs'))return 'CS';
+  return fallback;
+};
+
 let sinuMidnightLogoutTimer = null;
 
 function sinuTodayKey(date = new Date()) {
@@ -87,11 +120,12 @@ function sinuPerformLogout() {
 }
 
 function loadMainApp(){
+  if(window.sinuRememberHiddenAccount) window.sinuRememberHiddenAccount(currentUser);
   document.getElementById('login-page').classList.add('hidden');
   document.getElementById('main-app').classList.remove('hidden');
   document.getElementById('user-avatar').textContent=currentUser.avatar;
   document.getElementById('user-display-name').textContent=currentUser.displayName;
-  const rLabel={owner:'Owner (Super Admin)',admin:'Admin/CS',cs:'Admin/CS',teknisi:'Teknisi Field',supervisor:'Supervisor',noc:'NOC Engineer',finance:'Finance'};
+  const rLabel={owner:'Owner (Super Admin)',admin:'Admin',cs:'CS',teknisi:'Teknisi Field',supervisor:'Supervisor',spv:'Supervisor',noc:'NOC Engineer',finance:'Finance',manager:'Manager',koordinator:'Koordinator Mitra',teknisi_mitra:'Teknisi Mitra',noc_mitra:'NOC Mitra',cs_mitra:'CS Mitra'};
   document.getElementById('user-role-badge').textContent=rLabel[currentUser.role]||currentUser.role;
   buildNavigation();initApp();
   // Load foto profil kalau ada
@@ -102,40 +136,111 @@ function loadMainApp(){
 function buildNavigation(){
   const nav=document.getElementById('main-nav');
   const r=(currentUser.role||'').toLowerCase();
-  // Owner = super admin. Melihat & mengakses SEMUA menu.
-  const isOwner=r==='owner';
-  const isAdmin=r==='admin'||isOwner,isSupervisor=r==='supervisor'||isOwner,isTek=r==='teknisi'||isOwner,isNOC=r==='noc'||isOwner,isFinance=r==='finance';
+
+  // ── Klasifikasi role ──────────────────────────────────────
+  const isOwner        = r==='owner';
+  const isAdmin        = r==='admin'||r==='owner';
+  const isSupervisor   = r==='supervisor'||r==='spv'||r==='owner';
+  const isSupervisorOnly = r==='supervisor'||r==='spv';
+  const isTek          = r==='teknisi'||r==='owner';
+  const isNOC          = r==='noc'||r==='owner';
+  const isCS           = r==='cs';
+  const isFinance      = r==='finance';
+  const isManager      = r==='manager';
+  const isAssetOnly    = r==='noc'||r==='supervisor'||r==='spv';
+  const canCreateSchedule = r==='admin';
+
+  // ── Role mitra ────────────────────────────────────────────
+  const isKoordinator  = r==='koordinator';
+  const isTekMitra     = r==='teknisi_mitra';
+  const isNOCMitra     = r==='noc_mitra';
+  const isCSMitra      = r==='cs_mitra';
+  const isMitraAny     = isKoordinator||isTekMitra||isNOCMitra||isCSMitra;
+
+  // ── Menu navigasi ─────────────────────────────────────────
   const menus=[
-    {id:'dashboard',icon:'fa-chart-pie',label:'Dashboard',show:!isFinance||isOwner},
-    {id:'tugas',icon:'fa-list-check',label:'Tugas',show:isTek},
-    {id:'material',icon:'fa-boxes-packing',label:'Material',show:isTek},
-    {id:'noc',icon:'fa-headset',label:'NOC',show:isNOC},
-    {id:'absensi',icon:'fa-user-check',label:'Absensi',show:true},
-    {id:'admin',icon:'fa-user-gear',label:'Admin',show:isAdmin},
-    {id:'odp',icon:'fa-tower-broadcast',label:'Asset ODP',show:isAdmin||isSupervisor},
-    {id:'kpi',icon:'fa-ranking-star',label:'KPI',show:isSupervisor},
-    {id:'logtugas',icon:'fa-clock-rotate-left',label:'Log Tugas',show:isSupervisor},
-    {id:'logperangkat',icon:'fa-route',label:'Log Aset',show:isSupervisor},
-    {id:'kelolaakun',icon:'fa-users-gear',label:'Kelola Akun',show:isSupervisor}
+    {id:'dashboard', icon:'fa-chart-pie',         label:'Dashboard',  show:(!isFinance&&!isMitraAny&&!isManager)||isOwner},
+    {id:'absensi',   icon:'fa-user-check',         label:'Absensi',    show:!isMitraAny&&!isManager},
+    {id:'baru',      icon:'fa-headset',            label:'CS',         show:isCS||isCSMitra},
+    {id:'tugas',     icon:'fa-list-check',         label:'Tugas',      show:isTek||isTekMitra},
+    {id:'material',  icon:'fa-boxes-packing',      label:'Material',   show:isTek||isTekMitra},
+    {id:'noc',       icon:'fa-headset',            label:'NOC',        show:isNOC||isNOCMitra},
+    {id:'admin',     icon:isAssetOnly?'fa-boxes-packing':'fa-user-gear', label:isAssetOnly?'Asset':'Admin', show:isAdmin||isAssetOnly},
+    {id:'invoice-mitra', icon:'fa-file-invoice',   label:'Invoice/BAPS', show:isKoordinator},
+    {id:'perangkat-mitra', icon:'fa-laptop',       label:'Perangkat',  show:isKoordinator},
+    {id:'approval-perangkat-mitra', icon:'fa-clipboard-check', label:'Approval Pickup', show:isKoordinator},
+    {id:'spv',       icon:'fa-user-tie',           label:'SPV',        show:isSupervisorOnly},
+    {id:'manager',   icon:'fa-file-invoice',       label:'Manager',    show:isManager},
+    {id:'kpi',       icon:'fa-ranking-star',       label:'KPI',        show:isOwner},
+    {id:'logtugas',  icon:'fa-clock-rotate-left',  label:'Log Tugas',  show:isOwner},
+    {id:'kelolaakun',icon:'fa-users-gear',         label:'Kelola Akun',show:isSupervisor}
   ];
   const visible=menus.filter(m=>m.show);
-  // Responsive nav: selalu pakai inline style untuk grid columns
   nav.className='bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 grid gap-1';
   nav.style.cssText='grid-template-columns:repeat('+Math.min(visible.length,5)+',1fr);';
   nav.innerHTML=visible.map((m,i)=>`<button type="button" onclick="switchMainTab('${m.id}')" id="main-tab-${m.id}" class="tab-btn ${i===0?'active':''} py-2 px-1 rounded-xl text-[9px] sm:text-[10px] lg:text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all flex flex-col items-center gap-1 min-w-0"><i class="fa-solid ${m.icon} text-sm lg:text-base"></i><span class="truncate w-full text-center">${m.label}</span></button>`).join('');
-  // Rekapitulasi karyawan hanya untuk Supervisor dan Owner.
-  // Admin, NOC, dan Teknisi tetap memakai Dashboard tanpa melihat rekap ini.
+
+  // ── Kontrol visibilitas komponen per role ─────────────────
   const canViewEmployeeRecap=isSupervisor;
   const recapHeader=document.getElementById('employee-recap-header');
   const recapTable=document.getElementById('employee-recap-table');
   if(recapHeader)recapHeader.classList.toggle('hidden',!canViewEmployeeRecap);
   if(recapTable)recapTable.classList.toggle('hidden',!canViewEmployeeRecap);
 
-  // Tombol tambah dan aksi hapus hanya untuk Supervisor/Owner.
   const btnTambah=document.getElementById('btn-tambah-karyawan');
   const colAksi=document.getElementById('col-aksi-karyawan');
   if(btnTambah)btnTambah.classList.toggle('hidden',!isSupervisor);
   if(colAksi)colAksi.classList.toggle('hidden',!isSupervisor);
+
+  const odpAdminActions=document.getElementById('odp-admin-actions');
+  if(odpAdminActions)odpAdminActions.classList.toggle('hidden',!(isAdmin||isSupervisor));
+
+  const adminTaskButton=document.getElementById('admin-menu-tugas');
+  const adminTaskNav=document.getElementById('admin-sub-tugas');
+  const adminAssetButton=document.getElementById('admin-menu-asset');
+  if(adminTaskButton)adminTaskButton.classList.toggle('hidden',isAssetOnly);
+  if(adminTaskNav)adminTaskNav.classList.toggle('hidden',isAssetOnly);
+  if(adminAssetButton)adminAssetButton.classList.toggle('hidden',isSupervisorOnly);
+
+  ADMIN_RESTRICTED_SUBS.forEach(function(sub){
+    const button=document.getElementById('sub-adm-'+sub);
+    const content=document.getElementById('sub-adm-content-'+sub);
+    if(button)button.classList.toggle('hidden',r==='admin');
+    if(content)content.classList.toggle('hidden',r==='admin');
+  });
+
+  const adminOdpButton=document.getElementById('admin-menu-odp');
+  if(adminOdpButton)adminOdpButton.classList.toggle('hidden',isCS||isCSMitra);
+
+  const adminLogMenu=document.getElementById('admin-menu-logperangkat');
+  if(adminLogMenu)adminLogMenu.classList.toggle('hidden',!isSupervisorOnly);
+
+  const assetLogSubButton=document.getElementById('sub-adm-logperangkat');
+  if(assetLogSubButton)assetLogSubButton.classList.toggle('hidden',isSupervisorOnly);
+
+  ['sub-adm-tambah-perangkat','sub-adm-approval-pickup'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el)el.classList.toggle('hidden',r==='noc');
+  });
+
+  const canMonitorAttendance=r==='admin'||r==='owner'||r==='supervisor'||r==='spv';
+  const attendanceMonitoringButton=document.getElementById('sub-abs-monitoring');
+  if(attendanceMonitoringButton)attendanceMonitoringButton.classList.toggle('hidden',!canMonitorAttendance);
+
+  // Menu Tukar Shift: hanya internal Teknisi, CS, NOC (bukan mitra)
+  const canTukarShift = (r==='teknisi'||r==='cs'||r==='noc') && !isMitraAny;
+  const tukarShiftButton=document.getElementById('sub-abs-tukar-shift');
+  if(tukarShiftButton)tukarShiftButton.classList.toggle('hidden',!canTukarShift);
+
+  const adminScheduleButton=document.getElementById('admin-menu-jadwal');
+  if(adminScheduleButton)adminScheduleButton.classList.toggle('hidden',!canCreateSchedule||isCS||isCSMitra);
+
+  // CS Mitra: hanya Buat WO + List Tiket (sembunyikan menu admin lain)
+  if(isCSMitra){
+    ['admin-menu-asset','admin-menu-odp','admin-menu-jadwal'].forEach(function(id){
+      const el=document.getElementById(id); if(el)el.classList.add('hidden');
+    });
+  }
 }
 
 function handleLogout(){document.getElementById('logout-modal').classList.remove('hidden');}
@@ -256,67 +361,147 @@ function updateClock(){
 function initApp(){
   setInterval(updateClock,1000);updateClock();
   setDefaultFilterPeriod();fetchDashboardData();
-  // Pulihkan tab terakhir — Finance default ke absensi
   const r=(currentUser.role||'').toLowerCase();
-  const defaultTab = r==='finance' ? 'absensi' : 'dashboard';
+  const MITRA_ROLES=['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+  const isMitraAny=MITRA_ROLES.includes(r);
+  // Default tab per role
+  let defaultTab = 'dashboard';
+  if(r==='finance') defaultTab='absensi';
+  else if(r==='manager') defaultTab='manager';
+  else if(r==='koordinator') defaultTab='mitra';
+  else if(r==='teknisi_mitra') defaultTab='tugas';
+  else if(r==='noc_mitra') defaultTab='noc';
+  else if(r==='cs_mitra') defaultTab='baru';
   const lastTab = sessionStorage.getItem('sinu_last_tab') || defaultTab;
   switchMainTab(lastTab);
   renderODPGrid();renderPickupList();
   const _isOwner = currentUser && currentUser.role==='owner';
-  if(currentUser&&(currentUser.role==='admin'||_isOwner)&&typeof initBuatWOForm==='function')initBuatWOForm();
+  if(currentUser&&(currentUser.role==='admin'||_isOwner||r==='cs_mitra')&&typeof initBuatWOForm==='function')initBuatWOForm();
   if(currentUser&&(currentUser.role==='supervisor'||_isOwner)){if(typeof initKPIFilter==='function')initKPIFilter();if(typeof changeKPIPeriod==='function')changeKPIPeriod();}
   async function tryLoad(){try{if(typeof blazeface!=='undefined')faceModel=await blazeface.load();}catch(e){}}
   tryLoad();
-  renderMyPointSection();
+  if(!isMitraAny) renderMyPointSection();
 }
 
 // ===================== NAVIGATION =====================
 function switchMainTab(tabName){
-  // Sebelum pindah — reset semua sub-content dari SEMUA section
-  // supaya tidak ada yang bocor ke section lain
+  const currentRole=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+  const isSupervisorOnlyUser=currentRole==='supervisor'||currentRole==='spv';
+  const canOpenAssetLog=currentRole==='admin'||currentRole==='owner'||currentRole==='noc'||isSupervisorOnlyUser;
+  const MITRA_ROLES=['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
+  const isMitraUser=MITRA_ROLES.includes(currentRole);
+
+  // ── Redirect role mitra dari tab yang tidak boleh ─────────
+  if(isMitraUser && tabName==='absensi') tabName = currentRole==='koordinator' ? 'invoice-mitra' : currentRole==='cs_mitra' ? 'baru' : currentRole==='noc_mitra' ? 'noc' : 'tugas';
+  if(isMitraUser && tabName==='dashboard') tabName = currentRole==='koordinator' ? 'invoice-mitra' : currentRole==='cs_mitra' ? 'baru' : currentRole==='noc_mitra' ? 'noc' : 'tugas';
+  if(currentRole==='manager' && (tabName==='dashboard'||tabName==='absensi')) tabName='manager';
+
+  // ── Migrasi state lama ────────────────────────────────────
+  if(isSupervisorOnlyUser && (tabName==='kpi'||tabName==='logtugas')){
+    sessionStorage.setItem('sinu_last_sub_spv',tabName);
+    tabName='spv';
+  }
+  if(tabName==='spv' && !isSupervisorOnlyUser) tabName=currentRole==='owner'?'kpi':'dashboard';
+  if(tabName==='logperangkat'){
+    if(canOpenAssetLog){
+      sessionStorage.setItem('sinu_last_tab','admin');
+      sessionStorage.setItem('sinu_last_admin_menu',isSupervisorOnlyUser?'logperangkat':'asset');
+      sessionStorage.setItem('sinu_last_sub_admin','logperangkat');
+      tabName='admin';
+    } else { tabName='dashboard'; }
+  }
+  if((currentRole==='cs'||currentRole==='cs_mitra') && (tabName==='admin'||tabName==='odp')) tabName='baru';
+  if(tabName==='odp'){
+    sessionStorage.setItem('sinu_last_admin_menu','odp');
+    sessionStorage.setItem('sinu_last_sub_admin','odp');
+    tabName='admin';
+  }
+
+  // ── Reset semua sub-content ───────────────────────────────
   var allSubIds = [
-    // Tugas
     'sub-content-pickup-tugas','sub-content-tugas-saya','sub-content-return-tugas',
     'sub-content-riwayat-tugas','sub-content-pickup-dismantle','sub-content-tugas-dismantle',
     'form-work-instalasi','form-work-maintenance','form-work-perluasan',
-    // NOC
     'sub-content-pickup-noc','sub-content-tugas-noc','sub-content-registrasi-noc',
-    'sub-content-checking-dismantle','sub-content-riwayat-noc',
-    'view-noc-form',
-    // Material
+    'sub-content-checking-dismantle','sub-content-riwayat-noc','view-noc-form',
     'sub-mat-content-pickup-perangkat','sub-mat-content-waiting-approval',
-    'sub-mat-content-list-perangkat-saya','sub-mat-content-send-perangkat',
-    'sub-mat-content-return-perangkat',
-    // Absensi
-    'sub-abs-content-absen-form','sub-abs-content-izin-sakit',
-    'sub-abs-content-izin-cuti','sub-abs-content-point-absensi',
-    // Admin
-    'sub-adm-content-buat-tugas','sub-adm-content-registrasi',
-    'sub-adm-content-buat-dismantle','sub-adm-content-list-tiket',
-    'sub-adm-content-list-tiket-dismantle','sub-adm-content-rl-radius',
-    'sub-adm-content-tambah-perangkat','sub-adm-content-list-perangkat',
-    'sub-adm-content-list-rusak','sub-adm-content-dismantle-items',
-    'sub-adm-content-approval-pickup'
+    'sub-mat-content-list-perangkat-saya','sub-mat-content-send-perangkat','sub-mat-content-return-perangkat',
+    'sub-abs-content-absen-form','sub-abs-content-izin-sakit','sub-abs-content-izin-cuti',
+    'sub-abs-content-point-absensi','sub-abs-content-jadwal-absensi','sub-abs-content-tukar-shift','sub-abs-content-monitoring',
+    'sub-adm-content-buat-tugas','sub-adm-content-registrasi','sub-adm-content-buat-dismantle',
+    'sub-adm-content-list-tiket','sub-adm-content-list-tiket-dismantle','sub-adm-content-rl-radius',
+    'sub-adm-content-tambah-perangkat','sub-adm-content-list-perangkat','sub-adm-content-list-rusak',
+    'sub-adm-content-dismantle-items','sub-adm-content-approval-pickup',
+    'sub-adm-content-jadwal-shift','sub-adm-content-pengaturan-jam-kerja',
+    'sub-adm-content-approval-tukar-shift','section-odp','section-logperangkat',
+    // Mitra & Manager
+    'sub-mitra-content-daftar-mitra','sub-mitra-content-akun-mitra',
+    'sub-mitra-content-perangkat-mitra','sub-mitra-content-approval-perangkat-mitra',
+    'sub-mitra-content-invoice-mitra',
+    'sub-mgr-content-history-baps','sub-mgr-content-config-baps',
+    // SPV sub-panels
+    'sub-spv-content-registrasi-mitra'
   ];
   allSubIds.forEach(function(id){
-    var el = document.getElementById(id);
-    if(el) el.classList.add('hidden');
+    var el=document.getElementById(id); if(el)el.classList.add('hidden');
   });
 
   document.querySelectorAll('.main-section').forEach(el=>el.classList.add('hidden'));
   document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
-  const s=document.getElementById('section-'+tabName);if(s)s.classList.remove('hidden');
-  const b=document.getElementById('main-tab-'+tabName);if(b)b.classList.add('active');
+  
+  // Handle menu mitra yang sekarang jadi menu utama
+  let sectionName = tabName;
+  if(tabName === 'invoice-mitra' || tabName === 'perangkat-mitra' || tabName === 'approval-perangkat-mitra') {
+    sectionName = 'mitra';
+  } else if(tabName === 'baru') {
+    sectionName = 'admin';
+  }
+  
+  const s=document.getElementById('section-'+sectionName); if(s)s.classList.remove('hidden');
+  const b=document.getElementById('main-tab-'+tabName); if(b)b.classList.add('active');
   sessionStorage.setItem('sinu_last_tab', tabName);
+
+  // Unhide sub-content mitra SETELAH section ditampilkan
+  if(tabName==='invoice-mitra'){
+    document.getElementById('sub-mitra-content-invoice-mitra')?.classList.remove('hidden');
+    if(typeof loadInvoiceMitraList==='function') loadInvoiceMitraList();
+  }
+  if(tabName==='perangkat-mitra'){
+    document.getElementById('sub-mitra-content-perangkat-mitra')?.classList.remove('hidden');
+    if(typeof loadPerangkatMitra==='function') loadPerangkatMitra();
+  }
+  if(tabName==='approval-perangkat-mitra'){
+    document.getElementById('sub-mitra-content-approval-perangkat-mitra')?.classList.remove('hidden');
+    if(typeof loadApprovalPerangkatMitra==='function') loadApprovalPerangkatMitra();
+  }
+
+  if(tabName==='spv') switchSubSPV(sessionStorage.getItem('sinu_last_sub_spv')||'kpi');
   if(tabName==='kpi'){initKPIFilter();switchSubKPI(sessionStorage.getItem('sinu_last_sub_kpi')||'performance');changeKPIPeriod();}
   if(tabName==='noc'){
     switchSubNOC('pickup-noc');
   }
-  if(tabName==='admin'){
-    const lastMenu = sessionStorage.getItem('sinu_last_admin_menu') || 'tugas';
+  if(tabName==='admin'||tabName==='baru'){
+    const role=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+    const isAssetOnlyUser=role==='noc'||role==='supervisor'||role==='spv';
+    const isCSUser=role==='cs';
+    const storedSubValue=sessionStorage.getItem('sinu_last_sub_admin') || '';
+    let storedSub=storedSubValue;
+    let lastMenu=sessionStorage.getItem('sinu_last_admin_menu') || 'tugas';
+    // Admin tidak boleh memulihkan atau membuka submenu pembuatan WO, Dismantle, dan Registrasi.
+    if(role==='admin' && ADMIN_RESTRICTED_SUBS.indexOf(storedSub)>=0){
+      storedSub='list-tiket';
+      sessionStorage.setItem('sinu_last_sub_admin',storedSub);
+    }
+    // Migrasi state lama: ODP dulu disimpan sebagai submenu Asset.
+    if(storedSub==='odp') lastMenu='odp';
+    if(storedSub==='logperangkat' && isAssetOnlyUser && role!=='noc') lastMenu='logperangkat';
+    if(!['tugas','asset','odp','logperangkat','jadwal'].includes(lastMenu)) lastMenu='tugas';
+    if(isCSUser && !['tugas','asset'].includes(lastMenu)) lastMenu='tugas';
+    if(isAssetOnlyUser && lastMenu!=='odp') lastMenu='asset';
     switchAdminMenu(lastMenu);
-    const lastSub = sessionStorage.getItem('sinu_last_sub_admin') || (lastMenu==='tugas' ? 'buat-tugas' : 'tambah-perangkat');
-    switchSubAdmin(lastSub);
+    // Saat ODP dipilih, switchAdminMenu sudah menampilkan section ODP.
+    // Untuk menu lain, pulihkan submenu hanya jika memang milik menu tersebut.
+    if(lastMenu!=='odp' && _admMenuMap[storedSub]===lastMenu) switchSubAdmin(storedSub);
   }
   if(tabName==='tugas'){
     const lastSub=sessionStorage.getItem('sinu_last_sub_tugas')||'pickup-tugas';
@@ -328,20 +513,98 @@ function switchMainTab(tabName){
   }
   if(tabName==='absensi'){
     if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
-    const lastSub=sessionStorage.getItem('sinu_last_sub_absensi')||'form-absensi';
+    const lastSub=sessionStorage.getItem('sinu_last_sub_absensi')||'absen-form';
     switchSubAbsensi(lastSub);
   }
-  if(tabName==='odp')renderODPGrid();
   if(tabName==='rekap-wo')renderRekapWO();
   if(tabName==='logtugas'){
     const lastSub=sessionStorage.getItem('sinu_last_sub_logtugas')||'log-wo';
     switchSubLogTugas(lastSub);
   }
-  if(tabName==='logperangkat'){
-    loadLogPerangkat();
-    if(typeof loadRekapKabel==='function') loadRekapKabel();
-  }
   if(tabName==='kelolaakun'){loadDaftarAkun();if(typeof renderOwnerControlVisibility==='function')renderOwnerControlVisibility();}
+  if(tabName==='mitra'){
+    const lastSub=sessionStorage.getItem('sinu_last_sub_mitra')||'invoice-mitra';
+    switchSubMitra(lastSub);
+  }
+  if(tabName==='manager'){
+    const lastSub=sessionStorage.getItem('sinu_last_sub_manager')||'history-baps';
+    switchSubManager(lastSub);
+  }
+}
+function switchSubMitra(sub) {
+  const validSubs = ['daftar-mitra','akun-mitra','perangkat-mitra','approval-perangkat-mitra','invoice-mitra'];
+  if(!validSubs.includes(sub)) sub = 'invoice-mitra';
+  document.querySelectorAll('#section-mitra .sub-mitra-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('#section-mitra .snpill').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('sub-mitra-content-' + sub);
+  if(el) el.classList.remove('hidden');
+  const btn = document.getElementById('sub-mitra-' + sub);
+  if(btn) btn.classList.add('active');
+  sessionStorage.setItem('sinu_last_sub_mitra', sub);
+  if(sub === 'invoice-mitra' && typeof loadInvoiceMitraList === 'function') loadInvoiceMitraList();
+  if(sub === 'daftar-mitra' && typeof loadDaftarMitra === 'function') loadDaftarMitra();
+  if(sub === 'akun-mitra' && typeof loadAkunMitraList === 'function') loadAkunMitraList();
+  if(sub === 'perangkat-mitra' && typeof loadPerangkatMitra === 'function') loadPerangkatMitra();
+  if(sub === 'approval-perangkat-mitra' && typeof loadApprovalPerangkatMitra === 'function') loadApprovalPerangkatMitra();
+}
+
+function switchSubManager(sub) {
+  const validSubs = ['history-baps','config-baps'];
+  if(!validSubs.includes(sub)) sub = 'history-baps';
+  document.querySelectorAll('#section-manager .sub-mgr-content').forEach(el => el.classList.add('hidden'));
+  document.querySelectorAll('#section-manager .snpill').forEach(b => b.classList.remove('active'));
+  const el = document.getElementById('sub-mgr-content-' + sub);
+  if(el) el.classList.remove('hidden');
+  const btn = document.getElementById('sub-mgr-' + sub);
+  if(btn) btn.classList.add('active');
+  sessionStorage.setItem('sinu_last_sub_manager', sub);
+  if(sub === 'history-baps' && typeof loadHistoryBaps === 'function') loadHistoryBaps();
+  if(sub === 'config-baps' && typeof loadBapsConfig === 'function') loadBapsConfig();
+}
+
+function switchSubSPV(sub){
+  const role=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+  if(role!=='supervisor' && role!=='spv'){
+    switchMainTab(role==='owner'?'kpi':'dashboard');
+    return;
+  }
+  if(!['kpi','logtugas','registrasi-mitra'].includes(sub)) sub='kpi';
+
+  const parent=document.getElementById('section-spv');
+  if(parent) parent.classList.remove('hidden');
+
+  // Sembunyikan semua sub-panel SPV
+  ['section-kpi','section-logtugas','sub-spv-content-registrasi-mitra'].forEach(function(id){
+    const el=document.getElementById(id);
+    if(el) el.classList.add('hidden');
+  });
+
+  // Tampilkan sub yang dipilih
+  if(sub === 'kpi') {
+    const el = document.getElementById('section-kpi');
+    if(el) el.classList.remove('hidden');
+  } else if(sub === 'logtugas') {
+    const el = document.getElementById('section-logtugas');
+    if(el) el.classList.remove('hidden');
+  } else if(sub === 'registrasi-mitra') {
+    const el = document.getElementById('sub-spv-content-registrasi-mitra');
+    if(el) el.classList.remove('hidden');
+  }
+
+  document.querySelectorAll('#subnav-spv .snpill').forEach(function(btn){btn.classList.remove('active');});
+  const button=document.getElementById('sub-spv-'+sub);
+  if(button) button.classList.add('active');
+  sessionStorage.setItem('sinu_last_sub_spv',sub);
+
+  if(sub==='kpi'){
+    if(typeof initKPIFilter==='function') initKPIFilter();
+    if(typeof switchSubKPI==='function') switchSubKPI(sessionStorage.getItem('sinu_last_sub_kpi')||'performance');
+    if(typeof changeKPIPeriod==='function') changeKPIPeriod();
+  }
+  if(sub==='logtugas'){
+    if(typeof switchSubLogTugas==='function') switchSubLogTugas(sessionStorage.getItem('sinu_last_sub_logtugas')||'log-wo');
+  }
+  if(sub==='registrasi-mitra' && typeof loadDaftarMitraSpv==='function') loadDaftarMitraSpv();
 }
 function switchSubTugas(sub){
   const secTugas = document.getElementById('section-tugas');
@@ -401,6 +664,10 @@ function switchSubNOC(sub){
   if(sub==='riwayat-noc' && typeof loadRiwayatNOC==='function') loadRiwayatNOC();
 }
 function switchSubAbsensi(sub){
+  const validSubs=['absen-form','izin-sakit','izin-cuti','point-absensi','jadwal-absensi','tukar-shift','monitoring'];
+  const role=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+  if(sub==='monitoring' && role!=='admin' && role!=='owner' && role!=='supervisor' && role!=='spv') sub='absen-form';
+  if(validSubs.indexOf(sub)<0) sub='absen-form';
   const secAbs = document.getElementById('section-absensi');
   if(secAbs) secAbs.querySelectorAll('.sub-abs-content').forEach(el=>el.classList.add('hidden'));
   document.querySelectorAll('#section-absensi .snpill').forEach(b=>b.classList.remove('active'));
@@ -408,45 +675,136 @@ function switchSubAbsensi(sub){
   const btn=document.getElementById('sub-abs-'+sub);if(btn)btn.classList.add('active');
   sessionStorage.setItem('sinu_last_sub_absensi', sub);
   if(sub==='point-absensi')renderMyPointSection();
+  if(sub==='monitoring' && typeof loadJadwalMonitoring==='function')loadJadwalMonitoring();
+  if(sub==='jadwal-absensi'){
+    var monthEl=document.getElementById('absensi-jadwal-month');
+    if(monthEl&&!monthEl.value){var now=new Date();monthEl.value=now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0');}
+    if(typeof loadJadwalSaya==='function')loadJadwalSaya();
+  }
+  if(sub==='tukar-shift' && typeof loadShiftSwapForm==='function') loadShiftSwapForm();
 }
 // Mapping sub ke menu utama
 const _admMenuMap = {
   'buat-tugas':'tugas', 'buat-dismantle':'tugas', 'list-tiket':'tugas',
   'list-tiket-dismantle':'tugas', 'rl-radius':'tugas', 'registrasi':'tugas',
   'tambah-perangkat':'asset', 'list-perangkat':'asset', 'list-rusak':'asset',
-  'dismantle-items':'asset', 'approval-pickup':'asset'
+  'dismantle-items':'asset', 'approval-pickup':'asset', 'logperangkat':'asset',
+  'jadwal-shift':'jadwal', 'pengaturan-jam-kerja':'jadwal', 'approval-tukar-shift':'jadwal',
+  'data-pelanggan':'tugas', 'pembayaran':'tugas'
 };
 
 function switchAdminMenu(menu) {
-  // Toggle kedua sub-nav
+  const role=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+  const isSupervisorOnlyUser=role==='supervisor'||role==='spv';
+  const isAssetOnlyUser=role==='noc'||isSupervisorOnlyUser;
+  const STANDALONE_MENUS = ['odp','logperangkat','konfirmasi-bayar','area-mitra'];
+  if(!['tugas','asset','odp','logperangkat','jadwal','konfirmasi-bayar','area-mitra'].includes(menu)) menu='tugas';
+  if(menu==='logperangkat' && !isSupervisorOnlyUser) menu='asset';
+  if(isSupervisorOnlyUser && menu==='asset') menu='odp';
+  if(role==='cs' && !['tugas','asset'].includes(menu)) menu='tugas';
+  if(isAssetOnlyUser && menu==='tugas') menu='asset';
+  if(isAssetOnlyUser && menu==='jadwal') menu='asset';
+  if(isAssetOnlyUser && (menu==='konfirmasi-bayar'||menu==='area-mitra')) menu='asset';
+  if(menu==='jadwal'         && role!=='admin') menu='tugas';
+  if(menu==='konfirmasi-bayar'&& role!=='admin') menu='tugas';
+  if(menu==='area-mitra'     && role!=='admin') menu='tugas';
+
+  const secAdm = document.getElementById('section-admin');
+  const odpSection = document.getElementById('section-odp');
   const tugasNav  = document.getElementById('admin-sub-tugas');
   const assetNav  = document.getElementById('admin-sub-asset');
-  if(tugasNav)  tugasNav.classList.toggle('hidden',  menu !== 'tugas');
-  if(assetNav)  assetNav.classList.toggle('hidden',  menu !== 'asset');
-  // Highlight menu utama
+  const jadwalNav = document.getElementById('admin-sub-jadwal');
+  const logSection = document.getElementById('section-logperangkat');
+  const konfirmasiPanel = document.getElementById('admin-sub-konfirmasi-bayar');
+  const areaMitraPanel  = document.getElementById('admin-sub-area-mitra');
+
+  if(logSection) logSection.classList.toggle('hidden', menu!=='logperangkat');
+  if(odpSection) odpSection.classList.toggle('hidden', menu!=='odp');
+  if(konfirmasiPanel) konfirmasiPanel.classList.toggle('hidden', menu!=='konfirmasi-bayar');
+  if(areaMitraPanel)  areaMitraPanel.classList.toggle('hidden',  menu!=='area-mitra');
+
+  const isStandalone = STANDALONE_MENUS.includes(menu);
+  if(secAdm) secAdm.querySelectorAll('.sub-adm-content').forEach(function(el){
+    el.classList.toggle('hidden', isStandalone);
+  });
+  if(tugasNav)  tugasNav.classList.toggle('hidden', menu !== 'tugas');
+  if(assetNav)  assetNav.classList.toggle('hidden', menu !== 'asset');
+  if(jadwalNav) jadwalNav.classList.toggle('hidden', menu !== 'jadwal');
+
   document.querySelectorAll('#subnav-admin-main .snpill').forEach(b=>b.classList.remove('active'));
   const menuBtn = document.getElementById('admin-menu-'+menu);
   if(menuBtn) menuBtn.classList.add('active');
   sessionStorage.setItem('sinu_last_admin_menu', menu);
-  // Auto-pilih default sub
-  if(menu==='tugas')  switchSubAdmin('buat-tugas');
-  if(menu==='asset')  switchSubAdmin('tambah-perangkat');
+
+  if(menu==='odp'){
+    sessionStorage.setItem('sinu_last_sub_admin','odp');
+    if(typeof renderODPGrid==='function') renderODPGrid();
+    return;
+  }
+  if(menu==='logperangkat'){
+    sessionStorage.setItem('sinu_last_sub_admin','logperangkat');
+    if(typeof loadLogPerangkat==='function') loadLogPerangkat();
+    if(typeof loadRekapKabel==='function') loadRekapKabel();
+    return;
+  }
+  if(menu==='konfirmasi-bayar'){
+    sessionStorage.setItem('sinu_last_sub_admin','konfirmasi-bayar');
+    if(typeof loadKonfirmasiPembayaran==='function') loadKonfirmasiPembayaran();
+    return;
+  }
+  if(menu==='area-mitra'){
+    sessionStorage.setItem('sinu_last_sub_admin','area-mitra');
+    if(typeof loadAreaMitraInit==='function') loadAreaMitraInit();
+    return;
+  }
+  if(menu==='tugas')  switchSubAdmin(role==='admin' ? 'list-tiket' : 'buat-tugas');
+  if(menu==='asset')  switchSubAdmin(isAssetOnlyUser ? 'list-perangkat' : 'tambah-perangkat');
+  if(menu==='jadwal') switchSubAdmin('jadwal-shift');
 }
 
 function switchSubAdmin(sub){
+  // Kompatibilitas state lama: switchSubAdmin('odp') sekarang membuka
+  // menu utama ODP tanpa memindahkan node section-odp ke section-admin.
+  if(sub==='odp'){
+    switchAdminMenu('odp');
+    return;
+  }
+  const role=currentUser ? String(currentUser.role||'').toLowerCase() : '';
+  if(role==='admin' && ADMIN_RESTRICTED_SUBS.indexOf(sub)>=0){
+    switchSubAdmin('list-tiket');
+    return;
+  }
+  if(sub==='jadwal-shift' && role!=='admin') {
+    showAlert('Hanya akun Admin yang dapat membuka dan mengatur jadwal.', 'Akses Ditolak');
+    return;
+  }
+  const isNocUser=role==='noc';
+  const isAssetOnlyUser=role==='noc'||role==='supervisor'||role==='spv';
+  if(isAssetOnlyUser && _admMenuMap[sub]==='tugas')sub='list-perangkat';
+  if(isNocUser && (sub==='tambah-perangkat' || sub==='approval-pickup'))sub='list-perangkat';
   const secAdm = document.getElementById('section-admin');
+  const odpSection = document.getElementById('section-odp');
+  const logSection = document.getElementById('section-logperangkat');
+  if(odpSection) odpSection.classList.add('hidden');
+  if(logSection) logSection.classList.add('hidden');
   if(secAdm) secAdm.querySelectorAll('.sub-adm-content').forEach(el=>el.classList.add('hidden'));
   // Jangan remove active dari SEMUA snpill — hanya dari sub-nav yang aktif
   const activeMenu = _admMenuMap[sub] || 'tugas';
   const activeSubNav = document.getElementById('admin-sub-'+activeMenu);
   if(activeSubNav) activeSubNav.querySelectorAll('.snpill').forEach(b=>b.classList.remove('active'));
-  const el=document.getElementById('sub-adm-content-'+sub);if(el)el.classList.remove('hidden');
+  const el=document.getElementById('sub-adm-content-'+sub);
+  if(el)el.classList.remove('hidden');
   const btn=document.getElementById('sub-adm-'+sub);if(btn)btn.classList.add('active');
+  if(sub==='logperangkat' && logSection) logSection.classList.remove('hidden');
   sessionStorage.setItem('sinu_last_sub_admin', sub);
   if(sub==='buat-tugas'){
     initBuatWOForm();
     var fw = document.getElementById('sub-bt-content-form-wo');
     if(fw) fw.classList.remove('hidden');
+  }
+  if(sub==='logperangkat'){
+    if(typeof loadLogPerangkat==='function') loadLogPerangkat();
+    if(typeof loadRekapKabel==='function') loadRekapKabel();
   }
   if(sub==='list-perangkat'){
     loadAndRenderListPerangkat();
@@ -459,6 +817,9 @@ function switchSubAdmin(sub){
   if(sub==='list-tiket' && typeof refreshAdminTicketList==='function') refreshAdminTicketList();
   if(sub==='list-tiket-dismantle' && typeof loadListTiketDismantle==='function') loadListTiketDismantle();
   if(sub==='rl-radius' && typeof loadRLRadiusList==='function') loadRLRadiusList();
+  if(sub==='jadwal-shift' && typeof initJadwalAdmin==='function') initJadwalAdmin();
+  if(sub==='pengaturan-jam-kerja' && typeof initJadwalWorkConfig==='function') initJadwalWorkConfig();
+  if(sub==='approval-tukar-shift' && typeof loadShiftSwapApprovalPanel==='function') loadShiftSwapApprovalPanel();
 }
 
 function switchSubBuatTugas(sub) {
@@ -474,7 +835,7 @@ function switchSubBuatTugas(sub) {
 // ── AUTO SET data-count untuk grid sub-nav simetris ──────────────────
 function initSubnavGrid() {
   document.querySelectorAll('.subnav-wrap').forEach(nav => {
-    const count = nav.querySelectorAll('.snpill').length;
+    const count = Array.from(nav.querySelectorAll('.snpill')).filter(el => !el.classList.contains('hidden')).length;
     nav.setAttribute('data-count', count);
   });
 }
@@ -539,7 +900,7 @@ function openProfileSettings() {
   const name = currentUser ? currentUser.displayName : '--';
   const role = currentUser ? currentUser.role : '--';
   const initials = currentUser ? currentUser.avatar || name.substring(0,2).toUpperCase() : '--';
-  const rLabel = {admin:'Admin/CS', cs:'Admin/CS', teknisi:'Teknisi Field', supervisor:'Supervisor', noc:'NOC Engineer', finance:'Finance'};
+  const rLabel = {admin:'Admin', cs:'CS', teknisi:'Teknisi Field', supervisor:'Supervisor', noc:'NOC Engineer', finance:'Finance'};
 
   const nameEl = document.getElementById('profile-name-display');
   const roleEl = document.getElementById('profile-role-display');

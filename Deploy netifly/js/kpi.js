@@ -1,5 +1,6 @@
 // ===================== KPI ENGINE =====================
-function hitungPointAdmin(mnt){if(mnt<5)return 10;return Math.max(1,10-Math.floor((mnt-5)/2)*2);}
+// Skala kinerja 0–100: selesai sampai batas SLA = 100, keterlambatan mengurangi 20 poin per interval.
+function hitungPointAdmin(mnt){if(mnt<=5)return 100;return Math.max(10,100-Math.floor((mnt-5)/2)*20);}
 const KPI_TEKNISI_RULES={
   INSTALASI:90,
   INSTALASI_RESELLER:90,
@@ -7,10 +8,9 @@ const KPI_TEKNISI_RULES={
   MAINTENANCE:60
 };
 function hitungPointTeknisi(mnt,tipe,jumlahTeknisi=2){
-  if(jumlahTeknisi===1 && (tipe==='INSTALASI'||tipe==='INSTALASI_RESELLER')) return 13;
   const batas=KPI_TEKNISI_RULES[tipe]||90;
-  if(mnt<=batas)return 10;
-  return Math.max(1,10-Math.ceil((mnt-batas)/5)*2);
+  if(mnt<=batas)return 100;
+  return Math.max(10,100-Math.ceil((mnt-batas)/5)*20);
 }
 function timeToMinutes(t){if(!t)return null;const[h,m]=t.split(':').map(Number);return h*60+m;}
 function selisihMenit(t1,t2){const m1=timeToMinutes(t1),m2=timeToMinutes(t2);if(m1===null||m2===null)return null;return Math.max(0,m2-m1);}
@@ -63,7 +63,7 @@ function toggleKPIDetail(detailId,button){
     if(icon)icon.className=isHidden?'fa-solid fa-eye text-slate-400':'fa-solid fa-eye-slash text-blue-500';
   }
 }
-function pointBadge(p){if(p>=8)return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">${p}</span>`;if(p>=4)return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">${p}</span>`;return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">${p}</span>`;}
+function pointBadge(p){if(p>=80)return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">${p}</span>`;if(p>=50)return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">${p}</span>`;return`<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">${p}</span>`;}
 
 function initKPIFilter(){const now=new Date(),ms=document.getElementById('kpi-month-select'),ys=document.getElementById('kpi-year-select');if(ms)ms.value=now.getMonth().toString();if(ys)ys.value=now.getFullYear().toString();}
 
@@ -99,11 +99,11 @@ function renderKPI(){
   const filtered=kpiWOData.filter(d=>Number(d.bulan)===bulan&&Number(d.tahun)===tahun),selesai=filtered.filter(d=>d.completed_at||d.t4);
   // Admin KPI
   let tPA=0,tDA=0,hijauA=0,kuningA=0,merahA=0;
-  const adminData=filtered.map(d=>{const dur=selisihMenit(d.t1,d.t2);const p=dur!==null?hitungPointAdmin(dur):null;if(p!==null){tPA+=p;tDA+=dur;if(p>=8)hijauA++;else if(p>=4)kuningA++;else merahA++;}return{...d,durAdmin:dur,poinAdmin:p};});
+  const adminData=filtered.map(d=>{const dur=selisihMenit(d.t1,d.t2);const p=dur!==null?hitungPointAdmin(dur):null;if(p!==null){tPA+=p;tDA+=dur;if(p>=80)hijauA++;else if(p>=50)kuningA++;else merahA++;}return{...d,durAdmin:dur,poinAdmin:p};});
   const jA=adminData.filter(d=>d.poinAdmin!==null).length,avgPA=jA?(tPA/jA).toFixed(1):'--',avgDA=jA?(tDA/jA).toFixed(1):'--';
   // Teknisi KPI per individu
   const teknisiPoints={};let totalDurasiTek=0,jumlahDurasiTek=0;
-  selesai.forEach(d=>{const dur=durasiRilisSelesai(d),teknisi=getKPIWOTeknisi(d);if(dur!==null){totalDurasiTek+=dur;jumlahDurasiTek++;}const p=dur!==null?hitungPointTeknisi(dur,d.tipe,teknisi.length):null;if(p!==null){teknisi.forEach(t=>{if(!teknisiPoints[t])teknisiPoints[t]={total:0,count:0,hijau:0,kuning:0,merah:0};teknisiPoints[t].total+=p;teknisiPoints[t].count++;if(p>=8)teknisiPoints[t].hijau++;else if(p>=4)teknisiPoints[t].kuning++;else teknisiPoints[t].merah++;});}});
+  selesai.forEach(d=>{const dur=durasiRilisSelesai(d),teknisi=getKPIWOTeknisi(d);if(dur!==null){totalDurasiTek+=dur;jumlahDurasiTek++;}const p=dur!==null?hitungPointTeknisi(dur,d.tipe,teknisi.length):null;if(p!==null){teknisi.forEach(t=>{if(!teknisiPoints[t])teknisiPoints[t]={total:0,count:0,hijau:0,kuning:0,merah:0};teknisiPoints[t].total+=p;teknisiPoints[t].count++;if(p>=80)teknisiPoints[t].hijau++;else if(p>=50)teknisiPoints[t].kuning++;else teknisiPoints[t].merah++;});}});
   let allPT=0,allCT=0,hijauT=0,kuningT=0,merahT=0;
   Object.values(teknisiPoints).forEach(tp=>{allPT+=tp.total;allCT+=tp.count;hijauT+=tp.hijau;kuningT+=tp.kuning;merahT+=tp.merah;});
   const avgPT=allCT?(allPT/allCT).toFixed(1):'--';
@@ -113,24 +113,24 @@ function renderKPI(){
   if(E('kpi-admin-badge'))E('kpi-admin-badge').textContent=jA+' Tiket';
   if(E('kpi-admin-avg-point'))E('kpi-admin-avg-point').textContent=avgPA;
   if(E('kpi-admin-avg-dur'))E('kpi-admin-avg-dur').textContent=avgDA+' mnt';
-  const barA=parseFloat(avgPA)>=8?'bg-emerald-500':parseFloat(avgPA)>=4?'bg-amber-500':'bg-rose-500';
-  if(E('kpi-admin-bar')){E('kpi-admin-bar').style.width=(jA?parseFloat(avgPA)/10*100:0)+'%';E('kpi-admin-bar').className='h-2.5 rounded-full '+barA+' transition-all duration-700';}
+  const barA=parseFloat(avgPA)>=80?'bg-emerald-500':parseFloat(avgPA)>=50?'bg-amber-500':'bg-rose-500';
+  if(E('kpi-admin-bar')){E('kpi-admin-bar').style.width=(jA?parseFloat(avgPA):0)+'%';E('kpi-admin-bar').className='h-2.5 rounded-full '+barA+' transition-all duration-700';}
   if(E('kpi-admin-green'))E('kpi-admin-green').textContent=hijauA;if(E('kpi-admin-yellow'))E('kpi-admin-yellow').textContent=kuningA;if(E('kpi-admin-red'))E('kpi-admin-red').textContent=merahA;
   // Update UI Teknisi
   if(E('kpi-teknisi-badge'))E('kpi-teknisi-badge').textContent=allCT+' Assignment';
   if(E('kpi-teknisi-avg-point'))E('kpi-teknisi-avg-point').textContent=avgPT;
   if(E('kpi-teknisi-avg-dur'))E('kpi-teknisi-avg-dur').textContent=avgDurT;
-  const barT=parseFloat(avgPT)>=8?'bg-emerald-500':parseFloat(avgPT)>=4?'bg-amber-500':'bg-rose-500';
-  if(E('kpi-teknisi-bar')){E('kpi-teknisi-bar').style.width=(allCT?parseFloat(avgPT)/10*100:0)+'%';E('kpi-teknisi-bar').className='h-2.5 rounded-full '+barT+' transition-all duration-700';}
+  const barT=parseFloat(avgPT)>=80?'bg-emerald-500':parseFloat(avgPT)>=50?'bg-amber-500':'bg-rose-500';
+  if(E('kpi-teknisi-bar')){E('kpi-teknisi-bar').style.width=(allCT?parseFloat(avgPT):0)+'%';E('kpi-teknisi-bar').className='h-2.5 rounded-full '+barT+' transition-all duration-700';}
   if(E('kpi-teknisi-green'))E('kpi-teknisi-green').textContent=hijauT;if(E('kpi-teknisi-yellow'))E('kpi-teknisi-yellow').textContent=kuningT;if(E('kpi-teknisi-red'))E('kpi-teknisi-red').textContent=merahT;
   // Total Point Cards
-  const csTotal=jA?tPA:0,tekTotal=allCT?allPT:0;
+  const csTotal=jA?Number(avgPA):0,tekTotal=allCT?Number(avgPT):0;
   if(E('kpi-cs-total-point'))E('kpi-cs-total-point').textContent=jA?csTotal:'--';
   if(E('kpi-cs-total-tiket'))E('kpi-cs-total-tiket').textContent=jA+' tiket';
-  if(E('kpi-cs-avg-per-tiket'))E('kpi-cs-avg-per-tiket').textContent=avgPA+' poin';
+  if(E('kpi-cs-avg-per-tiket'))E('kpi-cs-avg-per-tiket').textContent='100 poin';
   if(E('kpi-tek-total-point'))E('kpi-tek-total-point').textContent=allCT?tekTotal:'--';
   if(E('kpi-tek-total-tiket'))E('kpi-tek-total-tiket').textContent=allCT+' assignment';
-  if(E('kpi-tek-avg-per-tiket'))E('kpi-tek-avg-per-tiket').textContent=avgPT+' poin';
+  if(E('kpi-tek-avg-per-tiket'))E('kpi-tek-avg-per-tiket').textContent='100 poin';
   // Tabel Individu Kehadiran + Kinerja
   renderKPIIndividuTable(teknisiPoints,adminData,filtered,bulan,tahun);
   // Tabel detail tiket
@@ -146,7 +146,7 @@ function renderKPI(){
         const detailId='kpi-time-detail-'+i;
         const durAdmin=d.durAdmin!==null?d.durAdmin+' menit':'--';
         const durTek=durRilis!==null?formatDurasi(durRilis):'--';
-        return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all"><td class="py-3 px-3 font-bold text-blue-600 font-mono text-[11px]">${d.id}</td><td class="py-3 px-3 text-xs">${d.pelanggan}</td><td class="py-3 px-3 text-center font-bold text-indigo-600 text-[11px]">${d.cs}</td><td class="py-3 px-3 text-center text-[11px] align-top"><div class="flex items-center justify-center gap-1.5"><span>${durTek}</span><button type="button" onclick="toggleKPIDetail('${detailId}',this)" aria-label="Lihat detail waktu" aria-expanded="false" title="Lihat detail waktu" class="px-1.5 py-0.5 inline-flex items-center justify-center gap-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"><i class="fa-solid fa-eye"></i></button></div><div id="${detailId}" class="hidden mt-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-left text-[10px] space-y-1.5"><div class="font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wide">Timeline & KPI</div><div class="flex justify-between gap-3"><span class="text-slate-500">WA masuk</span><span class="font-bold text-slate-700 dark:text-slate-200">${formatWaktuKPI(null,d.t1)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Rilis</span><span class="font-bold text-blue-600 dark:text-blue-300 text-right">${formatWaktuKPI(d.released_at,d.t2)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Pickup</span><span class="font-bold text-indigo-600 dark:text-indigo-300 text-right">${formatWaktuKPI(d.picked_up_at,null)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Selesai</span><span class="font-bold text-emerald-600 dark:text-emerald-300 text-right">${formatWaktuKPI(d.completed_at,d.t4)}</span></div><div class="border-t border-slate-200 dark:border-slate-600 pt-1.5 flex justify-between gap-3"><span class="text-slate-500">KPI Admin/CS (WA → Rilis)</span><span class="font-bold text-amber-600 dark:text-amber-300 text-right">${durAdmin}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">KPI Teknisi (Rilis → Selesai)</span><span class="font-bold text-emerald-600 dark:text-emerald-300 text-right">${durTek}</span></div></div></td><td class="py-3 px-3 text-center">${d.poinAdmin!==null?pointBadge(d.poinAdmin):'--'}</td><td class="py-3 px-3 text-center text-[11px]">${Array.isArray(d.teknisi)?d.teknisi.join(', '):(d.teknisi||'--')}</td><td class="py-3 px-3 text-center">${pT!==null?pointBadge(pT):'--'}</td></tr>`;
+        return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all"><td class="py-3 px-3 font-bold text-blue-600 font-mono text-[11px]">${d.id}</td><td class="py-3 px-3 text-xs">${d.pelanggan}</td><td class="py-3 px-3 text-center font-bold text-indigo-600 text-[11px]">${window.sinuIsHiddenOperationalName(d.cs)?'--':(d.cs||'--')}</td><td class="py-3 px-3 text-center text-[11px] align-top"><div class="flex items-center justify-center gap-1.5"><span>${durTek}</span><button type="button" onclick="toggleKPIDetail('${detailId}',this)" aria-label="Lihat detail waktu" aria-expanded="false" title="Lihat detail waktu" class="px-1.5 py-0.5 inline-flex items-center justify-center gap-1 rounded-md bg-blue-50 dark:bg-blue-950/40 text-blue-600 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900/60 transition-colors"><i class="fa-solid fa-eye"></i></button></div><div id="${detailId}" class="hidden mt-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-700/60 border border-slate-200 dark:border-slate-600 text-left text-[10px] space-y-1.5"><div class="font-extrabold text-slate-500 dark:text-slate-300 uppercase tracking-wide">Timeline & KPI</div><div class="flex justify-between gap-3"><span class="text-slate-500">WA masuk</span><span class="font-bold text-slate-700 dark:text-slate-200">${formatWaktuKPI(null,d.t1)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Rilis</span><span class="font-bold text-blue-600 dark:text-blue-300 text-right">${formatWaktuKPI(d.released_at,d.t2)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Pickup</span><span class="font-bold text-indigo-600 dark:text-indigo-300 text-right">${formatWaktuKPI(d.picked_up_at,null)}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">Selesai</span><span class="font-bold text-emerald-600 dark:text-emerald-300 text-right">${formatWaktuKPI(d.completed_at,d.t4)}</span></div><div class="border-t border-slate-200 dark:border-slate-600 pt-1.5 flex justify-between gap-3"><span class="text-slate-500">KPI Petugas Input (WA → Rilis)</span><span class="font-bold text-amber-600 dark:text-amber-300 text-right">${durAdmin}</span></div><div class="flex justify-between gap-3"><span class="text-slate-500">KPI Teknisi (Rilis → Selesai)</span><span class="font-bold text-emerald-600 dark:text-emerald-300 text-right">${durTek}</span></div></div></td><td class="py-3 px-3 text-center">${d.poinAdmin!==null?pointBadge(d.poinAdmin):'--'}</td><td class="py-3 px-3 text-center text-[11px]">${getKPIWOTeknisi(d).filter(name=>!window.sinuIsHiddenOperationalName(name)).join(', ')||'--'}</td><td class="py-3 px-3 text-center">${pT!==null?pointBadge(pT):'--'}</td></tr>`;
       }).join('');
     }
   }
@@ -154,22 +154,36 @@ function renderKPI(){
 
 function renderKPIIndividuTable(teknisiPoints,adminData,filtered,bulan,tahun){
   const tbody=document.getElementById('kpi-individu-table');if(!tbody)return;
-  const maxAttendance=typeof hitungHariKerja==='function'?hitungHariKerja(tahun,bulan)*10:200;
+  const maxAttendance=100;
   const people=new Map();
+  const resolveCSAdminDivision=(role,division)=>{
+    const r=String(role||'').trim().toLowerCase();
+    const v=String(division||'').trim().toLowerCase();
+    if(r==='admin')return 'Admin';
+    if(r==='cs')return 'CS';
+    if(v.includes('admin'))return 'Admin';
+    if(v==='cs'||v.includes('customer service')||v.includes('cs'))return 'CS';
+    return 'CS';
+  };
+  const resolvePersonDivision=(name)=>{
+    const key=String(name||'').trim().toLowerCase();
+    const person=(employeeMaster||[]).find(e=>String(e.name||'').trim().toLowerCase()===key);
+    return person?resolveCSAdminDivision(person.role,person.division):'CS';
+  };
   const addPerson=(name,divisi)=>{
-    const clean=String(name||'').trim();if(!clean)return;
+    const clean=String(name||'').trim();if(!clean||window.sinuIsHiddenOperationalName(clean))return;
     const key=clean.toLowerCase(),existing=people.get(key);
-    if(!existing||existing.divisi==='Teknisi'&&divisi==='CS/Admin')people.set(key,{nama:clean,divisi});
+    if(!existing||(existing.divisi==='Teknisi'&&divisi!=='Teknisi'))people.set(key,{nama:clean,divisi});
   };
   (employeeMaster||[]).forEach(e=>{
     const role=String(e.role||'').trim().toLowerCase();
     const division=String(e.division||'').trim().toLowerCase();
     if(role==='teknisi'||division.includes('teknisi'))addPerson(e.name,'Teknisi');
-    else if(['cs','admin'].includes(role)||division.includes('customer service')||division==='cs'||division.includes('admin'))addPerson(e.name,'CS/Admin');
+    else if(['cs','admin'].includes(role)||division.includes('customer service')||division==='cs'||division.includes('admin'))addPerson(e.name,resolveCSAdminDivision(e.role,e.division));
   });
   (filtered||[]).forEach(d=>{
     getKPIWOTeknisi(d).forEach(name=>addPerson(name,'Teknisi'));
-    addPerson(d.cs,'CS/Admin');
+    addPerson(d.cs,resolvePersonDivision(d.cs));
   });
 
   const techMap={},csMap={};
@@ -184,27 +198,41 @@ function renderKPIIndividuTable(teknisiPoints,adminData,filtered,bulan,tahun){
     if(!csMap[key])csMap[key]={total:0,count:0};
     csMap[key].total+=Number(d.poinAdmin)||0;csMap[key].count++;
   });
+  const techDurationMap={},csDurationMap={};
+  const addDuration=(map,name,duration)=>{
+    const key=String(name||'').trim().toLowerCase();
+    if(!key||duration===null||duration===undefined||Number.isNaN(Number(duration)))return;
+    if(!map[key])map[key]={total:0,count:0};
+    map[key].total+=Number(duration);map[key].count++;
+  };
+  (filtered||[]).forEach(d=>{
+    const durTek=durasiRilisSelesai(d);
+    if(durTek!==null)getKPIWOTeknisi(d).forEach(name=>addDuration(techDurationMap,name,durTek));
+  });
+  // Durasi Petugas Input berasal dari adminData karena durAdmin ditambahkan di renderKPI().
+  (adminData||[]).forEach(d=>{
+    if(d.durAdmin!==null&&d.durAdmin!==undefined)addDuration(csDurationMap,d.cs,d.durAdmin);
+  });
   const attendanceMap={};
   Object.entries(absensiPoints||{}).forEach(([nama,ap])=>{attendanceMap[String(nama).trim().toLowerCase()]=ap;});
   const rows=[];
   people.forEach((person,key)=>{
-    const ap=attendanceMap[key]||{total:0,max:maxAttendance};
-    const attendanceTotal=Number(ap.total)||0,attendanceMax=Number(ap.max)||maxAttendance;
-    const pctH=Math.round((attendanceTotal/attendanceMax)*100);
-    const gradeH=pctH>=90?'A':pctH>=75?'B':pctH>=60?'C':'D';
+    const ap=attendanceMap[key]||{total:0};
+    const attendanceTotal=Number(ap.total)||0;
     const performance=person.divisi==='Teknisi'?(techMap[key]||{total:0,count:0}):(csMap[key]||{total:0,count:0});
+    const durationData=person.divisi==='Teknisi'?(techDurationMap[key]||{total:0,count:0}):(csDurationMap[key]||{total:0,count:0});
     const ptKinerja=performance.count?Number((performance.total/performance.count).toFixed(1)):0;
-    rows.push({nama:person.nama,divisi:person.divisi,ptHadir:attendanceTotal,gradeH,ptKinerja,total:attendanceTotal+performance.total,tiket:performance.count});
+    const avgDurasi=durationData.count?formatDurasi(durationData.total/durationData.count):'--';
+    rows.push({nama:person.nama,divisi:person.divisi,ptHadir:attendanceTotal,ptKinerja,avgDurasi,total:Number((attendanceTotal+ptKinerja).toFixed(1)),tiket:performance.count});
   });
   rows.sort((a,b)=>b.total-a.total||a.nama.localeCompare(b.nama));
-  const gradeBg=g=>g==='A'?'pt-badge-a':g==='B'?'pt-badge-b':g==='C'?'pt-badge-c':'pt-badge-d';
   if(!rows.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Belum ada data teknisi atau CS.</td></tr>';return;}
   tbody.innerHTML=rows.map((r,i)=>`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all">
     <td class="py-3 px-4"><div class="flex items-center gap-2"><span class="w-6 h-6 rounded-lg ${i<3?'bg-amber-500 text-white':'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'} flex items-center justify-center text-[10px] font-black shrink-0">${i+1}</span><span class="text-xs font-extrabold text-slate-800 dark:text-slate-100">${r.nama}</span></div></td>
     <td class="py-3 px-3 text-center text-xs font-bold text-slate-500">${r.divisi}</td>
     <td class="py-3 px-3 text-center font-black text-amber-600 dark:text-amber-400">${r.ptHadir}</td>
-    <td class="py-3 px-3 text-center"><span class="text-[11px] font-extrabold px-2 py-0.5 rounded-lg ${gradeBg(r.gradeH)}">${r.gradeH}</span></td>
     <td class="py-3 px-3 text-center font-black text-blue-600 dark:text-blue-400">${r.ptKinerja} <span class="text-slate-400 text-[10px] font-normal">(${r.tiket} tiket)</span></td>
+    <td class="py-3 px-3 text-center font-bold text-slate-700 dark:text-slate-200">${r.avgDurasi}</td>
     <td class="py-3 px-3 text-center font-black text-slate-900 dark:text-white text-sm">${r.total}</td>
     <td class="py-3 px-3 text-center"><span class="w-5 h-5 rounded-full ${i<3?'bg-amber-500 text-white':'bg-slate-200 dark:bg-slate-600 text-slate-600 dark:text-slate-300'} inline-flex items-center justify-center text-[10px] font-black">${i+1}</span></td>
   </tr>`).join('');
@@ -224,16 +252,226 @@ function getODPStatusLabel(pct){
 }
 function renderODPGrid(){
   const tbody=document.getElementById('odp-grid');if(!tbody)return;
-  if(!odpMaster.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-slate-400 text-xs">Belum ada data ODP.</td></tr>';return;}
-  tbody.innerHTML=odpMaster.map(o=>{const pct=Math.round((o.terisi/o.kapasitas)*100),sisa=o.kapasitas-o.terisi,color=getODPColor(pct),status=getODPStatusLabel(pct);return`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all"><td class="py-3 px-4"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full shrink-0" style="background-color:${color}"></span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${status.color}">${status.label}</span></div></td><td class="py-3 px-3 font-extrabold text-slate-900 dark:text-white font-mono text-xs">${o.id}</td><td class="py-3 px-3 text-slate-600 dark:text-slate-300 text-xs">${o.lokasi}</td><td class="py-3 px-3 text-center font-bold text-xs">${o.kapasitas}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${o.terisi}</td><td class="py-3 px-3 text-center font-black text-emerald-600 dark:text-emerald-400 text-xs">${sisa}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${pct}%</td><td class="py-3 px-3 w-28"><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full" style="width:${pct}%;background-color:${color}"></div></div></td></tr>`;}).join('');
+  if(!odpMaster.length){tbody.innerHTML='<tr><td colspan="9" class="text-center py-8 text-slate-400 text-xs">Belum ada data ODP.</td></tr>';return;}
+  tbody.innerHTML=odpMaster.map(o=>{const pct=Math.round((o.terisi/o.kapasitas)*100),sisa=o.kapasitas-o.terisi,color=getODPColor(pct),status=getODPStatusLabel(pct);return`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all"><td class="py-3 px-4"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full shrink-0" style="background-color:${color}"></span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${status.color}">${status.label}</span></div></td><td class="py-3 px-3 font-extrabold text-slate-700 dark:text-slate-200 font-mono text-xs">${o.odc||'--'}</td><td class="py-3 px-3 font-extrabold text-slate-900 dark:text-white font-mono text-xs">${o.id}</td><td class="py-3 px-3 text-slate-600 dark:text-slate-300 text-xs">${o.lokasi}</td><td class="py-3 px-3 text-center font-bold text-xs">${o.kapasitas}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${o.terisi}</td><td class="py-3 px-3 text-center font-black text-emerald-600 dark:text-emerald-400 text-xs">${sisa}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${pct}%</td><td class="py-3 px-3 w-28"><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full" style="width:${pct}%;background-color:${color}"></div></div></td></tr>`;}).join('');
 }
-function openAddODPModal(){document.getElementById('add-odp-modal').classList.remove('hidden');}
-function addODP(e){
-  e.preventDefault();const id=document.getElementById('odp-id-input').value.trim().toUpperCase(),lokasi=document.getElementById('odp-lokasi-input').value.trim(),kapasitas=parseInt(document.getElementById('odp-kapasitas-input').value)||8,terisi=parseInt(document.getElementById('odp-terisi-input').value)||0,lat=parseFloat(document.getElementById('odp-lat-input').value)||0,lng=parseFloat(document.getElementById('odp-lng-input').value)||0;
+let odpLocationLookupTimer=null;
+let odpLocationLookupController=null;
+let odpLocationLookupRequest=0;
+
+function setODPLocationStatus(message, tone){
+  let status=document.getElementById('odp-lokasi-status');
+  const location=document.getElementById('odp-lokasi-input');
+  if(!status&&location&&location.parentElement){
+    status=document.createElement('p');
+    status.id='odp-lokasi-status';
+    location.parentElement.appendChild(status);
+  }
+  if(!status)return;
+  status.textContent=message;
+  status.className='text-[10px] mt-1 '+(tone==='success'?'text-emerald-600':tone==='error'?'text-rose-500':'text-slate-400');
+}
+function bindODPLocationLookup(){
+  const latInput=document.getElementById('odp-lat-input'),lngInput=document.getElementById('odp-lng-input'),location=document.getElementById('odp-lokasi-input');
+  if(latInput&&!latInput.dataset.odpLookupBound){latInput.addEventListener('input',function(){scheduleODPLocationLookup();});latInput.addEventListener('blur',function(){scheduleODPLocationLookup(true);});latInput.dataset.odpLookupBound='true';}
+  if(lngInput&&!lngInput.dataset.odpLookupBound){lngInput.addEventListener('input',function(){scheduleODPLocationLookup();});lngInput.addEventListener('blur',function(){scheduleODPLocationLookup(true);});lngInput.dataset.odpLookupBound='true';}
+  if(location){location.removeAttribute('required');if(!location.dataset.odpManualBound){location.addEventListener('input',markODPLocationManual);location.dataset.odpManualBound='true';}}
+}
+function markODPLocationManual(){
+  const location=document.getElementById('odp-lokasi-input');
+  if(!location)return;
+  const autoValue=location.dataset.autoValue||'';
+  if(location.value.trim()!==autoValue)location.dataset.manual='true';
+}
+function resetODPLocationLookupState(){
+  const location=document.getElementById('odp-lokasi-input');
+  if(location){location.dataset.manual='false';location.dataset.autoValue='';}
+  if(odpLocationLookupTimer)clearTimeout(odpLocationLookupTimer);
+  if(odpLocationLookupController)odpLocationLookupController.abort();
+  setODPLocationStatus('Isi Lat dan Lng untuk mengisi nama lokasi otomatis.');
+}
+function scheduleODPLocationLookup(immediate){
+  if(odpLocationLookupTimer)clearTimeout(odpLocationLookupTimer);
+  const latInput=document.getElementById('odp-lat-input'),lngInput=document.getElementById('odp-lng-input'),location=document.getElementById('odp-lokasi-input');
+  if(!latInput||!lngInput||!location)return;
+  const latText=latInput.value.trim(),lngText=lngInput.value.trim();
+  if(!latText||!lngText){setODPLocationStatus('Isi Lat dan Lng untuk mengisi nama lokasi otomatis.');return;}
+  const lat=Number(latText),lng=Number(lngText);
+  if(!Number.isFinite(lat)||!Number.isFinite(lng)||lat<-90||lat>90||lng<-180||lng>180){setODPLocationStatus('Format koordinat tidak valid. Lat harus -90 sampai 90 dan Lng -180 sampai 180.','error');return;}
+  if(location.value.trim()&&location.dataset.manual==='true'){setODPLocationStatus('Nama lokasi diisi manual.');return;}
+  const run=function(){reverseGeocodeODP(lat,lng);};
+  if(immediate)run();else odpLocationLookupTimer=setTimeout(run,800);
+}
+async function reverseGeocodeODP(lat,lng){
+  if(odpLocationLookupController)odpLocationLookupController.abort();
+  const controller=new AbortController();
+  odpLocationLookupController=controller;
+  const requestId=++odpLocationLookupRequest;
+  setODPLocationStatus('Mencari nama lokasi dari koordinat...');
+  try{
+    const url='https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat='+encodeURIComponent(lat)+'&lon='+encodeURIComponent(lng)+'&zoom=18&addressdetails=1';
+    const response=await fetch(url,{signal:controller.signal,headers:{'Accept':'application/json','Accept-Language':'id-ID,id;q=0.9'}});
+    if(!response.ok)throw new Error('Layanan lokasi tidak merespons ('+response.status+').');
+    const result=await response.json();
+    if(requestId!==odpLocationLookupRequest)return;
+    const location=document.getElementById('odp-lokasi-input');
+    const name=(result.display_name||'').trim();
+    if(!location||!name)throw new Error('Nama lokasi tidak ditemukan untuk koordinat tersebut.');
+    if(location.value.trim()&&location.dataset.manual==='true'){setODPLocationStatus('Nama lokasi diisi manual.');return;}
+    location.value=name;
+    location.dataset.autoValue=name;
+    location.dataset.manual='false';
+    setODPLocationStatus('Nama lokasi otomatis dari OpenStreetMap.','success');
+  }catch(error){
+    if(error.name==='AbortError')return;
+    setODPLocationStatus('Nama lokasi gagal ditemukan. Silakan isi manual.','error');
+    console.warn('[ReverseGeocodeODP]',error.message);
+  }
+}
+function openAddODPModal(){
+  const role=(currentUser&&currentUser.role||'').toLowerCase();
+  if(role!=='admin'&&role!=='owner'&&role!=='supervisor'){showAlert('Akun NOC hanya dapat melihat data Asset ODP.','Akses Terbatas');return;}
+  bindODPLocationLookup();
+  resetODPLocationLookupState();
+  document.getElementById('add-odp-modal').classList.remove('hidden');
+  setTimeout(function(){scheduleODPLocationLookup(true);},0);
+}
+async function addODP(e){
+  const role=(currentUser&&currentUser.role||'').toLowerCase();
+  if(role!=='admin'&&role!=='owner'&&role!=='supervisor'){e.preventDefault();showAlert('Akun NOC tidak dapat menambah ODP.','Akses Terbatas');return;}
+  e.preventDefault();
+  const id=document.getElementById('odp-id-input').value.trim().toUpperCase();
+  const odcInput=document.getElementById('odp-odc-input');
+  const odc=odcInput?odcInput.value.trim().toUpperCase():'';
+  const locationInput=document.getElementById('odp-lokasi-input');
+  const latRaw=document.getElementById('odp-lat-input').value.trim();
+  const lngRaw=document.getElementById('odp-lng-input').value.trim();
+  const kapasitas=parseInt(document.getElementById('odp-kapasitas-input').value)||8;
+  const terisi=parseInt(document.getElementById('odp-terisi-input').value)||0;
+  const lat=parseFloat(latRaw)||0;
+  const lng=parseFloat(lngRaw)||0;
+  if(!locationInput.value.trim()&&latRaw&&lngRaw){
+    const latNumber=Number(latRaw),lngNumber=Number(lngRaw);
+    if(Number.isFinite(latNumber)&&Number.isFinite(lngNumber)&&latNumber>=-90&&latNumber<=90&&lngNumber>=-180&&lngNumber<=180)await reverseGeocodeODP(latNumber,lngNumber);
+  }
+  const lokasi=locationInput.value.trim();
+  if(!lokasi){showAlert('Nama Lokasi belum ditemukan. Isi koordinat yang valid atau masukkan Nama Lokasi manual.','Lokasi Wajib');return;}
   if(odpMaster.find(o=>o.id===id)){showAlert('ODP dengan ID ini sudah ada!');return;}
-  odpMaster.push({id,lokasi,kapasitas,terisi,lat,lng});renderODPGrid();document.getElementById('add-odp-modal').classList.add('hidden');e.target.reset();showAlert('ODP '+id+' berhasil ditambahkan.','ODP Tersimpan');
+  if(terisi>kapasitas){showAlert('Jumlah terisi tidak boleh melebihi kapasitas.','Data Tidak Valid');return;}
+  const newODP={id,odc,lokasi,kapasitas,terisi,lat,lng};
+  odpMaster.push(newODP);renderODPGrid();
+  await simpanODPKeSupabase(newODP);
+  document.getElementById('add-odp-modal').classList.add('hidden');e.target.reset();resetODPLocationLookupState();showAlert('ODP '+id+' berhasil ditambahkan.','ODP Tersimpan');
 }
-function importODPExcel(event){const f=event.target.files[0];if(!f){return;}showAlert('Import ODP dari Excel berhasil terdeteksi. (Koneksi database diperlukan untuk simpan)','Import ODP');}
+function downloadTemplateODP(){
+  if(typeof XLSX==='undefined'){showAlert('Library Excel belum siap. Silakan refresh halaman lalu coba lagi.','Template ODP');return;}
+  var headers=['ID ODP','Lokasi','Kapasitas','Terisi','Lat','Lng','ODC'];
+  var contohRows=[
+    headers,
+    ['ODP-JKT-001','Jl. Raya Kebon Jeruk',8,2,-6.1927,106.7635,'ODC-JKT-01'],
+    ['ODP-JKT-002','Jl. Panjang No. 10',16,5,-6.1881,106.7742,'ODC-JKT-01']
+  ];
+  var petunjukRows=[
+    ['PETUNJUK IMPORT ASSET ODP'],
+    ['Kolom','Keterangan'],
+    ['ID ODP','Wajib, harus unik. Contoh: ODP-JKT-001'],
+    ['Lokasi','Wajib, nama atau alamat lokasi ODP'],
+    ['Kapasitas','Wajib, angka bulat lebih dari 0'],
+    ['Terisi','Opsional, angka 0 sampai kapasitas'],
+    ['Lat','Opsional, koordinat latitude dalam angka desimal'],
+    ['Lng','Opsional, koordinat longitude dalam angka desimal'],
+    ['ODC','Opsional, ID ODC yang menaungi ODP. Beberapa ODP dapat memakai ODC yang sama.'],
+    ['Catatan','Isi data pada sheet Template ODP. Sheet Contoh Data hanya sebagai referensi.']
+  ];
+  var wsTemplate=XLSX.utils.aoa_to_sheet([headers]);
+  var wsContoh=XLSX.utils.aoa_to_sheet(contohRows);
+  var wsPetunjuk=XLSX.utils.aoa_to_sheet(petunjukRows);
+  wsTemplate['!cols']=[{wch:18},{wch:30},{wch:12},{wch:10},{wch:14},{wch:14},{wch:18}];
+  wsContoh['!cols']=[{wch:18},{wch:30},{wch:12},{wch:10},{wch:14},{wch:14},{wch:18}];
+  wsPetunjuk['!cols']=[{wch:18},{wch:72}];
+  wsTemplate['!autofilter']={ref:wsTemplate['!ref']};
+  var wb=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb,wsTemplate,'Template ODP');
+  XLSX.utils.book_append_sheet(wb,wsContoh,'Contoh Data');
+  XLSX.utils.book_append_sheet(wb,wsPetunjuk,'Petunjuk');
+  XLSX.writeFile(wb,'Template_Import_Asset_ODP.xlsx');
+}
+
+async function importODPExcel(event){
+  var file=event&&event.target&&event.target.files?event.target.files[0]:null;
+  var fileInput=document.getElementById('excel-odp');
+  if(!file&&fileInput) file=fileInput.files[0];
+  if(!file){showAlert('Pilih file Excel (.xlsx atau .xls) terlebih dahulu.','Import ODP');return;}
+
+  var role=(currentUser&&currentUser.role||'').toLowerCase();
+  if(role!=='admin'&&role!=='owner'&&role!=='supervisor'){
+    if(fileInput) fileInput.value='';
+    showAlert('Akun ini tidak memiliki akses untuk import ODP.','Akses Terbatas');
+    return;
+  }
+  if(typeof XLSX==='undefined'){if(fileInput)fileInput.value='';showAlert('Library Excel belum siap. Silakan refresh halaman lalu coba lagi.','Import ODP');return;}
+
+  showLoading('Membaca file Excel ODP...');
+  try{
+    var data=await file.arrayBuffer();
+    var wb=XLSX.read(data,{type:'array'});
+    var ws=wb.Sheets[wb.SheetNames[0]];
+    var rows=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+    var dataRows=rows.filter(function(row,index){
+      var first=String(row[0]||'').trim().toLowerCase().replace(/[ _-]+/g,'');
+      if(!row.some(function(value){return String(value==null?'':value).trim()!=='';})) return false;
+      return !(index===0&&(first==='idodp'||first==='odpid'||first==='id'));
+    });
+    if(!dataRows.length){hideLoading();if(fileInput)fileInput.value='';showAlert('File kosong. Isi data pada sheet pertama dengan format ID ODP | Lokasi | Kapasitas | Terisi | Lat | Lng | ODC.','Import Gagal');return;}
+
+    var berhasil=0,gagal=0,duplikat=0,errors=[];
+    for(var i=0;i<dataRows.length;i++){
+      var row=dataRows[i],rowNumber=i+2;
+      var id=String(row[0]||'').trim().toUpperCase();
+      var lokasi=String(row[1]||'').trim();
+      var odc=String(row[6]??'').trim().toUpperCase();
+      var kapasitasValue=String(row[2]??'').trim().replace(',','.');
+      var terisiValue=String(row[3]??'').trim().replace(',','.');
+      var latValue=String(row[4]??'').trim().replace(',','.');
+      var lngValue=String(row[5]??'').trim().replace(',','.');
+      var kapasitas=Number(kapasitasValue),terisi=terisiValue===''?0:Number(terisiValue);
+      var lat=latValue===''?0:Number(latValue),lng=lngValue===''?0:Number(lngValue);
+      var rowError='';
+      if(!id) rowError='ID ODP wajib diisi';
+      else if(!lokasi) rowError='Lokasi wajib diisi';
+      else if(!Number.isInteger(kapasitas)||kapasitas<1) rowError='Kapasitas harus angka bulat lebih dari 0';
+      else if(!Number.isInteger(terisi)||terisi<0||terisi>kapasitas) rowError='Terisi harus 0 sampai kapasitas';
+      else if(!Number.isFinite(lat)||!Number.isFinite(lng)) rowError='Lat/Lng harus berupa angka';
+      if(rowError){gagal++;errors.push('Baris '+rowNumber+' ('+(id||'tanpa ID')+'): '+rowError);continue;}
+      if(odpMaster.some(function(item){return String(item.id||'').toUpperCase()===id;})){duplikat++;continue;}
+
+      try{
+        var check=await supa.from('odp').select('odp_id').eq('odp_id',id).maybeSingle();
+        if(check.error) throw check.error;
+        if(check.data){duplikat++;continue;}
+        var result=await supa.from('odp').insert({odp_id:id,lokasi:lokasi,kapasitas:kapasitas,terisi:terisi,lat:lat,lng:lng,odc:odc||null});
+        if(result.error) throw result.error;
+        odpMaster.push({id:id,odc:odc,lokasi:lokasi,kapasitas:kapasitas,terisi:terisi,lat:lat,lng:lng});
+        berhasil++;
+      }catch(error){
+        gagal++;
+        errors.push('Baris '+rowNumber+' ('+id+'): '+(error.message||'Gagal menyimpan ke database'));
+      }
+    }
+    renderODPGrid();
+    hideLoading();
+    if(fileInput)fileInput.value='';
+    var message='Berhasil: '+berhasil+' ODP\n';
+    if(duplikat)message+='Duplikat (dilewati): '+duplikat+'\n';
+    if(gagal)message+='Gagal: '+gagal+'\n';
+    if(errors.length)message+='\nDetail error:\n'+errors.slice(0,3).join('\n');
+    showAlert(message,'Hasil Import ODP');
+  }catch(error){
+    hideLoading();
+    if(fileInput)fileInput.value='';
+    showAlert('Gagal membaca file: '+(error.message||'format tidak valid')+'\nPastikan file berekstensi .xlsx atau .xls.','Import ODP');
+  }
+}
 
 // LOG — Sub-tab Log Tugas
 function switchSubLogTugas(sub){
@@ -339,7 +577,7 @@ async function loadLogTugas(){
     if(E('lt-proses'))E('lt-proses').textContent=all.filter(d=>d.status==='PROSES'||d.status==='PICKUP').length;
     if(E('lt-selesai'))E('lt-selesai').textContent=all.filter(d=>d.status==='SELESAI').length;
     if(E('lt-return'))E('lt-return').textContent=all.filter(d=>d.status==='RETURN').length;
-    if(!all.length){tbody.innerHTML='<tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Belum ada data WO.</td></tr>';filterLogTugasDom();return;}
+    if(!all.length){tbody.innerHTML='<tr><td colspan="8" class="text-center py-8 text-slate-400 text-xs">Belum ada data WO.</td></tr>';filterLogTugasDom();return;}
 
     tbody.innerHTML=all.map(d=>{
       const woId=d.wo_id||d.id||'--';
@@ -350,18 +588,23 @@ async function loadLogTugas(){
       const tCls=tipeColor[tipe]||'bg-slate-100 text-slate-600';
       const detail=logTugasDetails(d);
       const devices=logTugasDevices(d);
-      return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all align-top" data-wo-id="${logTugasText(woId)}" data-tipe="${logTugasText(tipe)}" data-tanggal="${logTugasText(tanggal)}">
+      const sumberBadge = d.mitra_id
+        ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-orange-100 text-orange-700 whitespace-nowrap"><i class="fa-solid fa-handshake mr-0.5"></i>Mitra</span>`
+        : `<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-slate-100 text-slate-500 whitespace-nowrap"><i class="fa-solid fa-building mr-0.5"></i>Internal</span>`;
+      const autoBadge = d.is_auto_dismantle
+        ? `<span class="px-1.5 py-0.5 rounded text-[9px] font-black bg-red-100 text-red-700 whitespace-nowrap"><i class="fa-solid fa-robot mr-0.5"></i>Auto</span>`
+        : '';
+      return `<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all align-top" data-wo-id="${logTugasText(woId)}" data-tipe="${logTugasText(tipe)}" data-tanggal="${logTugasText(tanggal)}" data-mitra="${d.mitra_id ? 'true' : 'false'}">
         <td class="py-3 px-3 font-bold text-blue-600 dark:text-blue-400 font-mono text-[11px]">${logTugasText(woId)}</td>
         <td class="py-3 px-3 text-xs font-mono">${logTugasText(d.no_layanan)}</td>
         <td class="py-3 px-3 text-xs font-bold">${logTugasText(d.pelanggan)}</td>
         <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${tCls}">${logTugasText(tipe)}</span></td>
         <td class="py-3 px-3 text-xs">${detail}</td>
         <td class="py-3 px-3 text-xs">${devices}</td>
+        <td class="py-3 px-3 text-center"><div class="flex flex-col items-center gap-0.5">${sumberBadge}${autoBadge}</div></td>
         <td class="py-3 px-3 text-center"><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${sCls}">${logTugasText(status)}</span></td>
       </tr>`;
     }).join('');
-    // loadLogTugas mengganti seluruh tbody. Terapkan ulang semua filter,
-    // termasuk range tanggal yang sudah dipilih sebelumnya.
     filterLogTugasDom();
   }
 
@@ -562,6 +805,7 @@ function filterLogTugasDom(){
   const q=(document.getElementById('logtugas-search')||{value:''}).value.toLowerCase();
   const s=(document.getElementById('logtugas-filter-status')||{value:'ALL'}).value;
   const t=(document.getElementById('logtugas-filter-tipe')||{value:'ALL'}).value;
+  const sumber=(document.getElementById('logtugas-filter-sumber')||{value:'ALL'}).value;
   const dateFrom=(document.getElementById('logtugas-date-from')||{value:''}).value;
   const dateTo=(document.getElementById('logtugas-date-to')||{value:''}).value;
   
@@ -570,19 +814,20 @@ function filterLogTugasDom(){
     const woId = r.dataset.woId || '';
     const tipe = r.dataset.tipe || '';
     const tanggal = r.dataset.tanggal || '';
+    const isMitra = r.dataset.mitra === 'true';
     
-    // Filter text search
     const matchQ = !q || txt.includes(q);
-    // Filter status
     const matchS = s==='ALL' || txt.toUpperCase().includes(s);
-    // Filter tipe
     const matchT = t==='ALL' || tipe===t;
-    // Filter tanggal range
+    // Filter sumber
+    const matchSumber = sumber==='ALL'
+      || (sumber==='internal' && !isMitra)
+      || (sumber==='mitra' && isMitra);
     let matchDate = true;
     if(dateFrom && tanggal < dateFrom) matchDate = false;
     if(dateTo && tanggal > dateTo) matchDate = false;
     
-    r.style.display = (matchQ && matchS && matchT && matchDate) ? '' : 'none';
+    r.style.display = (matchQ && matchS && matchT && matchSumber && matchDate) ? '' : 'none';
   });
 }
 
@@ -795,7 +1040,7 @@ async function exportLogWO(){
       [phoneLabel]: asValue(d.no_hp || d.nohp),
       'Alamat': asValue(d.alamat),
       'Koordinat': asValue(d.koordinat),
-      'CS/Admin': asValue(d.cs_name || d.cs),
+      'Petugas Input': asValue(d.cs_name || d.cs),
       'WA Masuk': asValue(d.t1),
       'Tiket Dibuat': asValue(d.t2),
       'Release': asDateTime(d.released_at),
@@ -881,7 +1126,7 @@ async function exportLogWO(){
       'No. HP': asValue(t.no_telp),
       'Alamat': asValue(t.alamat),
       'Koordinat': asValue(t.koordinat),
-      'CS/Admin': asValue(t.cs_name),
+      'Petugas Input': asValue(t.cs_name),
       'Tanggal': asDateTime(t.tanggal || t.created_at),
       'Teknisi': asValue(t.teknisi),
       'Status Tiket': asValue(t.status),
@@ -898,23 +1143,23 @@ async function exportLogWO(){
   const sheetDefinitions = [
     {
       name: 'Instalasi Baru', rows: instalasiRows,
-      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','CS/Admin','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Registrasi (Rp)','Paket (Rp)','Nama Paket','Total (Rp)','Marketing','Username PPPoE','Password PPPoE','Status Koneksi','ODP','SN ONT','SN Kabel','Jenis Kabel','Panjang Kabel (m)','Catatan']
+      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','Petugas Input','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Registrasi (Rp)','Paket (Rp)','Nama Paket','Total (Rp)','Marketing','Username PPPoE','Password PPPoE','Status Koneksi','ODP','SN ONT','SN Kabel','Jenis Kabel','Panjang Kabel (m)','Catatan']
     },
     {
       name: 'Instalasi Reseller', rows: instalasiResellerRows,
-      headers: ['No. Tiket','No. Layanan','Nama Reseller','No. HP','Alamat','Koordinat','CS/Admin','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Registrasi (Rp)','Paket Voucher (Rp)','Total (Rp)','Marketing','Status Koneksi','ODP','SN ONT','SN Kabel','Jenis Kabel','Panjang Kabel (m)','Catatan']
+      headers: ['No. Tiket','No. Layanan','Nama Reseller','No. HP','Alamat','Koordinat','Petugas Input','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Registrasi (Rp)','Paket Voucher (Rp)','Total (Rp)','Marketing','Status Koneksi','ODP','SN ONT','SN Kabel','Jenis Kabel','Panjang Kabel (m)','Catatan']
     },
     {
       name: 'Perluasan Reseller', rows: perluasanRows,
-      headers: ['No. Tiket','No. Layanan','Nama Pelanggan','No. HP Reseller','Nama Reseller','Alamat','Koordinat','Jumlah Titik','CS/Admin','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','SN ONT / AP','SN Kabel','Jenis Kabel','Meter Kabel','Panjang Kabel (m)','Catatan']
+      headers: ['No. Tiket','No. Layanan','Nama Pelanggan','No. HP Reseller','Nama Reseller','Alamat','Koordinat','Jumlah Titik','Petugas Input','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','SN ONT / AP','SN Kabel','Jenis Kabel','Meter Kabel','Panjang Kabel (m)','Catatan']
     },
     {
       name: 'Maintenance', rows: maintenanceRows,
-      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','CS/Admin','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Kendala','NOC','Diagnosa','Penanganan','SN ONT','SN Kabel','Panjang Kabel (m)','Catatan']
+      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','Petugas Input','WA Masuk','Tiket Dibuat','Release','Pickup','Teknisi 1','Teknisi 2','Selesai','Status','Kendala','NOC','Diagnosa','Penanganan','SN ONT','SN Kabel','Panjang Kabel (m)','Catatan']
     },
     {
       name: 'Dismantle', rows: dismantleRows,
-      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','CS/Admin','Tanggal','Teknisi','Status Tiket','SN','Jenis Perangkat','Merk','Kondisi Awal','Hasil NOC','NOC','Diperiksa']
+      headers: ['No. Tiket','No. Layanan','Pelanggan','No. HP','Alamat','Koordinat','Petugas Input','Tanggal','Teknisi','Status Tiket','SN','Jenis Perangkat','Merk','Kondisi Awal','Hasil NOC','NOC','Diperiksa']
     }
   ];
 

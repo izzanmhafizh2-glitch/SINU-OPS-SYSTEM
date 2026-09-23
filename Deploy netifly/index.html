@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
   <!-- APP CSS -->
-  <link rel="stylesheet" href="css/main.css?v=1000192">
+  <link rel="stylesheet" href="css/main.css?v=2026091904">
   <link rel="icon" type="image/png" href="assets/logo-s.png?v=1000182">
 
   <!-- CDN LIBRARIES (harus sebelum JS kita) -->
@@ -191,14 +191,7 @@
       <div id="section-dashboard" class="main-section space-y-4 fade-up">
 
         <!-- FILTER BAR -->
-        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
-          <div class="flex items-center gap-2 flex-wrap">
-            <span class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Divisi:</span>
-            <button type="button" onclick="setRoleFilter('All')" id="filter-role-All" class="filter-role-btn active px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">Semua</button>
-            <button type="button" onclick="setRoleFilter('Teknisi')" id="filter-role-Teknisi" class="filter-role-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">Teknisi</button>
-            <button type="button" onclick="setRoleFilter('CS')" id="filter-role-CS" class="filter-role-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">CS/Admin</button>
-            <button type="button" onclick="setRoleFilter('NOC')" id="filter-role-NOC" class="filter-role-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-all">NOC</button>
-          </div>
+        <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-end gap-3">
           <div class="flex items-center gap-2">
             <select id="recapMonthSelect" onchange="onFilterPeriodChange()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-2.5 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-600">
               <option value="0">Januari</option><option value="1">Februari</option><option value="2">Maret</option><option value="3">April</option><option value="4">Mei</option><option value="5">Juni</option><option value="6">Juli</option><option value="7">Agustus</option><option value="8">September</option><option value="9">Oktober</option><option value="10">November</option><option value="11">Desember</option>
@@ -209,52 +202,166 @@
           </div>
         </div>
 
-        <!-- WO SUMMARY + DONUT -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <!-- WO STATS -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
-            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-blue-600 dark:text-blue-400"></i>Work Order Hari Ini</h2><p class="text-[11px] text-slate-400 mt-0.5">Status real-time aktivitas WO</p></div>
+        <!-- WO SUMMARY REDESIGNED -->
+        <div class="bg-gradient-to-br from-white to-slate-50 dark:from-slate-800 dark:to-slate-900 rounded-3xl p-6 shadow-xl border border-slate-200/50 dark:border-slate-700/50 space-y-6">
+          <!-- HEADER -->
+          <div class="flex items-center gap-3">
+            <div class="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-blue-500/30">
+              <i class="fa-solid fa-clipboard-list text-white text-xl"></i>
             </div>
-            <div class="grid grid-cols-2 gap-2.5">
-              <div class="bg-blue-50 dark:bg-blue-950/40 rounded-2xl p-3.5 border border-blue-100 dark:border-blue-900">
-                <p class="text-[10px] font-extrabold text-blue-500 uppercase tracking-wider">Total WO</p>
-                <p class="text-2xl font-black text-blue-600 dark:text-blue-400 mt-1 leading-none wo-summary-total truncate">12</p>
-                <p class="text-[10px] text-blue-400 mt-1">Tiket masuk</p>
+            <div>
+              <h2 class="text-lg font-black text-slate-900 dark:text-white">Work Order Hari Ini</h2>
+              <p class="text-xs text-slate-500 dark:text-slate-400">Monitoring aktivitas real-time per kategori</p>
+            </div>
+          </div>
+
+          <!-- STATUS PENGERJAAN -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <div class="w-1 h-5 bg-gradient-to-b from-blue-500 to-indigo-600 rounded-full"></div>
+              <h3 class="text-sm font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Status Pengerjaan</h3>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              <!-- Total WO -->
+              <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border-2 border-blue-100 dark:border-blue-900/50 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-lg hover:shadow-blue-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-950/50 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-chart-pie text-blue-600 dark:text-blue-400 text-lg"></i>
+                </div>
+                <p class="text-xs font-extrabold text-blue-600 dark:text-blue-400 uppercase tracking-wider mb-2">Total WO</p>
+                <p class="text-4xl font-black text-blue-700 dark:text-blue-300 leading-none wo-summary-total">0</p>
+                <p class="text-xs text-blue-500/70 dark:text-blue-400/70 mt-2 font-medium">Semua status</p>
               </div>
-              <div class="bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl p-3.5 border border-emerald-100 dark:border-emerald-900">
-                <p class="text-[10px] font-extrabold text-emerald-500 uppercase tracking-wider">Selesai</p>
-                <p class="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1 leading-none wo-summary-selesai truncate">8</p>
-                <p class="text-[10px] text-emerald-400 mt-1">Dikerjakan</p>
+              
+              <!-- Selesai -->
+              <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border-2 border-emerald-100 dark:border-emerald-900/50 hover:border-emerald-300 dark:hover:border-emerald-700 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-circle-check text-emerald-600 dark:text-emerald-400 text-lg"></i>
+                </div>
+                <p class="text-xs font-extrabold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider mb-2">Selesai</p>
+                <p class="text-4xl font-black text-emerald-700 dark:text-emerald-300 leading-none wo-summary-selesai">0</p>
+                <p class="text-xs text-emerald-500/70 dark:text-emerald-400/70 mt-2 font-medium">Dikerjakan</p>
               </div>
-              <div class="bg-amber-50 dark:bg-amber-950/40 rounded-2xl p-3.5 border border-amber-100 dark:border-amber-900">
-                <p class="text-[10px] font-extrabold text-amber-500 uppercase tracking-wider">Proses</p>
-                <p class="text-2xl font-black text-amber-600 dark:text-amber-400 mt-1 leading-none wo-summary-proses truncate">3</p>
-                <p class="text-[10px] text-amber-400 mt-1">Dikerjakan</p>
+              
+              <!-- Proses -->
+              <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border-2 border-amber-100 dark:border-amber-900/50 hover:border-amber-300 dark:hover:border-amber-700 hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-amber-50 dark:bg-amber-950/50 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-spinner text-amber-600 dark:text-amber-400 text-lg"></i>
+                </div>
+                <p class="text-xs font-extrabold text-amber-600 dark:text-amber-400 uppercase tracking-wider mb-2">Proses</p>
+                <p class="text-4xl font-black text-amber-700 dark:text-amber-300 leading-none wo-summary-proses">0</p>
+                <p class="text-xs text-amber-500/70 dark:text-amber-400/70 mt-2 font-medium">Dikerjakan</p>
               </div>
-              <div class="bg-rose-50 dark:bg-rose-950/40 rounded-2xl p-3.5 border border-rose-100 dark:border-rose-900">
-                <p class="text-[10px] font-extrabold text-rose-500 uppercase tracking-wider">Return</p>
-                <p class="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1 leading-none wo-summary-return truncate">1</p>
-                <p class="text-[10px] text-rose-400 mt-1">Dikembalikan</p>
+              
+              <!-- NOC -->
+              <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border-2 border-indigo-100 dark:border-indigo-900/50 hover:border-indigo-300 dark:hover:border-indigo-700 hover:shadow-lg hover:shadow-indigo-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-indigo-50 dark:bg-indigo-950/50 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-headset text-indigo-600 dark:text-indigo-400 text-lg"></i>
+                </div>
+                <p class="text-xs font-extrabold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider mb-2">NOC</p>
+                <p class="text-4xl font-black text-indigo-700 dark:text-indigo-300 leading-none wo-summary-noc">0</p>
+                <p class="text-xs text-indigo-500/70 dark:text-indigo-400/70 mt-2 font-medium">Di NOC</p>
+              </div>
+              
+              <!-- Return -->
+              <div class="group relative bg-white dark:bg-slate-800 rounded-2xl p-4 border-2 border-rose-100 dark:border-rose-900/50 hover:border-rose-300 dark:hover:border-rose-700 hover:shadow-lg hover:shadow-rose-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="absolute top-3 right-3 w-10 h-10 rounded-xl bg-rose-50 dark:bg-rose-950/50 flex items-center justify-center opacity-60 group-hover:opacity-100 transition-opacity">
+                  <i class="fa-solid fa-rotate-left text-rose-600 dark:text-rose-400 text-lg"></i>
+                </div>
+                <p class="text-xs font-extrabold text-rose-600 dark:text-rose-400 uppercase tracking-wider mb-2">Return</p>
+                <p class="text-4xl font-black text-rose-700 dark:text-rose-300 leading-none wo-summary-return">0</p>
+                <p class="text-xs text-rose-500/70 dark:text-rose-400/70 mt-2 font-medium">Dikembalikan</p>
               </div>
             </div>
           </div>
 
+          <!-- KATEGORI PEKERJAAN -->
+          <div class="space-y-3">
+            <div class="flex items-center gap-2">
+              <div class="w-1 h-5 bg-gradient-to-b from-purple-500 to-pink-600 rounded-full"></div>
+              <h3 class="text-sm font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wide">Kategori Pekerjaan</h3>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+              <!-- Instalasi Baru -->
+              <div class="group bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-950/30 dark:to-teal-950/30 rounded-2xl p-4 border border-emerald-200 dark:border-emerald-800/50 hover:shadow-lg hover:shadow-emerald-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center">
+                    <i class="fa-solid fa-plug text-white text-sm"></i>
+                  </div>
+                  <p class="text-xs font-extrabold text-emerald-700 dark:text-emerald-300 uppercase">Instalasi Baru</p>
+                </div>
+                <p class="text-3xl font-black text-emerald-600 dark:text-emerald-400 leading-none wo-summary-instalasi-baru">0</p>
+                <p class="text-xs text-emerald-600/70 dark:text-emerald-400/70 mt-1">Pemasangan</p>
+              </div>
+              
+              <!-- Instalasi Reseller -->
+              <div class="group bg-gradient-to-br from-cyan-50 to-sky-50 dark:from-cyan-950/30 dark:to-sky-950/30 rounded-2xl p-4 border border-cyan-200 dark:border-cyan-800/50 hover:shadow-lg hover:shadow-cyan-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-cyan-500 flex items-center justify-center">
+                    <i class="fa-solid fa-building text-white text-sm"></i>
+                  </div>
+                  <p class="text-xs font-extrabold text-cyan-700 dark:text-cyan-300 uppercase">Instalasi Reseller</p>
+                </div>
+                <p class="text-3xl font-black text-cyan-600 dark:text-cyan-400 leading-none wo-summary-instalasi-reseller">0</p>
+                <p class="text-xs text-cyan-600/70 dark:text-cyan-400/70 mt-1">Pemasangan</p>
+              </div>
+              
+              <!-- Perluasan -->
+              <div class="group bg-gradient-to-br from-purple-50 to-violet-50 dark:from-purple-950/30 dark:to-violet-950/30 rounded-2xl p-4 border border-purple-200 dark:border-purple-800/50 hover:shadow-lg hover:shadow-purple-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-purple-500 flex items-center justify-center">
+                    <i class="fa-solid fa-arrow-up-right-dots text-white text-sm"></i>
+                  </div>
+                  <p class="text-xs font-extrabold text-purple-700 dark:text-purple-300 uppercase">Perluasan</p>
+                </div>
+                <p class="text-3xl font-black text-purple-600 dark:text-purple-400 leading-none wo-summary-perluasan">0</p>
+                <p class="text-xs text-purple-600/70 dark:text-purple-400/70 mt-1">Upgrade</p>
+              </div>
+              
+              <!-- Maintenance -->
+              <div class="group bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-950/30 dark:to-orange-950/30 rounded-2xl p-4 border border-amber-200 dark:border-amber-800/50 hover:shadow-lg hover:shadow-amber-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-amber-500 flex items-center justify-center">
+                    <i class="fa-solid fa-wrench text-white text-sm"></i>
+                  </div>
+                  <p class="text-xs font-extrabold text-amber-700 dark:text-amber-300 uppercase">Maintenance</p>
+                </div>
+                <p class="text-3xl font-black text-amber-600 dark:text-amber-400 leading-none wo-summary-maintenance">0</p>
+                <p class="text-xs text-amber-600/70 dark:text-amber-400/70 mt-1">Perbaikan</p>
+              </div>
+              
+              <!-- Dismantle -->
+              <div class="group bg-gradient-to-br from-rose-50 to-pink-50 dark:from-rose-950/30 dark:to-pink-950/30 rounded-2xl p-4 border border-rose-200 dark:border-rose-800/50 hover:shadow-lg hover:shadow-rose-500/20 transition-all duration-300 cursor-pointer hover:-translate-y-1">
+                <div class="flex items-center gap-2 mb-2">
+                  <div class="w-8 h-8 rounded-lg bg-rose-500 flex items-center justify-center">
+                    <i class="fa-solid fa-plug-circle-xmark text-white text-sm"></i>
+                  </div>
+                  <p class="text-xs font-extrabold text-rose-700 dark:text-rose-300 uppercase">Dismantle</p>
+                </div>
+                <p class="text-3xl font-black text-rose-600 dark:text-rose-400 leading-none wo-summary-dismantle">0</p>
+                <p class="text-xs text-rose-600/70 dark:text-rose-400/70 mt-1">Pembongkaran</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- KOMPOSISI KEHADIRAN + TOP 3 EMPLOYEE -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 items-stretch">
           <!-- DONUT CHART KEHADIRAN -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
             <div class="pb-3 border-b border-slate-100 dark:border-slate-700">
               <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-pie text-indigo-600 dark:text-indigo-400"></i>Komposisi Kehadiran</h2>
               <p class="text-[11px] text-slate-400 mt-0.5">Status kehadiran akun Anda bulan ini</p>
             </div>
-            <div class="flex items-center gap-4">
-              <div class="relative w-28 h-28 shrink-0">
+            <!-- Donut + Legend -->
+            <div class="flex items-center gap-4 py-4">
+              <div class="relative w-32 h-32 shrink-0">
                 <canvas id="attendanceDonut"></canvas>
                 <div class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                  <p id="donut-center-val" class="text-xl font-black text-slate-900 dark:text-white leading-none">0%</p>
+                  <p id="donut-center-val" class="text-2xl font-black text-slate-900 dark:text-white leading-none">0%</p>
                   <p class="text-[9px] text-slate-400 font-semibold">Hadir</p>
                 </div>
               </div>
-              <div class="flex-1 space-y-2 text-xs">
+              <div class="flex-1 space-y-2.5 text-xs">
                 <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500 shrink-0"></span><span class="text-slate-600 dark:text-slate-300 font-semibold">Tepat Waktu</span></div><span id="donut-tepat" class="font-black text-emerald-600 dark:text-emerald-400">0%</span></div>
                 <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-500 shrink-0"></span><span class="text-slate-600 dark:text-slate-300 font-semibold">Terlambat</span></div><span id="donut-terlambat" class="font-black text-amber-600 dark:text-amber-400">0%</span></div>
                 <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 shrink-0"></span><span class="text-slate-600 dark:text-slate-300 font-semibold">Izin Sakit</span></div><span id="donut-sakit" class="font-black text-rose-600 dark:text-rose-400">0%</span></div>
@@ -262,17 +369,35 @@
                 <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-slate-400 shrink-0"></span><span class="text-slate-600 dark:text-slate-300 font-semibold">Alpa</span></div><span id="donut-alpa" class="font-black text-slate-500">0%</span></div>
               </div>
             </div>
+            <!-- Summary Stat Cards — mengisi space kosong -->
+            <div class="mt-auto pt-3 border-t border-slate-100 dark:border-slate-700 grid grid-cols-3 gap-2">
+              <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-3 text-center">
+                <p class="text-[10px] font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wide">Tepat</p>
+                <p id="donut-count-tepat" class="text-lg font-black text-emerald-700 dark:text-emerald-300 mt-0.5">0</p>
+                <p class="text-[9px] text-slate-400">hari</p>
+              </div>
+              <div class="bg-amber-50 dark:bg-amber-900/20 rounded-2xl p-3 text-center">
+                <p class="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wide">Lambat</p>
+                <p id="donut-count-terlambat" class="text-lg font-black text-amber-700 dark:text-amber-300 mt-0.5">0</p>
+                <p class="text-[9px] text-slate-400">hari</p>
+              </div>
+              <div class="bg-rose-50 dark:bg-rose-900/20 rounded-2xl p-3 text-center">
+                <p class="text-[10px] font-bold text-rose-600 dark:text-rose-400 uppercase tracking-wide">Izin/Alpa</p>
+                <p id="donut-count-izin" class="text-lg font-black text-rose-700 dark:text-rose-300 mt-0.5">0</p>
+                <p class="text-[9px] text-slate-400">hari</p>
+              </div>
+            </div>
           </div>
-        </div>
 
-        <!-- TOP 3 PODIUM -->
-        <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-          <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
-            <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-trophy text-amber-500"></i>Top 3 Employee of the Month</h2><p class="text-[11px] text-slate-400 mt-0.5">Berdasarkan total point kehadiran + kinerja tertinggi</p></div>
-          </div>
-          <div class="flex items-end justify-center gap-3 pt-2" id="podium-container">
-            <!-- Diisi JS: #2, #1, #3 -->
-            <div class="text-center text-xs text-slate-400 py-4 w-full">Memuat data...</div>
+          <!-- TOP 3 PODIUM -->
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-col">
+            <div class="flex items-center justify-between pb-3 border-b border-slate-100 dark:border-slate-700">
+              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-trophy text-amber-500"></i>Top 3 Employee of the Month</h2><p class="text-[11px] text-slate-400 mt-0.5">Berdasarkan total point kehadiran + kinerja tertinggi</p></div>
+            </div>
+            <div class="flex items-end justify-center gap-3 pt-2 flex-1" id="podium-container">
+              <!-- Diisi JS: #2, #1, #3 -->
+              <div class="text-center text-xs text-slate-400 py-4 w-full">Memuat data...</div>
+            </div>
           </div>
         </div>
 
@@ -289,13 +414,8 @@
         <!-- TREN KEHADIRAN + REKAP KARYAWAN -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
           <!-- HEADER -->
-          <div class="p-5 lg:p-6 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div class="p-5 lg:p-6 border-b border-slate-100 dark:border-slate-700">
             <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-chart-line text-blue-600 dark:text-blue-400"></i>Tren Kehadiran & Rekapitulasi</h2><p class="text-[11px] text-slate-400 mt-0.5">Statistik kehadiran dan detail per karyawan</p></div>
-            <div class="bg-slate-100 dark:bg-slate-700 p-1 rounded-xl flex items-center gap-0.5">
-              <button type="button" onclick="setChartPeriod('daily')" id="period-daily" class="period-btn px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">Harian</button>
-              <button type="button" onclick="setChartPeriod('weekly')" id="period-weekly" class="period-btn px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">Mingguan</button>
-              <button type="button" onclick="setChartPeriod('monthly')" id="period-monthly" class="period-btn active px-2.5 py-1 rounded-lg text-[11px] font-bold text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-all">Bulanan</button>
-            </div>
           </div>
           <!-- STAT STRIP -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-px bg-slate-100 dark:bg-slate-700/50">
@@ -312,18 +432,14 @@
           <div id="employee-recap-header" class="px-5 lg:px-6 py-4 border-b border-slate-100 dark:border-slate-700 flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-slate-50/60 dark:bg-slate-700/20">
             <div class="flex items-center gap-2"><i class="fa-solid fa-users text-blue-600 dark:text-blue-400 text-sm"></i><h3 class="text-sm font-extrabold text-slate-800 dark:text-slate-100">Rekapitulasi Karyawan</h3></div>
             <div class="flex items-center gap-2 flex-wrap">
-              <button type="button" id="btn-tambah-karyawan" onclick="openAddEmployeeModal()" class="hidden px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 shrink-0"><i class="fa-solid fa-user-plus text-xs"></i>Tambah</button>
-              <select id="recapPeriodSelect" onchange="updateRecapTable()" class="bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-200 focus:outline-none focus:border-blue-600">
-                <option value="daily">Harian</option><option value="weekly">Mingguan</option><option value="monthly" selected>Bulanan</option>
-              </select>
               <div class="relative"><input type="text" id="searchIndividual" onkeyup="filterIndividualList()" placeholder="Cari karyawan..." class="pl-8 pr-3 py-1.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs focus:outline-none focus:border-blue-600 w-40"><i class="fa-solid fa-magnifying-glass absolute left-2.5 top-2 text-slate-400 text-[10px]"></i></div>
             </div>
           </div>
-          <!-- TABEL REKAP -->
-          <div id="employee-recap-table" class="overflow-x-auto">
+          <!-- TABEL REKAP SCROLLABLE -->
+          <div id="employee-recap-table" class="overflow-x-auto overflow-y-auto max-h-[500px]">
             <table class="w-full text-left border-collapse">
-              <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                <th class="py-3 px-4">Nama</th><th class="py-3 px-3 text-center">Peran</th><th class="py-3 px-3 text-center">Hadir</th><th class="py-3 px-3 text-center">Tepat</th><th class="py-3 px-3 text-center">Terlambat</th><th class="py-3 px-3 text-center">Sakit</th><th class="py-3 px-3 text-center">Cuti</th><th class="py-3 px-3 text-center">%</th><th class="py-3 px-3 text-center">Pt.Hadir</th><th class="py-3 px-3 text-center">Grade</th><th id="col-aksi-karyawan" class="py-3 px-3 text-center hidden">Aksi</th>
+              <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-700/90 backdrop-blur-sm"><tr class="bg-slate-50 dark:bg-slate-700/90 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-600">
+                <th class="py-3 px-4">Nama</th><th class="py-3 px-3 text-center">Peran</th><th class="py-3 px-3 text-center">Hadir</th><th class="py-3 px-3 text-center">Tepat</th><th class="py-3 px-3 text-center">Terlambat</th><th class="py-3 px-3 text-center">Sakit</th><th class="py-3 px-3 text-center">Cuti</th><th class="py-3 px-3 text-center">%</th><th class="py-3 px-3 text-center">Pt.Hadir</th><th class="py-3 px-3 text-center">Grade</th>
               </tr></thead>
               <tbody id="individual-recap-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200"></tbody>
             </table>
@@ -414,7 +530,7 @@
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Titik Koordinat Pelanggan <span class="text-rose-500">*</span></label>
                 <button type="button" onclick="getTaskLocation('instalasi')" class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-location-crosshairs"></i>GET LOCATION</button>
                 <p id="instalasi-coord-status" class="text-[11px] text-slate-400 italic">Koordinat belum terdeteksi.</p>
-                <div id="instalasi-map" class="hidden w-full h-44 rounded-2xl border border-slate-200 dark:border-slate-600 z-0"></div>
+                <div id="instalasi-map" class="w-full h-72 sm:h-80 rounded-2xl border border-slate-200 dark:border-slate-600 overflow-hidden relative z-0 bg-slate-100 dark:bg-slate-700"><div id="instalasi-map-placeholder" class="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400 dark:text-slate-300"><i class="fa-solid fa-map-location-dot text-4xl text-blue-400"></i><span class="text-xs font-bold">Peta siap mendeteksi lokasi pelanggan</span><span class="text-[10px]">Tekan GET LOCATION untuk menampilkan posisi dan radius ODP</span></div></div>
                 <div id="instalasi-odp-nearby" class="hidden bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-2xl p-3 space-y-1">
                   <p class="text-xs font-extrabold text-blue-700 dark:text-blue-300 flex items-center gap-1.5"><i class="fa-solid fa-tower-broadcast"></i>ODP Terdekat (radius 150m):</p>
                   <div id="instalasi-odp-list" class="space-y-1"></div>
@@ -1080,6 +1196,9 @@
             <button type="button" onclick="switchSubAbsensi('izin-sakit')" id="sub-abs-izin-sakit" class="snpill"><i class="fa-solid fa-notes-medical text-rose-500"></i><span>Izin Sakit</span></button>
             <button type="button" onclick="switchSubAbsensi('izin-cuti')" id="sub-abs-izin-cuti" class="snpill"><i class="fa-solid fa-calendar-minus text-indigo-500"></i><span>Izin Cuti</span></button>
             <button type="button" onclick="switchSubAbsensi('point-absensi')" id="sub-abs-point-absensi" class="snpill"><i class="fa-solid fa-star text-amber-500"></i><span>Point Saya</span></button>
+            <button type="button" onclick="switchSubAbsensi('jadwal-absensi')" id="sub-abs-jadwal-absensi" class="snpill"><i class="fa-solid fa-calendar-days text-indigo-500"></i><span>Jadwal</span></button>
+            <button type="button" onclick="switchSubAbsensi('tukar-shift')" id="sub-abs-tukar-shift" class="snpill"><i class="fa-solid fa-arrow-right-arrow-left text-violet-500"></i><span>Tukar Shift</span></button>
+            <button type="button" onclick="switchSubAbsensi('monitoring')" id="sub-abs-monitoring" class="snpill hidden"><i class="fa-solid fa-chart-line text-rose-500"></i><span>Monitoring</span></button>
           </div>
         </div>
 
@@ -1099,41 +1218,31 @@
                   class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-sm font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed">
               </div>
             </div>
-            <!-- DIVISI -->
+            <!-- DIVISI / PERAN DARI AKUN LOGIN -->
             <div class="space-y-1.5">
               <label class="block text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Divisi / Peran <span class="text-rose-500">*</span></label>
               <input type="hidden" id="selectedRole" value="Teknisi">
-              <div class="grid grid-cols-3 sm:grid-cols-6 gap-2" id="role-btn-grid">
-                <button type="button" id="role-btn-Teknisi" onclick="selectRole('Teknisi',this)" class="role-btn active py-2.5 px-2 rounded-xl border-2 border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 transition-all flex flex-col items-center gap-1"><i class="fa-solid fa-screwdriver-wrench text-blue-600 dark:text-blue-400 text-base"></i><span class="font-bold text-[10px]">Teknisi</span></button>
-                <button type="button" id="role-btn-CS" onclick="selectRole('CS',this)" class="role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300"><i class="fa-solid fa-headset text-indigo-500 text-base"></i><span class="font-bold text-[10px]">CS</span></button>
-                <button type="button" id="role-btn-NOC" onclick="selectRole('NOC',this)" class="role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300"><i class="fa-solid fa-server text-emerald-500 text-base"></i><span class="font-bold text-[10px]">NOC</span></button>
-                <button type="button" id="role-btn-Admin" onclick="selectRole('Admin',this)" class="role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300"><i class="fa-solid fa-user-gear text-blue-500 text-base"></i><span class="font-bold text-[10px]">Admin</span></button>
-                <button type="button" id="role-btn-Finance" onclick="selectRole('Finance',this)" class="role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300"><i class="fa-solid fa-money-bill-wave text-amber-500 text-base"></i><span class="font-bold text-[10px]">Finance</span></button>
-                <button type="button" id="role-btn-SPV" onclick="selectRole('SPV',this)" class="role-btn py-2.5 px-2 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300"><i class="fa-solid fa-user-tie text-slate-600 text-base"></i><span class="font-bold text-[10px]">SPV</span></button>
+              <div id="account-role-display" aria-readonly="true" class="w-full flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-950/30 border-2 border-blue-200 dark:border-blue-800 rounded-2xl">
+                <div id="account-role-icon" class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400">
+                  <i class="fa-solid fa-user-shield text-lg"></i>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <p id="account-role-text" class="text-sm font-extrabold text-blue-900 dark:text-blue-200">Teknisi</p>
+                  <p class="text-[10px] text-blue-600/80 dark:text-blue-300/80 font-semibold">Otomatis mengikuti role akun login</p>
+                </div>
+                <i class="fa-solid fa-lock text-xs text-blue-400" title="Role mengikuti akun login"></i>
               </div>
             </div>
-            <!-- SHIFT (hanya untuk Teknisi weekday) -->
+            <!-- SHIFT OTOMATIS DARI JADWAL ADMIN -->
             <div id="shift-section" class="space-y-1.5">
-              <label class="block text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Shift Kerja <span class="text-rose-500">*</span></label>
-              <input type="hidden" id="selectedShift" value="Shift1">
-              <div class="grid grid-cols-3 gap-2">
-                <button type="button" onclick="selectShift('Shift1',this)" class="shift-btn active py-3 rounded-xl border-2 border-blue-600 bg-blue-50 dark:bg-blue-950/40 text-blue-900 dark:text-blue-300 transition-all flex flex-col items-center gap-1">
-                  <i class="fa-solid fa-sun text-amber-500 text-base"></i>
-                  <span class="font-bold text-[11px]">Shift 1</span>
-                  <span class="text-[9px] text-blue-500 dark:text-blue-400 font-semibold" id="shift1-jam-label">08:00 WIB</span>
-                </button>
-                <button type="button" onclick="selectShift('Shift2',this)" class="shift-btn py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300">
-                  <i class="fa-solid fa-cloud-sun text-amber-500 text-base"></i>
-                  <span class="font-bold text-[11px]">Shift 2</span>
-                  <span class="text-[9px] text-slate-400 font-semibold" id="shift2-jam-label">14:00 WIB</span>
-                </button>
-                <button type="button" onclick="selectShift('NonShift',this)" class="shift-btn py-3 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-700 dark:text-slate-300 transition-all flex flex-col items-center gap-1 hover:border-slate-300">
-                  <i class="fa-solid fa-briefcase text-slate-500 text-base"></i>
-                  <span class="font-bold text-[11px]">Non Shift</span>
-                  <span class="text-[9px] text-slate-400 font-semibold" id="nonshift-jam-label">09:00 WIB</span>
-                </button>
+              <label class="block text-xs font-bold tracking-wider text-slate-500 dark:text-slate-400 uppercase">Jadwal Kerja Hari Ini <span class="text-rose-500">*</span></label>
+              <input type="hidden" id="selectedShift" value="">
+              <div id="shift-current-display" class="w-full flex items-center gap-3 px-4 py-3 rounded-2xl border-2 border-blue-200 bg-blue-50 dark:border-blue-800 dark:bg-blue-950/30">
+                <div id="shift-current-icon" class="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-600 dark:text-blue-400"><i class="fa-solid fa-calendar-check text-lg"></i></div>
+                <div class="flex-1 min-w-0"><p class="text-[10px] font-bold uppercase tracking-wider text-blue-600/80 dark:text-blue-300/80">Jadwal Anda</p><p id="shift-current-label" class="text-sm font-extrabold text-blue-900 dark:text-blue-200">Mendeteksi jadwal...</p></div>
+                <i class="fa-solid fa-lock text-xs text-blue-400" title="Shift mengikuti jadwal Admin"></i>
               </div>
-              <p id="shift-info-text" class="text-[11px] text-slate-400 italic">Toleransi 15 menit dari jam masuk shift.</p>
+              <p id="shift-info-text" class="text-[11px] text-slate-400 italic">Jadwal akan diambil otomatis dari jadwal Admin.</p>
             </div>
             <!-- GPS (kondisional berdasarkan role) -->
             <div class="space-y-2">
@@ -1179,6 +1288,34 @@
           </div>
         </div>
 
+        <!-- JADWAL SAYA -->
+        <div id="sub-abs-content-jadwal-absensi" class="sub-abs-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-days text-indigo-500"></i>Jadwal Kerja Saya</h2><p class="text-xs text-slate-400">Jadwal yang sudah diterbitkan oleh Admin.</p></div><input type="month" id="absensi-jadwal-month" onchange="loadJadwalSaya()" class="px-2.5 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold"></div>
+            <div id="absensi-jadwal-list" class="space-y-2"><p class="text-xs text-slate-400 text-center py-6">Memuat jadwal...</p></div>
+          </div>
+        </div>
+
+        <!-- FORM TUKAR SHIFT -->
+        <div id="sub-abs-content-tukar-shift" class="sub-abs-content hidden space-y-4">
+          <form id="form-tukar-shift" onsubmit="submitShiftSwap(event)" class="shift-swap-form bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="shift-swap-hero"><div class="flex items-center gap-3"><div class="shift-swap-hero-icon"><i class="fa-solid fa-arrow-right-arrow-left"></i></div><div><p class="shift-swap-eyebrow">WORKFORCE FLEXIBILITY</p><h2>Pengajuan Tukar Shift</h2><p>Ajukan pertukaran jadwal secara terkontrol dan transparan.</p></div></div><span class="shift-swap-hero-badge"><i class="fa-solid fa-shield-check mr-1"></i>Terdata</span></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Tanggal Tukar Shift <span class="text-rose-500">*</span></label><input type="date" id="shift-swap-date" required onchange="loadShiftSwapPreview()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100"></div>
+              <div><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Rekan Penukar <span class="text-rose-500">*</span></label><select id="shift-swap-target" required onchange="loadShiftSwapPreview()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100"><option value="">Memuat rekan...</option></select></div>
+            </div>
+            <div id="shift-swap-scope" class="hidden rounded-xl border border-violet-200 bg-violet-50 px-3 py-2 text-[11px] font-semibold text-violet-700 dark:border-violet-800 dark:bg-violet-950/30 dark:text-violet-300"></div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div class="shift-swap-preview-card mine rounded-2xl border border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950/30 p-3"><p class="shift-swap-card-label text-[10px] uppercase tracking-wider text-blue-600 dark:text-blue-300"><i class="fa-solid fa-user-check"></i>Jadwal Saya</p><p id="shift-swap-my-schedule" class="shift-swap-card-value mt-1 text-sm font-black text-blue-900 dark:text-blue-100">Pilih tanggal</p><p id="shift-swap-my-time" class="shift-swap-card-time text-[11px] text-blue-700 dark:text-blue-300">--</p></div>
+              <div class="shift-swap-preview-card target rounded-2xl border border-violet-200 dark:border-violet-800 bg-violet-50 dark:bg-violet-950/30 p-3"><p class="shift-swap-card-label text-[10px] uppercase tracking-wider text-violet-600 dark:text-violet-300"><i class="fa-solid fa-user-group"></i>Jadwal Rekan</p><p id="shift-swap-target-schedule" class="shift-swap-card-value mt-1 text-sm font-black text-violet-900 dark:text-violet-100">Pilih rekan</p><p id="shift-swap-target-time" class="shift-swap-card-time text-[11px] text-violet-700 dark:text-violet-300">--</p></div>
+            </div>
+            <div class="shift-swap-reason-wrap"><label class="block text-xs font-bold text-slate-500 uppercase mb-1">Alasan Tukar Shift <span class="text-rose-500">*</span></label><textarea id="shift-swap-reason" required minlength="5" rows="3" placeholder="Contoh: keperluan keluarga atau pertukaran jadwal pribadi..." class="w-full p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium resize-none focus:outline-none focus:border-violet-500"></textarea></div>
+            <div id="shift-swap-status" class="shift-swap-status hidden rounded-xl px-3 py-2 text-xs font-semibold"></div>
+            <button type="submit" id="btn-submit-shift-swap" disabled class="shift-swap-submit w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-700 hover:to-indigo-700 disabled:from-slate-300 disabled:to-slate-300 disabled:text-slate-500 disabled:cursor-not-allowed disabled:shadow-none text-white font-bold text-sm rounded-xl shadow-lg hover:shadow-xl transition-all duration-200 flex items-center justify-center gap-2 relative overflow-hidden"><span class="relative z-10"><i class="fa-solid fa-paper-plane"></i>Kirim Pengajuan</span></button>
+          </form>
+          <div class="shift-swap-history-panel bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700"><div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3"><h3 class="text-sm font-extrabold text-slate-900 dark:text-white"><i class="fa-solid fa-clock-rotate-left text-slate-400 mr-1"></i>Riwayat Pengajuan</h3><button type="button" onclick="loadShiftSwapHistory()" class="text-[10px] font-bold text-violet-600 hover:text-violet-700">Refresh</button></div><div id="shift-swap-history" class="space-y-2 pt-3"><p class="text-xs text-slate-400 text-center py-4">Belum dimuat.</p></div></div>
+        </div>
+
         <!-- IZIN SAKIT -->
         <div id="sub-abs-content-izin-sakit" class="sub-abs-content hidden">
           <form id="form-sakit" onsubmit="handleLeaveSubmit(event,'Izin Sakit')" class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
@@ -1190,7 +1327,7 @@
               <button type="button" onclick="setSickDocStatus(false,this)" id="btn-no-surat" class="sick-doc-btn py-2.5 rounded-xl border-2 border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 font-bold text-xs flex items-center justify-center gap-2 transition-all hover:border-slate-300"><i class="fa-solid fa-file-circle-xmark"></i>Tanpa Surat</button>
             </div></div>
             <div id="sick-doc-upload" class="space-y-1.5"><div class="border-2 border-dashed border-rose-200 dark:border-rose-800 rounded-2xl p-4 text-center relative bg-rose-50/30 dark:bg-rose-950/20"><i class="fa-solid fa-file-medical text-2xl text-rose-400 mb-1"></i><p class="text-xs font-bold text-rose-600 dark:text-rose-400" id="label-file-sakit">Upload Surat Dokter</p><p class="text-[10px] text-slate-400">JPG, PNG, atau PDF</p><input type="file" name="file" accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer" onchange="updateFileName(this,'label-file-sakit')"></div></div>
-            <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-2xl p-3"><p class="text-xs font-bold text-rose-700 dark:text-rose-300">Estimasi Point:</p><p id="sick-point-preview" class="text-lg font-black text-rose-600 dark:text-rose-400">6 poin (dengan surat)</p></div>
+            <div class="bg-rose-50 dark:bg-rose-950/30 border border-rose-100 dark:border-rose-900 rounded-2xl p-3"><p class="text-xs font-bold text-rose-700 dark:text-rose-300">Estimasi Point:</p><p id="sick-point-preview" class="text-lg font-black text-rose-600 dark:text-rose-400">60 poin (dengan surat)</p></div>
             <button type="submit" class="w-full py-3.5 bg-rose-600 hover:bg-rose-700 text-white font-bold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i>Kirim Izin Sakit</button>
           </form>
           <div id="success-screen-sakit" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border text-center space-y-4"><div class="w-20 h-20 bg-rose-100 dark:bg-rose-950/60 rounded-full flex items-center justify-center mx-auto text-rose-600"><i class="fa-solid fa-notes-medical text-4xl"></i></div><h2 class="text-2xl font-black text-slate-900 dark:text-white">IZIN SAKIT TERKIRIM</h2><button type="button" onclick="resetFormSakit()" class="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-right"></i>Ajukan Lagi</button></div>
@@ -1203,7 +1340,7 @@
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><input type="text" id="izin-cuti-nama" name="nama" readonly class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Alasan Cuti <span class="text-rose-500">*</span></label><textarea name="keterangan" required rows="3" placeholder="Keperluan keluarga..." class="w-full p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-indigo-600 resize-none"></textarea></div>
             <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Surat Cuti (TTD Supervisor) <span class="text-rose-500">*</span></label><div class="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 text-center relative bg-indigo-50/30 dark:bg-indigo-950/20"><i class="fa-solid fa-file-signature text-2xl text-indigo-500 mb-1"></i><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300" id="label-file-cuti">Upload Surat Cuti</p><p class="text-[10px] text-slate-400">Harus ada TTD Supervisor</p><input type="file" name="file" required accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer" onchange="updateFileName(this,'label-file-cuti')"></div></div>
-            <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-3"><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300">Estimasi Point: <span class="text-lg font-black">5 poin</span></p></div>
+            <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-3"><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300">Estimasi Point: <span class="text-lg font-black">50 poin</span></p></div>
             <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i>Kirim Pengajuan Cuti</button>
           </form>
           <div id="success-screen-cuti" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border text-center space-y-4"><div class="w-20 h-20 bg-indigo-100 dark:bg-indigo-950/60 rounded-full flex items-center justify-center mx-auto text-indigo-600"><i class="fa-solid fa-calendar-check text-4xl"></i></div><h2 class="text-2xl font-black text-slate-900 dark:text-white">CUTI DIAJUKAN</h2><button type="button" onclick="resetFormCuti()" class="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-right"></i>Ajukan Lagi</button></div>
@@ -1212,27 +1349,23 @@
         <!-- POINT ABSENSI SAYA -->
         <div id="sub-abs-content-point-absensi" class="sub-abs-content hidden space-y-4">
           <div class="bg-gradient-to-br from-amber-500 to-orange-500 rounded-3xl p-5 text-white shadow-lg relative overflow-hidden">
-            <div class="absolute -right-4 -bottom-6 opacity-15 pointer-events-none"><i class="fa-solid fa-star text-[100px]"></i></div>
+            <div class="absolute -right-4 -bottom-6 opacity-150 pointer-events-none"><i class="fa-solid fa-star text-[100px]"></i></div>
             <p class="text-[10px] font-extrabold tracking-widest uppercase text-amber-200">Point Kehadiran Saya</p>
             <p id="my-attendance-point" class="text-5xl font-black mt-1 leading-none">--</p>
-            <p class="text-sm text-amber-200 mt-1">dari maks. <span id="my-max-point" class="font-bold text-white">--</span> poin bulan ini</p>
-            <div class="mt-3 bg-white/20 rounded-2xl px-4 py-2.5 flex items-center justify-between">
-              <span class="text-xs font-bold text-amber-100">Grade Bulan Ini</span>
-              <span id="my-grade-badge" class="text-sm font-black">--</span>
-            </div>
+            <p class="text-sm text-amber-200 mt-2">Total point bulan ini</p>
           </div>
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
             <h3 class="text-sm font-extrabold text-slate-900 dark:text-white border-b border-slate-100 dark:border-slate-700 pb-3">Panduan Sistem Point</h3>
             <div class="space-y-2 text-xs">
-              <div class="flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i>Hadir Tepat Waktu</span><span class="font-black text-emerald-600 dark:text-emerald-400">10 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-500"></i>Terlambat &lt; 30 mnt</span><span class="font-black text-amber-600 dark:text-amber-400">7 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-600"></i>Terlambat 30–60 mnt</span><span class="font-black text-amber-700 dark:text-amber-300">5 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-rose-50 dark:bg-rose-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-rose-500"></i>Terlambat &gt; 60 mnt</span><span class="font-black text-rose-600 dark:text-rose-400">3 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-file-medical text-blue-500"></i>Izin Sakit + Surat</span><span class="font-black text-blue-600 dark:text-blue-400">6 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-file-circle-xmark text-blue-400"></i>Izin Sakit Tanpa Surat</span><span class="font-black text-blue-500 dark:text-blue-300">4 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-calendar-check text-indigo-500"></i>Izin Cuti (disetujui)</span><span class="font-black text-indigo-600 dark:text-indigo-400">5 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-emerald-50 dark:bg-emerald-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-circle-check text-emerald-500"></i>Hadir Tepat Waktu</span><span class="font-black text-emerald-600 dark:text-emerald-400">100 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-500"></i>Terlambat &lt; 30 mnt</span><span class="font-black text-amber-600 dark:text-amber-400">70 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-amber-50 dark:bg-amber-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-amber-600"></i>Terlambat 30–60 mnt</span><span class="font-black text-amber-700 dark:text-amber-300">50 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-rose-50 dark:bg-rose-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-clock text-rose-500"></i>Terlambat &gt; 60 mnt</span><span class="font-black text-rose-600 dark:text-rose-400">30 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-file-medical text-blue-500"></i>Izin Sakit + Surat</span><span class="font-black text-blue-600 dark:text-blue-400">60 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-blue-50 dark:bg-blue-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-file-circle-xmark text-blue-400"></i>Izin Sakit Tanpa Surat</span><span class="font-black text-blue-500 dark:text-blue-300">40 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-indigo-50 dark:bg-indigo-950/30 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-calendar-check text-indigo-500"></i>Izin Cuti (disetujui)</span><span class="font-black text-indigo-600 dark:text-indigo-400">50 poin</span></div>
               <div class="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-700/40 rounded-xl"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-circle-xmark text-slate-400"></i>Tidak Hadir (Alpa)</span><span class="font-black text-slate-500">0 poin</span></div>
-              <div class="flex items-center justify-between p-2.5 bg-yellow-50 dark:bg-yellow-950/30 rounded-xl border border-yellow-200 dark:border-yellow-800"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-award text-yellow-500"></i>Bonus Perfect Attendance</span><span class="font-black text-yellow-600 dark:text-yellow-400">+10 poin</span></div>
+              <div class="flex items-center justify-between p-2.5 bg-yellow-50 dark:bg-yellow-950/30 rounded-xl border border-yellow-200 dark:border-yellow-800"><span class="font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-2"><i class="fa-solid fa-award text-yellow-500"></i>Bonus Perfect Attendance</span><span class="font-black text-yellow-600 dark:text-yellow-400">Skor maksimum 100</span></div>
             </div>
             <div class="pt-2 border-t border-slate-100 dark:border-slate-700 space-y-1.5">
               <p class="text-xs font-extrabold text-slate-700 dark:text-slate-200">Skala Grade Bulanan:</p>
@@ -1245,15 +1378,29 @@
             </div>
           </div>
         </div>
+
+        <!-- MONITORING ABSENSI -->
+        <div id="sub-abs-content-monitoring" class="sub-abs-content hidden space-y-3">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="flex flex-wrap items-center justify-between gap-2 border-b border-slate-100 dark:border-slate-700 pb-3"><div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-check text-emerald-500"></i>Monitoring Absensi Hari Ini</h2><p class="text-xs text-slate-400">Lihat tim yang sudah dan belum melakukan absensi sesuai jadwal.</p></div><div class="flex items-center gap-2"><input type="date" id="monitoring-absen-date" onchange="loadJadwalMonitoring()" class="px-2.5 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold"><button type="button" onclick="loadJadwalMonitoring()" class="px-2.5 py-2 bg-slate-100 dark:bg-slate-700 rounded-xl text-xs font-bold"><i class="fa-solid fa-rotate-right"></i></button></div></div>
+            <div class="flex flex-wrap items-center justify-between gap-2"><span id="monitoring-absen-count" class="text-[10px] font-bold text-slate-400">Belum dimuat</span><button type="button" onclick="remindAllNotYet()" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-[10px] font-bold"><i class="fa-solid fa-bell mr-1"></i>Peringatkan Semua Belum Absen</button></div>
+            <div id="monitoring-absen-list" class="space-y-2"><p class="text-xs text-slate-400 text-center py-5">Klik refresh untuk memuat monitoring.</p></div>
+          </div>
+        </div>
       </div>
 
       <!-- ===== ADMIN ===== -->
       <div id="section-admin" class="main-section hidden space-y-4 fade-up">
-        <!-- ADMIN NAV: 2 MENU UTAMA -->
+        <!-- ADMIN NAV: MENU UTAMA -->
         <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
           <div class="subnav-wrap" id="subnav-admin-main">
             <button type="button" onclick="switchAdminMenu('tugas')" id="admin-menu-tugas" class="snpill active"><i class="fa-solid fa-list-check text-blue-600 dark:text-blue-400"></i><span>Tugas</span></button>
             <button type="button" onclick="switchAdminMenu('asset')" id="admin-menu-asset" class="snpill"><i class="fa-solid fa-boxes-packing text-emerald-500"></i><span>Asset</span></button>
+            <button type="button" onclick="switchAdminMenu('odp')" id="admin-menu-odp" class="snpill"><i class="fa-solid fa-tower-broadcast text-blue-500"></i><span>ODP</span></button>
+            <button type="button" onclick="switchAdminMenu('logperangkat')" id="admin-menu-logperangkat" class="snpill hidden"><i class="fa-solid fa-route text-emerald-500"></i><span>Log Aset</span></button>
+            <button type="button" onclick="switchAdminMenu('jadwal')" id="admin-menu-jadwal" class="snpill"><i class="fa-solid fa-calendar-days text-indigo-500"></i><span>Atur Jadwal</span></button>
+            <button type="button" onclick="switchAdminMenu('konfirmasi-bayar')" id="admin-menu-konfirmasi-bayar" class="snpill"><i class="fa-solid fa-check-circle text-emerald-500"></i><span>Konfirmasi Bayar</span></button>
+            <button type="button" onclick="switchAdminMenu('area-mitra')" id="admin-menu-area-mitra" class="snpill"><i class="fa-solid fa-map-location-dot text-orange-500"></i><span>Area Mitra</span></button>
           </div>
         </div>
 
@@ -1264,7 +1411,8 @@
             <button type="button" onclick="switchSubAdmin('buat-dismantle')" id="sub-adm-buat-dismantle" class="snpill"><i class="fa-solid fa-screwdriver-wrench text-orange-500"></i><span>Dismantle</span></button>
             <button type="button" onclick="switchSubAdmin('list-tiket')" id="sub-adm-list-tiket" class="snpill"><i class="fa-solid fa-list-check text-slate-500"></i><span>List Tiket</span></button>
             <button type="button" onclick="switchSubAdmin('list-tiket-dismantle')" id="sub-adm-list-tiket-dismantle" class="snpill"><i class="fa-solid fa-clipboard-list text-orange-400"></i><span>List Dismantle</span></button>
-            <button type="button" onclick="switchSubAdmin('rl-radius')" id="sub-adm-rl-radius" class="snpill"><i class="fa-solid fa-network-wired text-violet-500"></i><span>RL Radius</span></button>
+            <button type="button" onclick="switchSubAdmin('data-pelanggan')" id="sub-adm-data-pelanggan" class="snpill"><i class="fa-solid fa-users text-emerald-500"></i><span>Pelanggan</span></button>
+            <button type="button" onclick="switchSubAdmin('pembayaran')" id="sub-adm-pembayaran" class="snpill"><i class="fa-solid fa-money-bill-wave text-green-500"></i><span>Pembayaran</span></button>
             <button type="button" onclick="switchSubAdmin('registrasi')" id="sub-adm-registrasi" class="snpill"><i class="fa-solid fa-server text-indigo-500"></i><span>Registrasi</span></button>
           </div>
         </div>
@@ -1277,6 +1425,187 @@
             <button type="button" onclick="switchSubAdmin('list-rusak')" id="sub-adm-list-rusak" class="snpill"><i class="fa-solid fa-triangle-exclamation text-rose-500"></i><span>Rusak</span></button>
             <button type="button" onclick="switchSubAdmin('dismantle-items')" id="sub-adm-dismantle-items" class="snpill"><i class="fa-solid fa-boxes-packing text-orange-500"></i><span>Dismantle</span></button>
             <button type="button" onclick="switchSubAdmin('approval-pickup')" id="sub-adm-approval-pickup" class="snpill"><i class="fa-solid fa-user-check text-amber-500"></i><span>Approval</span></button>
+            <button type="button" onclick="switchSubAdmin('logperangkat')" id="sub-adm-logperangkat" class="snpill"><i class="fa-solid fa-route text-emerald-500"></i><span>Log Aset</span></button>
+          </div>
+        </div>
+
+        <!-- MENU JADWAL SHIFT -->
+        <div id="admin-sub-jadwal" class="hidden bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap">
+            <button type="button" onclick="switchSubAdmin('jadwal-shift')" id="sub-adm-jadwal-shift" class="snpill active"><i class="fa-solid fa-calendar-days text-indigo-500"></i><span>Jadwal Shift</span></button>
+            <button type="button" onclick="switchSubAdmin('pengaturan-jam-kerja')" id="sub-adm-pengaturan-jam-kerja" class="snpill"><i class="fa-solid fa-clock text-amber-500"></i><span>Pengaturan Jam</span></button>
+            <button type="button" onclick="switchSubAdmin('approval-tukar-shift')" id="sub-adm-approval-tukar-shift" class="snpill"><i class="fa-solid fa-arrow-right-arrow-left text-violet-500"></i><span>Approval Tukar Shift</span></button>
+          </div>
+        </div>
+
+        <!-- JADWAL SHIFT ADMIN -->
+        <div id="sub-adm-content-jadwal-shift" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-days text-indigo-500"></i>Jadwal Shift Bulanan</h2><p class="text-xs text-slate-400">Admin memilih Shift 1, Shift 2, atau OFF per karyawan. Setiap minggu otomatis mengikuti kalender Senin–Minggu.</p></div>
+              <div class="flex items-center gap-2"><input type="month" id="jadwal-period-month" onchange="initJadwalAdmin()" class="px-2.5 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold"><span id="jadwal-period-status" class="text-[10px] font-extrabold px-2.5 py-1 rounded-lg bg-amber-100 text-amber-700">Belum dibuat</span></div>
+            </div>
+            <div class="bg-blue-50 dark:bg-blue-950/30 border border-blue-100 dark:border-blue-900 rounded-2xl p-3 text-[11px] text-blue-700 dark:text-blue-300 space-y-2"><p class="font-extrabold"><i class="fa-solid fa-circle-info mr-1"></i>Aturan jadwal</p><p>Setiap minggu selalu terdiri dari 7 hari, mulai Senin dan berakhir Minggu. Periode bulan mengikuti tanggal hari Senin. Admin memilih Shift 1/Shift 2 untuk akun dari kelompok yang memakai mode Shift. Kelompok yang memakai mode Non Shift dibuat otomatis dengan satu jam kerja untuk setiap akun. Jadi jika minggu dimulai Senin 29 September, Sabtu 4 dan Minggu 5 Oktober tetap menjadi bagian dari minggu terakhir September. Pilih <b>OFF</b> jika tidak dijadwalkan.</p><div class="flex flex-wrap gap-2 pt-1"><span class="rounded-lg bg-yellow-100 dark:bg-yellow-900/50 px-2.5 py-1.5 font-bold text-yellow-700 dark:text-yellow-200"><i class="fa-solid fa-sun mr-1"></i>Shift 1: masuk Sabtu, libur Minggu</span><span class="rounded-lg bg-blue-100 dark:bg-blue-900/50 px-2.5 py-1.5 font-bold text-blue-700 dark:text-blue-200"><i class="fa-solid fa-moon mr-1"></i>Shift 2: libur Sabtu, masuk Minggu</span></div></div>
+            <div id="jadwal-week-editor" class="min-w-0"><p class="text-xs text-slate-400 text-center py-6">Memuat tabel jadwal...</p></div>
+            <div class="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 dark:border-slate-700"><span id="jadwal-period-count" class="text-[10px] font-bold text-slate-400">0 jadwal harian</span><div class="flex gap-2"><button type="button" id="btn-save-jadwal" onclick="saveJadwalDraft()" class="px-3 py-2 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 rounded-xl text-xs font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>Simpan Draft</button><button type="button" id="btn-publish-jadwal" onclick="publishJadwal()" class="px-3 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>Update & Publish</button></div></div>
+          </div>
+
+        </div>
+
+        <!-- PENGATURAN JAM KERJA -->
+        <div id="sub-adm-content-pengaturan-jam-kerja" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clock text-amber-500"></i>Pengaturan Jam Kerja</h2><p class="text-xs text-slate-400">Atur jam masuk dan pulang per shift. Perubahan berlaku setelah jadwal bulan diproses ulang dengan Update &amp; Publish.</p></div>
+              <span class="rounded-lg bg-amber-100 dark:bg-amber-900/40 px-2.5 py-1.5 text-[10px] font-extrabold text-amber-700 dark:text-amber-200">WIB / Asia-Jakarta</span>
+            </div>
+            <form id="jadwal-work-config-form" onsubmit="saveJadwalWorkConfig(event)" class="space-y-4">
+              <div id="jadwal-work-config-fields" class="space-y-3"><p class="text-xs text-slate-400 text-center py-6"><i class="fa-solid fa-spinner animate-spin mr-2"></i>Memuat konfigurasi jam...</p></div>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 dark:border-slate-700 pt-3"><p class="text-[10px] text-slate-400">Kosongkan jam Sabtu/Minggu jika kelompok tersebut libur pada hari itu.</p><button type="submit" id="btn-save-jadwal-work-config" class="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl text-xs font-bold"><i class="fa-solid fa-floppy-disk mr-1"></i>Simpan Pengaturan Jam</button></div>
+            </form>
+          </div>
+        </div>
+
+        <!-- DATA PELANGGAN -->
+        <div id="sub-adm-content-data-pelanggan" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-users text-emerald-500"></i>Data Pelanggan</h2><p class="text-xs text-slate-400">Status berlangganan dan billing pelanggan.</p></div>
+              <button onclick="loadDataPelanggan()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+            </div>
+            <!-- Summary -->
+            <div class="grid grid-cols-4 gap-3">
+              <div class="bg-emerald-50 dark:bg-emerald-900/20 rounded-xl p-3 text-center"><p class="text-[10px] font-bold text-emerald-400 uppercase">Total</p><p id="plg-summary-total" class="text-2xl font-extrabold text-emerald-700 dark:text-emerald-300">-</p></div>
+              <div class="bg-blue-50 dark:bg-blue-900/20 rounded-xl p-3 text-center"><p class="text-[10px] font-bold text-blue-400 uppercase">Aktif</p><p id="plg-summary-aktif" class="text-2xl font-extrabold text-blue-700 dark:text-blue-300">-</p></div>
+              <div class="bg-rose-50 dark:bg-rose-900/20 rounded-xl p-3 text-center"><p class="text-[10px] font-bold text-rose-400 uppercase">Suspend</p><p id="plg-summary-suspend" class="text-2xl font-extrabold text-rose-700 dark:text-rose-300">-</p></div>
+              <div class="bg-slate-100 dark:bg-slate-700 rounded-xl p-3 text-center"><p class="text-[10px] font-bold text-slate-400 uppercase">Dismantle</p><p id="plg-summary-dismantle" class="text-2xl font-extrabold text-slate-700 dark:text-slate-300">-</p></div>
+            </div>
+            <!-- Filter -->
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Status</label>
+                <select id="plg-filter-status" onchange="loadDataPelanggan()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500">
+                  <option value="SEMUA">Semua Status</option>
+                  <option value="AKTIF">Aktif</option>
+                  <option value="SUSPEND">Suspend</option>
+                  <option value="DISMANTLE">Dismantle</option>
+                  <option value="NONAKTIF">Nonaktif</option>
+                </select>
+              </div>
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Tipe</label>
+                <select id="plg-filter-tipe" onchange="loadDataPelanggan()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500">
+                  <option value="SEMUA">Semua Tipe</option>
+                  <option value="INSTALASI">Instalasi Baru</option>
+                  <option value="INSTALASI_RESELLER">Instalasi Reseller</option>
+                  <option value="PERLUASAN_RESELLER">Perluasan</option>
+                </select>
+              </div>
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Sumber</label>
+                <select id="plg-filter-sumber" onchange="loadDataPelanggan()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-emerald-500">
+                  <option value="SEMUA">Semua</option>
+                  <option value="internal">Internal</option>
+                  <option value="mitra">Mitra</option>
+                </select>
+              </div>
+              <div class="flex-1 min-w-[160px] space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Cari</label>
+                <input type="text" id="plg-cari" placeholder="Nama / No. Layanan / HP..." oninput="loadDataPelanggan()" class="w-full px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs focus:outline-none focus:border-emerald-500">
+              </div>
+            </div>
+            <div id="pelanggan-list"><p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat data.</p></div>
+          </div>
+        </div>
+
+        <!-- PEMBAYARAN (CS Input) -->
+        <div id="sub-adm-content-pembayaran" class="sub-adm-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-money-bill-wave text-green-500"></i>Input Pembayaran</h2>
+              <p class="text-xs text-slate-400">Catat pembayaran pelanggan untuk dikonfirmasi Admin.</p>
+            </div>
+            <!-- Cari pelanggan -->
+            <div class="space-y-2">
+              <label class="block text-xs font-bold text-slate-500 uppercase">Cari Pelanggan (Nama / No. Layanan)</label>
+              <div class="relative">
+                <input type="text" id="pay-cari-pelanggan" placeholder="Ketik nama atau no. layanan..." autocomplete="off"
+                  oninput="cariPelangganUntukBayar(this.value)"
+                  class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500 transition-all">
+                <div id="pay-cari-dropdown" class="hidden absolute left-0 right-0 top-full mt-1 z-20 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-lg max-h-48 overflow-y-auto"></div>
+              </div>
+              <div id="pay-pelanggan-selected" class="hidden bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-700 rounded-xl px-3 py-2">
+                <p class="text-xs font-extrabold text-emerald-700 dark:text-emerald-300" id="pay-selected-nama">-</p>
+                <p class="text-[10px] text-emerald-600" id="pay-selected-info">-</p>
+              </div>
+            </div>
+            <!-- Form pembayaran -->
+            <form id="form-pembayaran" onsubmit="submitPembayaran(event)" class="space-y-3">
+              <input type="hidden" id="pay-pelanggan-id">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Tanggal Bayar <span class="text-rose-500">*</span></label>
+                  <input type="date" id="pay-tanggal" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500 transition-all">
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Jumlah (Rp)</label>
+                  <input type="number" id="pay-jumlah" placeholder="150000" min="0" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500 transition-all">
+                </div>
+                <div class="space-y-1.5 sm:col-span-2">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Link Bukti Transfer / Nota</label>
+                  <input type="url" id="pay-bukti" placeholder="https://drive.google.com/..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500 transition-all">
+                </div>
+                <div class="space-y-1.5 sm:col-span-2">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Catatan</label>
+                  <textarea id="pay-catatan" rows="2" placeholder="Catatan tambahan..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium resize-none focus:outline-none focus:border-green-500 transition-all"></textarea>
+                </div>
+              </div>
+              <button type="submit" id="btn-submit-pembayaran" class="w-full py-3 bg-green-600 hover:bg-green-700 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-paper-plane"></i>Kirim ke Admin untuk Dikonfirmasi
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- KONFIRMASI PEMBAYARAN (standalone panel Admin) -->
+        <div id="admin-sub-konfirmasi-bayar" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-check-circle text-emerald-500"></i>Konfirmasi Pembayaran</h2><p class="text-xs text-slate-400">Konfirmasi pembayaran yang masuk dari CS.</p></div>
+            <button onclick="loadKonfirmasiPembayaran()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+          </div>
+          <div id="konfirmasi-pembayaran-list" class="space-y-3"><p class="text-xs text-slate-400 text-center py-4">Memuat...</p></div>
+        </div>
+
+        <!-- AREA MITRA (Admin) -->
+        <div id="admin-sub-area-mitra" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-map-location-dot text-orange-500"></i>Area ODC Mitra</h2><p class="text-xs text-slate-400">Atur ODC mana yang boleh dikerjakan oleh masing-masing mitra.</p></div>
+          </div>
+          <!-- Pilih Mitra -->
+          <div class="space-y-1.5">
+            <label class="block text-xs font-bold text-slate-500 uppercase">Pilih Mitra</label>
+            <select id="area-mitra-select" onchange="loadAreaMitraODC()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-orange-500 transition-all">
+              <option value="">-- Pilih Mitra --</option>
+            </select>
+          </div>
+          <!-- List ODC dengan checkbox -->
+          <div id="area-mitra-odc-list"><p class="text-xs text-slate-400 text-center py-4">Pilih mitra untuk melihat daftar ODC.</p></div>
+          <!-- Tombol simpan -->
+          <div id="area-mitra-save-wrap" class="hidden">
+            <button onclick="simpanAreaMitra()" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+              <i class="fa-solid fa-floppy-disk"></i>Simpan Akses Area ODC
+            </button>
+          </div>
+        </div>
+
+        <!-- APPROVAL SHIFT SWAP -->
+        <div id="sub-adm-content-approval-tukar-shift" class="sub-adm-content hidden bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+            <div>
+              <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-arrow-right-arrow-left text-violet-500"></i>Approval Tukar Shift</h2>
+              <p class="text-xs text-slate-400">Tinjau dan setujui/tolak pengajuan tukar shift dari karyawan.</p>
+            </div>
+            <button type="button" onclick="loadShiftSwapApprovalPanel()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-all"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
+          </div>
+          <div id="shift-swap-approval-message" class="shift-swap-approval-message hidden rounded-xl px-3 py-2 text-xs font-semibold flex items-center gap-2"></div>
+          <div id="shift-swap-approval-list" class="space-y-3">
+            <div class="text-xs text-slate-400 text-center py-6"><i class="fa-solid fa-spinner animate-spin mr-1"></i>Memuat daftar pengajuan...</div>
           </div>
         </div>
 
@@ -1426,8 +1755,15 @@
                 <select id="ticket-filter-tipe" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
                   <option value="ALL">Semua Tipe</option>
                   <option value="INSTALASI">Instalasi</option>
+                  <option value="INSTALASI_RESELLER">Instalasi Reseller</option>
+                  <option value="PERLUASAN_RESELLER">Perluasan</option>
                   <option value="MAINTENANCE">Maintenance</option>
-                  <option value="GANGGUAN">Gangguan</option>
+                  <option value="DISMANTLE">Dismantle</option>
+                </select>
+                <select id="ticket-filter-sumber" onchange="filterTicketList()" class="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600">
+                  <option value="ALL">Semua (Internal + Mitra)</option>
+                  <option value="internal">Internal</option>
+                  <option value="mitra">Semua Mitra</option>
                 </select>
               </div>
               <div class="flex items-center gap-2 flex-wrap">
@@ -1444,7 +1780,7 @@
                 <i class="fa-solid fa-xmark"></i>Reset
               </button>
             </div>
-            <div id="admin-ticket-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div id="admin-ticket-list" class="space-y-2 h-80 overflow-y-auto">
               <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
             </div>
           </div>
@@ -1457,7 +1793,7 @@
               <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-clipboard-list text-orange-500"></i>List Tiket Dismantle</h2><p class="text-[11px] text-slate-400">Semua tiket dismantle dari database</p></div>
               <button onclick="loadListTiketDismantle()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1 shrink-0"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
             </div>
-            <div id="list-tiket-dismantle" class="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div id="list-tiket-dismantle" class="space-y-2 h-80 overflow-y-auto">
               <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
             </div>
           </div>
@@ -1475,7 +1811,7 @@
               <button onclick="filterRLRadius('SUDAH')" id="filter-rl-SUDAH" class="filter-rl-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Sudah Input</button>
               <button onclick="filterRLRadius('ALL')" id="filter-rl-ALL" class="filter-rl-btn px-3 py-1.5 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-600 text-slate-600 hover:bg-slate-100">Semua</button>
             </div>
-            <div id="rl-radius-list" class="space-y-2 max-h-[60vh] overflow-y-auto">
+            <div id="rl-radius-list" class="space-y-2 h-80 overflow-y-auto">
               <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
             </div>
           </div>
@@ -1643,26 +1979,6 @@
               </table>
             </div>
           </div>
-          <!-- TRACKING LOG PERANGKAT (digabung ke List) -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
-              <h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-route text-blue-600"></i>Tracking Log Perangkat</h2>
-              <button onclick="loadLogPerangkat()" class="px-3 py-1.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-xl text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
-            </div>
-            <div id="admin-tracking-list" class="space-y-2 max-h-72 overflow-y-auto">
-              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p>
-            </div>
-          </div>
-          <!-- REKAP KABEL -->
-          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
-              <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-ruler text-emerald-600"></i>Rekap Penggunaan Kabel</h2><p class="text-[11px] text-slate-400">Per SN kabel — total terpakai & daftar pelanggan</p></div>
-              <button onclick="loadRekapKabel()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right text-[10px]"></i>Refresh</button>
-            </div>
-            <div id="rekap-kabel-list" class="space-y-3 max-h-96 overflow-y-auto">
-              <p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat rekap.</p>
-            </div>
-          </div>
         </div>
 
         <!-- APPROVAL -->
@@ -1694,8 +2010,9 @@
       <div id="section-odp" class="main-section hidden space-y-4 fade-up">
         <div class="bg-white dark:bg-slate-800 rounded-2xl px-4 py-3 shadow-sm border border-slate-100 dark:border-slate-700 flex flex-wrap items-center justify-between gap-3">
           <div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-blue-600"></i>Asset ODP</h2><p class="text-[11px] text-slate-400">Monitoring kapasitas dan ketersediaan port</p></div>
-          <div class="flex flex-wrap items-center gap-2">
+          <div id="odp-admin-actions" class="flex flex-wrap items-center gap-2">
             <button type="button" onclick="openAddODPModal()" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-plus"></i>Tambah ODP</button>
+            <button type="button" onclick="downloadTemplateODP()" class="px-3 py-1.5 bg-slate-600 hover:bg-slate-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-download"></i>Template ODP</button>
             <label class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 cursor-pointer"><i class="fa-solid fa-file-excel"></i>Import Excel<input type="file" id="excel-odp" accept=".xlsx,.xls" class="hidden" onchange="importODPExcel(event)"></label>
           </div>
         </div>
@@ -1710,11 +2027,22 @@
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
-              <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                <th class="py-3 px-4">Status</th><th class="py-3 px-3">ID ODP</th><th class="py-3 px-3">Lokasi</th><th class="py-3 px-3 text-center">Kapasitas</th><th class="py-3 px-3 text-center">Terisi</th><th class="py-3 px-3 text-center">Sisa</th><th class="py-3 px-3 text-center">%</th><th class="py-3 px-3 text-center">Progress</th>
+              <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-700/50"><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
+                <th class="py-3 px-4">Status</th><th class="py-3 px-3">ODC</th><th class="py-3 px-3">ID ODP</th><th class="py-3 px-3">Lokasi</th><th class="py-3 px-3 text-center">Kapasitas</th><th class="py-3 px-3 text-center">Terisi</th><th class="py-3 px-3 text-center">Sisa</th><th class="py-3 px-3 text-center">%</th><th class="py-3 px-3 text-center">Progress</th>
               </tr></thead>
               <tbody id="odp-grid" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200"></tbody>
             </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== MENU SPV ===== -->
+      <div id="section-spv" class="main-section hidden space-y-4 fade-up">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap" id="subnav-spv">
+            <button type="button" onclick="switchSubSPV('kpi')" id="sub-spv-kpi" class="snpill active"><i class="fa-solid fa-ranking-star text-amber-500"></i><span>KPI</span></button>
+            <button type="button" onclick="switchSubSPV('logtugas')" id="sub-spv-logtugas" class="snpill"><i class="fa-solid fa-clock-rotate-left text-blue-500"></i><span>Log Tugas</span></button>
+            <button type="button" onclick="switchSubSPV('registrasi-mitra')" id="sub-spv-registrasi-mitra" class="snpill"><i class="fa-solid fa-handshake text-orange-500"></i><span>Registrasi Mitra</span></button>
           </div>
         </div>
       </div>
@@ -1735,23 +2063,6 @@
               <select id="kpi-year-select" onchange="changeKPIPeriod()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="2025">2025</option><option value="2026">2026</option><option value="2027">2027</option></select>
             </div>
           </div>
-        <!-- KARTU TOTAL POINT -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div class="bg-gradient-to-br from-indigo-600 to-purple-700 rounded-3xl p-5 text-white shadow-md space-y-2 relative overflow-hidden">
-            <div class="absolute -right-3 -bottom-4 opacity-10 pointer-events-none"><i class="fa-solid fa-headset text-8xl"></i></div>
-            <p class="text-[10px] font-extrabold tracking-wider uppercase text-indigo-200">Total Point CS/Admin</p>
-            <p id="kpi-cs-total-point" class="text-5xl font-black leading-none">--</p>
-            <p class="text-[11px] text-indigo-200">dari <span id="kpi-cs-total-tiket" class="font-bold text-white">--</span> tiket</p>
-            <div class="pt-2 border-t border-white/20 flex justify-between"><span class="text-[10px] text-indigo-200">Rata-rata/tiket</span><span id="kpi-cs-avg-per-tiket" class="text-sm font-black">-- poin</span></div>
-          </div>
-          <div class="bg-gradient-to-br from-blue-600 to-cyan-600 rounded-3xl p-5 text-white shadow-md space-y-2 relative overflow-hidden">
-            <div class="absolute -right-3 -bottom-4 opacity-10 pointer-events-none"><i class="fa-solid fa-screwdriver-wrench text-8xl"></i></div>
-            <p class="text-[10px] font-extrabold tracking-wider uppercase text-blue-200">Total Point Teknisi</p>
-            <p id="kpi-tek-total-point" class="text-5xl font-black leading-none">--</p>
-            <p class="text-[11px] text-blue-200">dari <span id="kpi-tek-total-tiket" class="font-bold text-white">--</span> assignment anggota</p>
-            <div class="pt-2 border-t border-white/20 flex justify-between"><span class="text-[10px] text-blue-200">Rata-rata/assignment</span><span id="kpi-tek-avg-per-tiket" class="text-sm font-black">-- poin</span></div>
-          </div>
-        </div>
         <!-- KARTU SLA -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
@@ -1777,11 +2088,11 @@
         </div>
         <!-- TABEL POINT INDIVIDU (kehadiran + kinerja) -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-          <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Point Per Individu — Kehadiran & Kinerja</h2><p class="text-[11px] text-slate-400">Akumulasi point kehadiran dan KPI kerja per orang pada periode terpilih</p></div>
-          <div class="overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700">
+          <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Point Per Individu — Kehadiran & Kinerja</h2><p class="text-[11px] text-slate-400">Point kehadiran dan rata-rata kinerja berbasis ketepatan waktu pada periode terpilih</p></div>
+          <div class="h-80 overflow-y-auto overflow-x-auto rounded-2xl border border-slate-100 dark:border-slate-700">
             <table class="w-full text-left border-collapse">
-              <thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-                <th class="py-3 px-4">Nama</th><th class="py-3 px-3 text-center">Divisi</th><th class="py-3 px-3 text-center">Pt. Kehadiran</th><th class="py-3 px-3 text-center">Grade Hadir</th><th class="py-3 px-3 text-center">Pt. Kinerja</th><th class="py-3 px-3 text-center">Total Point</th><th class="py-3 px-3 text-center">Rank</th>
+              <thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-700/50"><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
+                <th class="py-3 px-4">Nama</th><th class="py-3 px-3 text-center">Divisi</th><th class="py-3 px-3 text-center">Poin Kehadiran</th><th class="py-3 px-3 text-center">Poin Kinerja</th><th class="py-3 px-3 text-center">Rata-rata Durasi</th><th class="py-3 px-3 text-center">Total Point</th><th class="py-3 px-3 text-center">Rank</th>
               </tr></thead>
               <tbody id="kpi-individu-table" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200">
                 <tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Belum ada data.</td></tr>
@@ -1792,8 +2103,8 @@
         <!-- DETAIL TIKET -->
         <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
           <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3"><div><h2 class="text-sm font-extrabold text-slate-900 dark:text-white">Detail KPI Per Tiket WO</h2></div><button type="button" onclick="exportKPIData()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5"><i class="fa-solid fa-file-export"></i>Export</button></div>
-          <div class="overflow-x-auto overflow-y-auto max-h-[60vh] rounded-2xl border border-slate-100 dark:border-slate-700">
-            <table class="w-full text-left border-collapse"><thead><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700"><th class="py-3 px-3">Tiket</th><th class="py-3 px-3">Pelanggan</th><th class="py-3 px-3 text-center">CS</th><th class="py-3 px-3 text-center">Durasi Rilis–Selesai</th><th class="py-3 px-3 text-center">Poin Admin</th><th class="py-3 px-3 text-center">Teknisi</th><th class="py-3 px-3 text-center">Poin Tek</th></tr></thead>
+          <div class="overflow-x-auto overflow-y-auto h-80 rounded-2xl border border-slate-100 dark:border-slate-700">
+            <table class="w-full text-left border-collapse"><thead class="sticky top-0 z-10 bg-slate-50 dark:bg-slate-700/50"><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700"><th class="py-3 px-3">Tiket</th><th class="py-3 px-3">Pelanggan</th><th class="py-3 px-3 text-center">CS</th><th class="py-3 px-3 text-center">Durasi Rilis–Selesai</th><th class="py-3 px-3 text-center">Poin Admin</th><th class="py-3 px-3 text-center">Teknisi</th><th class="py-3 px-3 text-center">Poin Tek</th></tr></thead>
             <tbody id="kpi-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200"><tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Belum ada data.</td></tr></tbody></table>
           </div>
         </div>
@@ -1809,13 +2120,13 @@
             <div class="rounded-2xl border border-amber-100 dark:border-amber-900 bg-amber-50/70 dark:bg-amber-950/20 p-4 space-y-3">
               <h3 class="text-xs font-extrabold text-amber-700 dark:text-amber-300 flex items-center gap-2"><i class="fa-solid fa-user-check"></i>Point Kehadiran Harian</h3>
               <div class="grid grid-cols-2 gap-2 text-[11px]">
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Tepat waktu</p><p class="text-lg font-black text-emerald-600">10 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat &lt; 30 menit</p><p class="text-lg font-black text-amber-600">7 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat 30–59 menit</p><p class="text-lg font-black text-amber-600">5 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat ≥ 60 menit</p><p class="text-lg font-black text-rose-600">3 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit + surat</p><p class="text-lg font-black text-blue-600">6 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit tanpa surat</p><p class="text-lg font-black text-blue-600">4 point</p></div>
-                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin cuti</p><p class="text-lg font-black text-indigo-600">5 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Tepat waktu</p><p class="text-lg font-black text-emerald-600">100 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat &lt; 30 menit</p><p class="text-lg font-black text-amber-600">70 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat 30–59 menit</p><p class="text-lg font-black text-amber-600">50 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Terlambat ≥ 60 menit</p><p class="text-lg font-black text-rose-600">30 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit + surat</p><p class="text-lg font-black text-blue-600">60 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin sakit tanpa surat</p><p class="text-lg font-black text-blue-600">40 point</p></div>
+                <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Izin cuti</p><p class="text-lg font-black text-indigo-600">50 point</p></div>
                 <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-2"><p class="font-bold text-slate-500">Alpa/status lainnya</p><p class="text-lg font-black text-slate-600">0 point</p></div>
               </div>
             </div>
@@ -1823,34 +2134,33 @@
               <h3 class="text-xs font-extrabold text-indigo-700 dark:text-indigo-300 flex items-center gap-2"><i class="fa-solid fa-calendar-check"></i>Akumulasi Kehadiran Bulanan</h3>
               <ul class="space-y-2 text-[11px] text-slate-600 dark:text-slate-300 list-disc pl-4">
                 <li>Point dijumlahkan berdasarkan bulan dan tahun yang dipilih pada filter KPI.</li>
-                <li>Point maksimal = jumlah hari kerja Senin–Jumat × 10.</li>
-                <li>Bonus <strong>+10 point</strong> diberikan jika seluruh hari kerja tercatat tepat waktu.</li>
+                <li>Point maksimal = 100 per periode.</li>
+                <li><strong>Skor maksimum 100</strong> tercapai jika seluruh hari kerja tercatat tepat waktu.</li>
                 <li>Grade kehadiran: <strong>A ≥ 90%</strong>, <strong>B ≥ 75%</strong>, <strong>C ≥ 60%</strong>, dan <strong>D &lt; 60%</strong>.</li>
               </ul>
             </div>
             <div class="rounded-2xl border border-purple-100 dark:border-purple-900 bg-purple-50/70 dark:bg-purple-950/20 p-4 space-y-3">
-              <h3 class="text-xs font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-2"><i class="fa-solid fa-headset"></i>Point Kinerja Admin/CS</h3>
+              <h3 class="text-xs font-extrabold text-purple-700 dark:text-purple-300 flex items-center gap-2"><i class="fa-solid fa-headset"></i>Point Kinerja Admin dan CS</h3>
               <p class="text-[11px] text-slate-600 dark:text-slate-300">Durasi dihitung dari <strong>WA masuk sampai Rilis</strong>.</p>
               <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-3 text-[11px] space-y-1.5">
-                <p><strong>&lt; 5 menit:</strong> 10 point</p>
-                <p><strong>≥ 5 menit:</strong> point berkurang 2 setiap kelipatan 2 menit</p>
-                <p><strong>Minimum:</strong> 1 point</p>
+                <p><strong>≤ 5 menit:</strong> 100 point</p>
+                <p><strong>Di atas 5 menit:</strong> point berkurang 20 setiap tambahan 2 menit</p>
+                <p><strong>Minimum:</strong> 10 point</p>
               </div>
             </div>
             <div class="rounded-2xl border border-blue-100 dark:border-blue-900 bg-blue-50/70 dark:bg-blue-950/20 p-4 space-y-3">
               <h3 class="text-xs font-extrabold text-blue-700 dark:text-blue-300 flex items-center gap-2"><i class="fa-solid fa-screwdriver-wrench"></i>Point Kinerja Teknisi</h3>
               <p class="text-[11px] text-slate-600 dark:text-slate-300">Durasi dihitung dari <strong>Rilis sampai Selesai</strong> dan diberikan untuk setiap assignment teknisi.</p>
               <div class="rounded-xl bg-white/80 dark:bg-slate-800/70 p-3 text-[11px] space-y-1.5">
-                <p><strong>Instalasi Baru / Instalasi Reseller tanpa partner:</strong> 1 teknisi = 13 point</p>
-                <p><strong>Instalasi Baru, Instalasi Reseller, Perluasan dengan partner:</strong> maksimal 1 jam 30 menit = 10 point</p>
-                <p><strong>Maintenance:</strong> maksimal 1 jam = 10 point</p>
-                <p><strong>Jika melewati batas:</strong> point berkurang 2 setiap kelipatan 5 menit</p>
-                <p><strong>Minimum:</strong> 1 point</p>
+                <p><strong>Instalasi Baru, Instalasi Reseller, Perluasan dengan partner:</strong> maksimal 1 jam 30 menit = 100 point</p>
+                <p><strong>Maintenance:</strong> maksimal 1 jam = 100 point</p>
+                <p><strong>Jika melewati batas:</strong> point berkurang 20 setiap tambahan 5 menit</p>
+                <p><strong>Minimum:</strong> 10 point</p>
               </div>
             </div>
           </div>
           <div class="rounded-2xl bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 p-3 text-[11px] text-slate-500 dark:text-slate-300">
-            <i class="fa-solid fa-calculator mr-1 text-slate-400"></i><strong>Total Point Individu</strong> = point kehadiran + akumulasi point kinerja pada periode yang dipilih.
+            <i class="fa-solid fa-calculator mr-1 text-slate-400"></i><strong>Total Point Individu</strong> = point kehadiran + rata-rata point kinerja pada periode yang dipilih.
           </div>
         </div>
       </div>
@@ -1890,6 +2200,11 @@
             </div>
             <select id="logtugas-filter-tipe" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="ALL">Semua Tipe</option><option value="INSTALASI">Instalasi</option><option value="INSTALASI_RESELLER">Instalasi Reseller</option><option value="PERLUASAN_RESELLER">Perluasan Reseller</option><option value="MAINTENANCE">Maintenance</option></select>
             <select id="logtugas-filter-status" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none"><option value="ALL">Semua Status</option><option value="RELEASE">Release</option><option value="PICKUP">Pickup</option><option value="PROSES">Proses</option><option value="SELESAI">Selesai</option><option value="RETURN">Return</option></select>
+            <select id="logtugas-filter-sumber" onchange="filterLogTugasDom()" class="bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none">
+              <option value="ALL">Internal + Mitra</option>
+              <option value="internal">Internal</option>
+              <option value="mitra">Semua Mitra</option>
+            </select>
           </div>
         </div>
         <!-- STATS -->
@@ -1904,10 +2219,10 @@
         <div class="bg-white dark:bg-slate-800 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 overflow-hidden">
           <div class="max-h-96 overflow-y-auto overflow-x-auto">
             <table class="w-full text-left border-collapse"><thead class="sticky top-0 z-10"><tr class="bg-slate-50 dark:bg-slate-700/50 text-[10px] font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider border-b border-slate-100 dark:border-slate-700">
-              <th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Tiket</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">No. Layanan</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Pelanggan</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Tipe</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Detail</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Perangkat Terpasang</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Status</th>
+              <th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Tiket</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">No. Layanan</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Pelanggan</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Tipe</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Detail</th><th class="py-3 px-3 bg-slate-50 dark:bg-slate-700/50">Perangkat Terpasang</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Sumber</th><th class="py-3 px-3 text-center bg-slate-50 dark:bg-slate-700/50">Status</th>
             </tr></thead>
             <tbody id="logtugas-table-body" class="divide-y divide-slate-100 dark:divide-slate-700 text-xs font-medium text-slate-700 dark:text-slate-200">
-              <tr><td colspan="7" class="text-center py-8 text-slate-400 text-xs">Klik Refresh untuk memuat data.</td></tr>
+              <tr><td colspan="8" class="text-center py-8 text-slate-400 text-xs">Klik Refresh untuk memuat data.</td></tr>
             </tbody></table>
           </div>
         </div>
@@ -1956,7 +2271,235 @@
         </div>
       </div>
 
+      <!-- PANEL REGISTRASI MITRA (sub SPV) — di dalam section-spv -->
+      <div id="sub-spv-content-registrasi-mitra" class="hidden space-y-4 fade-up">
+        <!-- Form Tambah Mitra -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+          <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-handshake text-orange-500"></i>Registrasi Mitra Baru</h2>
+            <p class="text-xs text-slate-400">Tambahkan mitra/vendor yang bekerja sama dengan PT SINu.</p>
+          </div>
+          <form id="form-tambah-mitra" onsubmit="handleTambahMitra(event)" class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div class="sm:col-span-2 space-y-1.5">
+              <label class="block text-xs font-bold text-slate-500 uppercase">Nama Mitra <span class="text-rose-500">*</span></label>
+              <input type="text" id="mitra-nama" required placeholder="cth: CV Maju Bersama" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 transition-all">
+            </div>
+            <div class="sm:col-span-2 space-y-1.5">
+              <label class="block text-xs font-bold text-slate-500 uppercase">Alamat</label>
+              <input type="text" id="mitra-alamat" placeholder="Alamat kantor mitra" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 transition-all">
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-500 uppercase">Nama PIC</label>
+              <input type="text" id="mitra-pic-nama" placeholder="Nama penanggung jawab" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 transition-all">
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-500 uppercase">Jabatan PIC</label>
+              <input type="text" id="mitra-pic-jabatan" placeholder="cth: Direktur" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 transition-all">
+            </div>
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold text-slate-500 uppercase">No. Telepon PIC</label>
+              <input type="tel" id="mitra-pic-telepon" placeholder="08xx-xxxx-xxxx" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500 transition-all">
+            </div>
+            <div class="sm:col-span-2">
+              <button type="submit" id="btn-tambah-mitra" class="w-full py-3 bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center justify-center gap-2">
+                <i class="fa-solid fa-plus-circle"></i>Daftarkan Mitra
+              </button>
+            </div>
+          </form>
+        </div>
+        <!-- Daftar Mitra -->
+        <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+          <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+            <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-list text-orange-500"></i>Daftar Mitra Terdaftar</h3>
+            <button onclick="loadDaftarMitraSpv()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+          </div>
+          <div id="spv-mitra-list" class="space-y-3"><p class="text-xs text-slate-400 text-center py-4">Klik Refresh untuk memuat.</p></div>
+        </div>
+      </div>
 
+    </div><!-- end section-spv -->
+
+
+
+      <!-- ===== SECTION MITRA (Koordinator) ===== -->
+      <div id="section-mitra" class="main-section hidden space-y-4 fade-up">
+        <!-- Subnav dihapus karena sekarang menu utama langsung -->
+
+        <!-- INVOICE / BAPS -->
+        <div id="sub-mitra-content-invoice-mitra" class="sub-mitra-content space-y-4">
+          <!-- Submenu untuk Invoice/BAPS -->
+          <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+            <div class="subnav-wrap">
+              <button type="button" onclick="switchInvoiceMitraTab('generate')" id="invoice-tab-generate" class="snpill active"><i class="fa-solid fa-file-invoice text-violet-500"></i><span>Generate BAPS</span></button>
+              <button type="button" onclick="switchInvoiceMitraTab('list')" id="invoice-tab-list" class="snpill"><i class="fa-solid fa-list-check text-indigo-500"></i><span>List BAPS</span></button>
+            </div>
+          </div>
+
+          <!-- TAB: Generate BAPS -->
+          <div id="invoice-tab-generate-content" class="invoice-tab-content">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+                <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-file-invoice text-violet-500"></i>Invoice Mitra / BAPS</h2><p class="text-xs text-slate-400">Pilih WO yang ingin ditagihkan, lalu generate BAPS.</p></div>
+              </div>
+              <!-- Filter tanggal -->
+              <div class="flex flex-wrap items-end gap-3">
+                <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Dari Tanggal</label><input type="date" id="invoice-date-from" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-violet-500"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Sampai Tanggal</label><input type="date" id="invoice-date-to" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-violet-500"></div>
+                <button onclick="loadInvoiceMitraList()" class="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all"><i class="fa-solid fa-filter"></i>Filter</button>
+              </div>
+              <!-- Summary -->
+              <div id="invoice-summary" class="hidden bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800 rounded-xl px-3 py-2 text-xs text-violet-700 dark:text-violet-300 font-semibold">
+                <span id="invoice-summary-text"></span>
+              </div>
+              <!-- Action bar -->
+              <div id="invoice-action-bar" class="hidden flex items-center justify-between gap-3 bg-slate-900 dark:bg-slate-950 text-white px-4 py-3 rounded-xl">
+                <span class="text-xs font-bold" id="invoice-selected-count">0 WO dipilih</span>
+                <button id="btn-generate-baps" onclick="generateBAPS()" class="px-4 py-2 bg-violet-500 hover:bg-violet-600 text-white font-bold text-xs rounded-lg flex items-center gap-1.5 transition-all shadow">
+                  <i class="fa-solid fa-file-pdf"></i>Generate BAPS
+                </button>
+              </div>
+              <!-- Tabel WO -->
+              <div id="invoice-wo-list"><p class="text-xs text-slate-400 text-center py-6">Pilih filter tanggal dan klik Filter untuk memuat WO.</p></div>
+            </div>
+          </div>
+
+          <!-- TAB: List BAPS -->
+          <div id="invoice-tab-list-content" class="invoice-tab-content hidden">
+            <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+              <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+                <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-indigo-500"></i>List BAPS Mitra</h2><p class="text-xs text-slate-400">Daftar BAPS yang sudah digenerate untuk mitra Anda.</p></div>
+                <button onclick="loadMitraBapsList()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+              </div>
+              <!-- Filter -->
+              <div class="flex flex-wrap items-end gap-3">
+                <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Status</label>
+                  <select id="mitra-baps-filter-status" onchange="loadMitraBapsList()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
+                    <option value="">Semua Status</option>
+                    <option value="GENERATED">Belum Lunas</option>
+                    <option value="PAID">Lunas</option>
+                  </select>
+                </div>
+                <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Dari</label><input type="date" id="mitra-baps-filter-from" onchange="loadMitraBapsList()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Sampai</label><input type="date" id="mitra-baps-filter-to" onchange="loadMitraBapsList()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+              </div>
+              <!-- List BAPS -->
+              <div id="mitra-baps-list" class="space-y-3"><p class="text-xs text-slate-400 text-center py-6">Memuat...</p></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- PERANGKAT MITRA -->
+        <div id="sub-mitra-content-perangkat-mitra" class="sub-mitra-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-boxes-packing text-blue-500"></i>Perangkat Mitra</h2>
+              <button onclick="loadPerangkatMitra()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+            </div>
+            <p class="text-[11px] text-slate-400">Daftar perangkat yang sudah dialokasikan oleh Admin untuk mitra ini.</p>
+            <div id="mitra-perangkat-list" class="space-y-2"><p class="text-xs text-slate-400 text-center py-4">Memuat...</p></div>
+          </div>
+        </div>
+
+        <!-- APPROVAL PICKUP MITRA -->
+        <div id="sub-mitra-content-approval-perangkat-mitra" class="sub-mitra-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-3">
+            <div class="flex items-center justify-between border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user-check text-emerald-500"></i>Approval Pickup Teknisi</h2><p class="text-xs text-slate-400">Setujui atau tolak request pickup dari teknisi mitra.</p></div>
+              <button onclick="loadApprovalPerangkatMitra()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+            </div>
+            <div id="mitra-approval-perangkat-list" class="space-y-2"><p class="text-xs text-slate-400 text-center py-4">Memuat...</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ===== SECTION MANAGER ===== -->
+      <div id="section-manager" class="main-section hidden space-y-4 fade-up">
+        <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700">
+          <div class="subnav-wrap">
+            <button type="button" onclick="switchSubManager('history-baps')" id="sub-mgr-history-baps" class="snpill active"><i class="fa-solid fa-clock-rotate-left text-indigo-500"></i><span>Riwayat BAPS</span></button>
+            <button type="button" onclick="switchSubManager('config-baps')" id="sub-mgr-config-baps" class="snpill"><i class="fa-solid fa-gear text-slate-500"></i><span>Konfigurasi BAPS</span></button>
+          </div>
+        </div>
+
+        <!-- RIWAYAT BAPS -->
+        <div id="sub-mgr-content-history-baps" class="sub-mgr-content space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 dark:border-slate-700 pb-3">
+              <div><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-indigo-500"></i>Riwayat BAPS</h2><p class="text-xs text-slate-400">Semua dokumen BAPS yang telah digenerate.</p></div>
+              <button onclick="loadHistoryBaps()" class="px-2.5 py-1 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-600 dark:text-slate-300 rounded-lg text-[10px] font-bold flex items-center gap-1"><i class="fa-solid fa-rotate-right"></i>Refresh</button>
+            </div>
+            <!-- Filter -->
+            <div class="flex flex-wrap items-end gap-3">
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Mitra</label>
+                <select id="baps-filter-mitra" onchange="loadHistoryBaps()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
+                  <option value="">Semua Mitra</option>
+                </select>
+              </div>
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Status</label>
+                <select id="baps-filter-status" onchange="loadHistoryBaps()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
+                  <option value="">Semua Status</option>
+                  <option value="GENERATED">Generated</option>
+                  <option value="PAID">Lunas</option>
+                  <option value="CANCELLED">Dibatalkan</option>
+                </select>
+              </div>
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Dari</label><input type="date" id="baps-filter-date-from" onchange="loadHistoryBaps()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+              <div class="space-y-1"><label class="block text-[10px] font-bold text-slate-500 uppercase">Sampai</label><input type="date" id="baps-filter-date-to" onchange="loadHistoryBaps()" class="px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+            </div>
+            <div id="baps-history-list" class="space-y-3"><p class="text-xs text-slate-400 text-center py-6">Memuat...</p></div>
+          </div>
+        </div>
+
+        <!-- KONFIGURASI BAPS -->
+        <div id="sub-mgr-content-config-baps" class="sub-mgr-content hidden space-y-4">
+          <div class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3">
+              <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-gear text-slate-500"></i>Konfigurasi BAPS</h2>
+              <p class="text-xs text-slate-400">Data PT SINu yang akan muncul di dokumen BAPS/invoice.</p>
+            </div>
+            <form id="form-baps-config" onsubmit="simpanBapsConfig(event)" class="space-y-4">
+              <input type="hidden" id="baps-cfg-id">
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2 space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Nama Perusahaan <span class="text-rose-500">*</span></label>
+                  <input type="text" id="baps-cfg-perusahaan" required placeholder="PT. Sinergi Internet Nusantara" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                </div>
+                <div class="sm:col-span-2 space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Alamat Perusahaan</label>
+                  <textarea id="baps-cfg-alamat" rows="2" placeholder="Jl. Contoh No. 1, Kota..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 resize-none transition-all"></textarea>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Nama PIC PT SINu <span class="text-rose-500">*</span></label>
+                  <input type="text" id="baps-cfg-pic-nama" required placeholder="Nama penanggung jawab" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Jabatan PIC <span class="text-rose-500">*</span></label>
+                  <input type="text" id="baps-cfg-pic-jabatan" required placeholder="cth: Direktur" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Prefix Nomor Surat <span class="text-rose-500">*</span></label>
+                  <input type="text" id="baps-cfg-prefix" required placeholder="cth: BAPS/SINU" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium font-mono text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                  <p class="text-[10px] text-slate-400">Format: PREFIX/001/BULAN/TAHUN</p>
+                </div>
+                <div class="space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Counter Nomor Surat</label>
+                  <input type="number" id="baps-cfg-counter" min="1" placeholder="1" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 transition-all">
+                  <p class="text-[10px] text-slate-400">Angka otomatis bertambah setiap BAPS digenerate.</p>
+                </div>
+                <div class="sm:col-span-2 space-y-1.5">
+                  <label class="block text-xs font-bold text-slate-500 uppercase">Teks Footer BAPS</label>
+                  <textarea id="baps-cfg-footer" rows="2" placeholder="Demikian Berita Acara ini dibuat..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-indigo-500 resize-none transition-all"></textarea>
+                </div>
+              </div>
+              <div class="flex justify-end pt-2 border-t border-slate-100 dark:border-slate-700">
+                <button type="submit" id="btn-simpan-baps-config" class="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-xl transition-all shadow-md flex items-center gap-2">
+                  <i class="fa-solid fa-floppy-disk"></i>Simpan Konfigurasi
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      </div>
 
       <!-- ===== KELOLA AKUN (Supervisor) ===== -->
       <div id="section-kelolaakun" class="main-section hidden space-y-4 fade-up">
@@ -2060,15 +2603,32 @@
               </div>
               <div class="space-y-1.5">
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role <span class="text-rose-500">*</span></label>
-                <select id="akun-role" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
+                <select id="akun-role" required onchange="onAkunRoleChange('akun')" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
                   <option value="">-- Pilih Role --</option>
-                  <option value="teknisi">Teknisi Field</option>
-                  <option value="admin">Admin/CS</option>
-                  <option value="noc">NOC Engineer</option>
-                  <option value="finance">Finance</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="owner">Owner (Super Admin)</option>
+                  <optgroup label="Tim Internal">
+                    <option value="teknisi">Teknisi Field</option>
+                    <option value="admin">Admin</option>
+                    <option value="cs">Customer Service (CS)</option>
+                    <option value="noc">NOC Engineer</option>
+                    <option value="finance">Finance</option>
+                    <option value="supervisor">Supervisor</option>
+                    <option value="manager">Manager</option>
+                    <option value="owner">Owner (Super Admin)</option>
+                  </optgroup>
+                  <optgroup label="Akun Mitra">
+                    <option value="koordinator">Koordinator Mitra</option>
+                    <option value="teknisi_mitra">Teknisi Mitra</option>
+                    <option value="noc_mitra">NOC Mitra</option>
+                    <option value="cs_mitra">CS Mitra</option>
+                  </optgroup>
                 </select>
+              </div>
+              <div class="space-y-1.5 sm:col-span-2" id="akun-mitra-wrap" style="display:none">
+                <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama Mitra <span class="text-rose-500">*</span></label>
+                <select id="akun-mitra-id" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
+                  <option value="">-- Pilih Mitra --</option>
+                </select>
+                <p class="text-[10px] text-slate-400">Pilih mitra yang sudah terdaftar. Tambah mitra baru di menu SPV → Registrasi Mitra.</p>
               </div>
               <div class="space-y-1.5 sm:col-span-2">
                 <label class="block text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Divisi / Jabatan</label>
@@ -2097,6 +2657,7 @@
                   <th class="py-3 px-4 text-left font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Nama</th>
                   <th class="py-3 px-4 text-center font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Role</th>
                   <th class="py-3 px-4 text-left font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Divisi</th>
+                  <th class="py-3 px-4 text-center font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Tipe</th>
                   <th class="py-3 px-4 text-center font-extrabold text-slate-500 dark:text-slate-400 uppercase tracking-wider">Aksi</th>
                 </tr>
               </thead>
@@ -2107,9 +2668,10 @@
           </div>
         </div>
       </div>
-
-      <p class="text-center text-[10px] text-slate-400 font-medium mt-4 pb-6">© 2026 PT. Sinergi Internet Nusantara • Operational Division v2.0</p>
     </div>
+
+    <!-- FOOTER -->
+    <p class="text-center text-[10px] text-slate-400 font-medium mt-4 pb-6">© 2026 PT. Sinergi Internet Nusantara • Operational Division v2.0</p>
   </div>
 </div>
 
@@ -2131,15 +2693,16 @@
   <div class="bg-white dark:bg-slate-800 rounded-3xl p-6 max-w-sm w-full shadow-2xl space-y-4 border border-slate-100 dark:border-slate-700">
     <div class="flex items-center justify-between pb-2 border-b border-slate-100 dark:border-slate-700"><h3 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-tower-broadcast text-blue-600"></i>Tambah ODP Baru</h3><button type="button" onclick="document.getElementById('add-odp-modal').classList.add('hidden')" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button></div>
     <form onsubmit="addODP(event)" class="space-y-3">
-      <div class="grid grid-cols-2 gap-3">
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">ID ODP <span class="text-rose-500">*</span></label><input type="text" id="odp-id-input" required placeholder="ODP-JKT-03" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-extrabold uppercase focus:outline-none focus:border-blue-600"></div>
+        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">ODC</label><input type="text" id="odp-odc-input" placeholder="ODC-JKT-01" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-extrabold uppercase focus:outline-none focus:border-blue-600"></div>
         <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Kapasitas <span class="text-rose-500">*</span></label><input type="number" id="odp-kapasitas-input" required placeholder="8" min="1" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
       </div>
-      <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nama Lokasi <span class="text-rose-500">*</span></label><input type="text" id="odp-lokasi-input" required placeholder="Jl. Raya Kebon Jeruk" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600"></div>
+      <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Nama Lokasi <span class="text-rose-500">*</span></label><input type="text" id="odp-lokasi-input" placeholder="Otomatis dari koordinat atau isi manual" oninput="markODPLocationManual()" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600"><p id="odp-lokasi-status" class="text-[10px] text-slate-400 mt-1">Isi Lat dan Lng untuk mengisi nama lokasi otomatis.</p></div>
       <div class="grid grid-cols-3 gap-2">
         <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Terisi</label><input type="number" id="odp-terisi-input" placeholder="0" min="0" class="w-full px-2 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
-        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Lat</label><input type="number" id="odp-lat-input" placeholder="-6.234" step="any" class="w-full px-2 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
-        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Lng</label><input type="number" id="odp-lng-input" placeholder="107.36" step="any" class="w-full px-2 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
+        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Lat</label><input type="number" id="odp-lat-input" placeholder="-6.234" step="any" oninput="scheduleODPLocationLookup()" onblur="scheduleODPLocationLookup(true)" class="w-full px-2 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
+        <div><label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase mb-1">Lng</label><input type="number" id="odp-lng-input" placeholder="107.36" step="any" oninput="scheduleODPLocationLookup()" onblur="scheduleODPLocationLookup(true)" class="w-full px-2 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold focus:outline-none focus:border-blue-600"></div>
       </div>
       <div class="flex items-center gap-2"><button type="button" onclick="document.getElementById('add-odp-modal').classList.add('hidden')" class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl transition-all">Batal</button><button type="submit" class="w-1/2 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md">Simpan</button></div>
     </form>
@@ -2326,25 +2889,32 @@
 <script src="js/config.js?v=1000195"></script>
 
 <!-- 2. Supabase Client Initialization -->
-<script src="js/supabase-init.js?v=1000203"></script>
+<script src="js/supabase-init.js?v=1000206"></script>
 
 <!-- 3. Core Application (Auth, Navigation, Init) -->
-<script src="js/app.js?v=1000195"></script>
+<script src="js/app.js?v=1000223"></script>
 
 <!-- 4. Feature Modules -->
-<script src="js/dashboard.js?v=1000203"></script>
-<script src="js/tugas.js?v=1000205"></script>
+<script src="js/dashboard.js?v=2026092303"></script>
+<script src="js/tugas.js?v=1000210"></script>
 <script src="js/material.js?v=1000195"></script>
 <script src="js/noc.js?v=1000204"></script>
-<script src="js/absensi.js?v=1000195"></script>
+<script src="js/absensi.js?v=1000202"></script>
+<script src="js/jadwal.js?v=1000023"></script>
+<script src="js/tukar-shift.js?v=1000010"></script>
+<script src="js/shift-swap-approval.js?v=1000009"></script>
 <script src="js/admin.js?v=1000196"></script>
-<script src="js/kpi.js?v=1000203"></script>
-<script src="js/rekap.js?v=1000195"></script>
-<script src="js/dismantle.js?v=1000195"></script>
-<script src="js/rl-radius.js?v=1000195"></script>
+<script src="js/kpi.js?v=1000215"></script>
+<script src="js/rekap.js?v=1000196"></script>
+<script src="js/dismantle.js?v=1000196"></script>
+<script src="js/rl-radius.js?v=1000196"></script>
+<script src="js/mitra.js?v=1000002"></script>
+<script src="js/invoice-mitra.js?v=1000001"></script>
+<script src="js/pelanggan.js?v=1000001"></script>
+<script src="js/baps-manager.js?v=1000001"></script>
 
 <!-- 5. Supabase Extended Functions -->
-<script src="js/supabase-extended.js?v=1000196"></script>
+<script src="js/supabase-extended.js?v=2026092301"></script>
 
 <!-- 6. Notification Center -->
 <script src="js/notifications.js?v=1000195"></script>
@@ -2390,13 +2960,29 @@
       </div>
       <div class="space-y-1">
         <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Role <span class="text-rose-500">*</span></label>
-        <select id="edit-akun-role" required class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
-          <option value="teknisi">Teknisi Field</option>
-          <option value="admin">Admin/CS</option>
-          <option value="noc">NOC Engineer</option>
-          <option value="finance">Finance</option>
-          <option value="supervisor">Supervisor</option>
-          <option value="owner">Owner (Super Admin)</option>
+        <select id="edit-akun-role" required onchange="onAkunRoleChange('edit-akun')" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
+          <optgroup label="Tim Internal">
+            <option value="teknisi">Teknisi Field</option>
+            <option value="admin">Admin</option>
+            <option value="cs">Customer Service (CS)</option>
+            <option value="noc">NOC Engineer</option>
+            <option value="finance">Finance</option>
+            <option value="supervisor">Supervisor</option>
+            <option value="manager">Manager</option>
+            <option value="owner">Owner (Super Admin)</option>
+          </optgroup>
+          <optgroup label="Akun Mitra">
+            <option value="koordinator">Koordinator Mitra</option>
+            <option value="teknisi_mitra">Teknisi Mitra</option>
+            <option value="noc_mitra">NOC Mitra</option>
+            <option value="cs_mitra">CS Mitra</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="space-y-1" id="edit-akun-mitra-wrap" style="display:none">
+        <label class="block text-xs font-bold text-slate-600 dark:text-slate-300 uppercase">Nama Mitra <span class="text-rose-500">*</span></label>
+        <select id="edit-akun-mitra-id" class="w-full px-3.5 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-blue-600 transition-all">
+          <option value="">-- Pilih Mitra --</option>
         </select>
       </div>
       <div class="space-y-1">
@@ -2411,6 +2997,110 @@
         </button>
       </div>
     </form>
+  </div>
+</div>
+
+<!-- MODAL DETAIL PELANGGAN -->
+<div id="pelanggan-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-lg w-full shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col max-h-[88vh]">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-user text-emerald-500"></i>Detail Pelanggan</h3>
+      <button onclick="tutupPelangganDetail()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div id="pelanggan-detail-body" class="px-5 py-4 overflow-y-auto flex-1"><p class="text-center py-6 text-slate-400 text-xs">Memuat...</p></div>
+  </div>
+</div>
+
+<!-- MODAL FORM PEMBAYARAN -->
+<div id="pembayaran-form-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-700">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-money-bill-wave text-green-500"></i>Input Pembayaran</h3>
+      <button onclick="tutupFormPembayaran()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div class="px-5 py-4 space-y-3">
+      <div class="bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-200 dark:border-emerald-800 rounded-xl px-3 py-2">
+        <p class="text-xs font-extrabold text-emerald-700 dark:text-emerald-300" id="pay-nama-display">-</p>
+        <p class="text-[10px] text-emerald-600" id="pay-no-layanan-display">-</p>
+      </div>
+      <form onsubmit="submitPembayaran(event)" class="space-y-3">
+        <input type="hidden" id="pay-pelanggan-id">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Tanggal Bayar <span class="text-rose-500">*</span></label>
+          <input type="date" id="pay-tanggal" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500">
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Jumlah (Rp)</label>
+          <input type="number" id="pay-jumlah" placeholder="150000" min="0" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500">
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Link Bukti Transfer</label>
+          <input type="url" id="pay-bukti" placeholder="https://..." class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium focus:outline-none focus:border-green-500">
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Catatan</label>
+          <textarea id="pay-catatan" rows="2" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium resize-none focus:outline-none focus:border-green-500"></textarea>
+        </div>
+        <div class="flex gap-2 pt-1">
+          <button type="button" onclick="tutupFormPembayaran()" class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl">Batal</button>
+          <button type="submit" id="btn-submit-pembayaran" class="w-1/2 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md">
+            <i class="fa-solid fa-paper-plane"></i>Kirim
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EDIT MITRA -->
+<div id="edit-mitra-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-sm w-full shadow-2xl border border-slate-100 dark:border-slate-700">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-pen-to-square text-orange-500"></i>Edit Data Mitra</h3>
+      <button onclick="tutupEditMitra()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <form id="form-edit-mitra" onsubmit="handleSimpanEditMitra(event)" class="px-5 py-4 space-y-3">
+      <input type="hidden" id="edit-mitra-id">
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-slate-500 uppercase">Nama Mitra <span class="text-rose-500">*</span></label>
+        <input type="text" id="edit-mitra-nama" required class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500">
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-slate-500 uppercase">Alamat</label>
+        <input type="text" id="edit-mitra-alamat" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500">
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Nama PIC</label>
+          <input type="text" id="edit-mitra-pic-nama" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500">
+        </div>
+        <div class="space-y-1.5">
+          <label class="block text-xs font-bold text-slate-500 uppercase">Jabatan</label>
+          <input type="text" id="edit-mitra-pic-jabatan" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500">
+        </div>
+      </div>
+      <div class="space-y-1.5">
+        <label class="block text-xs font-bold text-slate-500 uppercase">No. Telepon PIC</label>
+        <input type="tel" id="edit-mitra-pic-telepon" class="w-full px-3 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-orange-500">
+      </div>
+      <div class="flex gap-2 pt-2">
+        <button type="button" onclick="tutupEditMitra()" class="w-1/2 py-2.5 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-xl">Batal</button>
+        <button type="submit" id="btn-simpan-edit-mitra" class="w-1/2 py-2.5 bg-orange-500 hover:bg-orange-600 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-md">
+          <i class="fa-solid fa-floppy-disk"></i>Simpan
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- MODAL DETAIL BAPS -->
+<div id="baps-detail-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+  <div class="bg-white dark:bg-slate-800 rounded-3xl max-w-2xl w-full shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col max-h-[88vh]">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-slate-100 dark:border-slate-700 shrink-0">
+      <h3 class="text-sm font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-file-invoice-dollar text-indigo-500"></i>Detail BAPS</h3>
+      <button onclick="tutupBapsDetail()" class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"><i class="fa-solid fa-xmark text-lg"></i></button>
+    </div>
+    <div id="baps-detail-body" class="px-5 py-4 overflow-y-auto flex-1"><p class="text-center py-6 text-slate-400 text-xs">Memuat...</p></div>
   </div>
 </div>
 

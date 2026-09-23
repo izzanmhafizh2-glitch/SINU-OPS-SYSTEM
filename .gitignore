@@ -1,0 +1,23 @@
+# Supabase temp files
+Deploy netifly/supabase/.temp/
+
+# Backend credentials (saat migrasi nanti)
+backend/.env
+.env
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Node modules (saat ada backend nanti)
+node_modules/
+
+# Editor
+.vscode/
+*.log
+
+# Test files
+test_*.html
+tools/
+semantic-review/

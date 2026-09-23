@@ -39,7 +39,9 @@ async function handleLogin(e) {
         displayName: data.display_name || data.username,
         avatar: data.avatar || data.username.substring(0,2).toUpperCase(),
         division: data.division || '',
-        photoUrl: data.avatar_url || null
+        photoUrl: data.avatar_url || null,
+        accountType: data.account_type || 'internal',
+        mitraId: data.mitra_id || null
       });
     } else {
       console.log('Supabase no data, trying local...');
@@ -58,7 +60,7 @@ async function loadODPFromSupabase() {
   try {
     const { data, error } = await supa.from('odp').select('*').order('odp_id');
     if (!error && data && data.length) {
-      odpMaster = data.map(o => ({ id: o.odp_id, lokasi: o.lokasi, kapasitas: o.kapasitas, terisi: o.terisi, lat: o.lat || 0, lng: o.lng || 0 }));
+      odpMaster = data.map(o => ({ id: o.odp_id, odc: o.odc || '', lokasi: o.lokasi, kapasitas: o.kapasitas, terisi: o.terisi, lat: o.lat || 0, lng: o.lng || 0 }));
       renderODPGrid();
     }
   } catch(e) { console.warn('ODP load fallback'); }
@@ -100,18 +102,29 @@ async function loadWOFromSupabase() {
 async function simpanAbsensiKeSupabase(payload) {
   const now = new Date();
   const tanggal = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
-  const { error } = await supa.from('absensi').insert({
+  const row = {
     nama: payload.nama,
+    username: payload.username || null,
     role: payload.role,
     shift: payload.shift,
+    schedule_id: payload.scheduleId || null,
     status_kehadiran: payload.statusKehadiran,
     mnt_terlambat: payload.mntTerlambat || 0,
+    alasan_keterlambatan: payload.alasanKeterlambatan || null,
+    jam_masuk_aktual: payload.jamMasukAktual || now.toISOString(),
+    timezone: 'Asia/Jakarta',
     point: payload.point || 0,
     lat: payload.lat || null,
     lng: payload.lng || null,
     tanggal
-  });
-  if(error) throw error;
+  };
+  let result = await supa.from('absensi').insert(row);
+  // Kompatibilitas sementara apabila kolom migrasi belum dijalankan.
+  if(result.error && /column|username|schedule_id|jam_masuk_aktual|alasan_keterlambatan|timezone/i.test(result.error.message || '')) {
+    ['username','schedule_id','alasan_keterlambatan','jam_masuk_aktual','timezone'].forEach(function(key){ delete row[key]; });
+    result = await supa.from('absensi').insert(row);
+  }
+  if(result.error) throw result.error;
 }
 
 async function simpanWOKeSupabase(woData) {
@@ -138,7 +151,14 @@ async function updateStatusWO(woId, status, t4 = null) {
 
 async function simpanODPKeSupabase(odp) {
   try {
-    await supa.from('odp').upsert({ odp_id: odp.id, lokasi: odp.lokasi, kapasitas: odp.kapasitas, terisi: odp.terisi, lat: odp.lat, lng: odp.lng });
+    const row = { odp_id: odp.id, odc: odp.odc || null, lokasi: odp.lokasi, kapasitas: odp.kapasitas, terisi: odp.terisi, lat: odp.lat, lng: odp.lng };
+    let result = await supa.from('odp').upsert(row);
+    // Kompatibilitas sementara sebelum migration ODC dijalankan.
+    if(result.error && /column.*odc|odc.*column/i.test(result.error.message || '')) {
+      delete row.odc;
+      result = await supa.from('odp').upsert(row);
+    }
+    if(result.error) throw result.error;
   } catch(e) { console.warn('ODP tidak tersimpan:', e); }
 }
 
@@ -371,9 +391,10 @@ window.handleCreateTask = handleCreateTaskWithDB;
 // ── ODP ───────────────────────────────────────────────────────
 async function addODPWithDB(e) {
   e.preventDefault();
-  var id=document.getElementById('odp-id-input').value.trim().toUpperCase(), lokasi=document.getElementById('odp-lokasi-input').value.trim(), kapasitas=parseInt(document.getElementById('odp-kapasitas-input').value)||8, terisi=parseInt(document.getElementById('odp-terisi-input').value)||0, lat=parseFloat(document.getElementById('odp-lat-input').value)||0, lng=parseFloat(document.getElementById('odp-lng-input').value)||0;
+  var id=document.getElementById('odp-id-input').value.trim().toUpperCase(), odc=document.getElementById('odp-odc-input').value.trim().toUpperCase(), lokasi=document.getElementById('odp-lokasi-input').value.trim(), kapasitas=parseInt(document.getElementById('odp-kapasitas-input').value)||8, terisi=parseInt(document.getElementById('odp-terisi-input').value)||0, lat=parseFloat(document.getElementById('odp-lat-input').value)||0, lng=parseFloat(document.getElementById('odp-lng-input').value)||0;
   if(odpMaster.find(function(o){return o.id===id;})){showAlert('ODP dengan ID ini sudah ada!');return;}
-  var newODP={id,lokasi,kapasitas,terisi,lat,lng};
+  if(terisi>kapasitas){showAlert('Jumlah terisi tidak boleh melebihi kapasitas.','Data Tidak Valid');return;}
+  var newODP={id,odc,lokasi,kapasitas,terisi,lat,lng};
   odpMaster.push(newODP); renderODPGrid();
   await simpanODPKeSupabase(newODP);
   document.getElementById('add-odp-modal').classList.add('hidden'); e.target.reset(); showAlert('ODP '+id+' berhasil ditambahkan.','ODP Tersimpan');
@@ -471,6 +492,7 @@ async function refreshAdminTicketList() {
 function applyAdminTicketFilters() {
   var status = (document.getElementById('ticket-filter-status')||{value:'ALL'}).value;
   var tipe   = (document.getElementById('ticket-filter-tipe')||{value:'ALL'}).value;
+  var sumber = (document.getElementById('ticket-filter-sumber')||{value:'ALL'}).value;
   var from   = (document.getElementById('ticket-filter-date-from')||{value:''}).value;
   var to     = (document.getElementById('ticket-filter-date-to')||{value:''}).value;
   if(from && to && from > to) {
@@ -483,9 +505,15 @@ function applyAdminTicketFilters() {
   var filtered = _adminTicketData.filter(function(t) {
     if(status !== 'ALL' && t.status !== status) return false;
     if(tipe !== 'ALL' && t.tipe !== tipe) return false;
+    // Filter sumber: internal vs mitra
+    if(sumber === 'internal' && t.mitra_id) return false;
+    if(sumber === 'mitra' && !t.mitra_id) return false;
+    if(sumber !== 'ALL' && sumber !== 'internal' && sumber !== 'mitra') {
+      // filter by specific mitra_id
+      if(t.mitra_id !== sumber) return false;
+    }
 
     var dateKey = adminTicketDateKey(t);
-    // Tanpa rentang tanggal: tiket aktif selalu tampil; tiket selesai hanya yang selesai/tercatat hari ini.
     if(!hasDateRange && t.status === 'SELESAI' && dateKey !== today) return false;
     if(from && (!dateKey || dateKey < from)) return false;
     if(to && (!dateKey || dateKey > to)) return false;
@@ -538,14 +566,22 @@ function renderTicketList(tickets) {
         rlBadge = '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-rose-100 text-rose-700"><i class="fa-solid fa-triangle-exclamation"></i>Belum Input RL Radius</span>';
       }
     }
+    // Badge sumber: Internal vs Mitra
+    var sumberBadge = t.mitra_id
+      ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-orange-100 text-orange-700"><i class="fa-solid fa-handshake"></i>Mitra</span>'
+      : '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-slate-100 text-slate-600"><i class="fa-solid fa-building"></i>Internal</span>';
+    // Badge dismantle otomatis
+    var autoBadge = t.is_auto_dismantle
+      ? '<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-extrabold bg-red-100 text-red-700"><i class="fa-solid fa-robot"></i>Auto Dismantle</span>'
+      : '';
     return '<div class="p-3 rounded-xl border space-y-1.5 '+tc+'">'
       +'<div class="flex items-center justify-between gap-1">'
       +'<span class="text-[10px] font-extrabold text-blue-600 font-mono">'+t.wo_id+'</span>'
-      +'<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold '+sc+'">'+t.status+'</span>'
+      +'<div class="flex items-center gap-1">'+sumberBadge+'<span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold '+sc+'">'+t.status+'</span></div>'
       +'</div>'
       +'<p class="text-xs font-bold text-slate-800">'+t.pelanggan+'</p>'
       +'<p class="text-[10px] text-slate-400">'+t.tipe+(t.alamat?' • '+t.alamat:'')+'</p>'
-      +(rlBadge ? '<div>'+rlBadge+'</div>' : '')
+      +(rlBadge||autoBadge ? '<div class="flex flex-wrap gap-1">'+(rlBadge||'')+(autoBadge||'')+'</div>' : '')
       +'<div class="flex items-center justify-between pt-0.5">'
       +'<p class="text-[10px] text-slate-400">'+tgl+(tek?' • '+tek:'')+'</p>'
       +btn+'</div></div>';
@@ -564,8 +600,88 @@ var _origInitBuatWOForm = typeof initBuatWOForm === 'function' ? initBuatWOForm 
 function initBuatWOFormWithRefresh() {
   if (_origInitBuatWOForm) _origInitBuatWOForm();
   refreshAdminTicketList();
+  // Untuk CS Mitra: load ODP yang diizinkan dan tampilkan info area
+  if(currentUser && currentUser.mitraId) {
+    loadODPFilteredForMitra(currentUser.mitraId);
+  }
 }
 window.initBuatWOForm = initBuatWOFormWithRefresh;
+
+// ── FILTER ODP UNTUK CS MITRA ────────────────────────────────
+// Dipanggil saat CS Mitra buka form WO — tampilkan info area ODC
+// dan inject dropdown ODP berdasarkan ODC yang diizinkan
+async function loadODPFilteredForMitra(mitraId) {
+  if(!mitraId || typeof getMitraODCAccess !== 'function') return;
+  const allowedODCs = await getMitraODCAccess(mitraId);
+  if(!allowedODCs || allowedODCs.length === 0) return;
+
+  // Tampilkan info area di form
+  const bannerIds = ['wo-fields-instalasi','wo-fields-reseller','wo-fields-perluasan'];
+  bannerIds.forEach(function(fieldId) {
+    const field = document.getElementById(fieldId);
+    if(!field) return;
+    // Hapus banner lama jika ada
+    const old = field.querySelector('.mitra-area-banner');
+    if(old) old.remove();
+    // Tambah banner area ODC
+    const banner = document.createElement('div');
+    banner.className = 'mitra-area-banner bg-orange-50 dark:bg-orange-900/20 border border-orange-200 dark:border-orange-700 rounded-xl px-3 py-2.5 text-xs text-orange-700 dark:text-orange-300 flex items-start gap-2';
+    banner.innerHTML = `<i class="fa-solid fa-map-location-dot mt-0.5 shrink-0"></i><div><p class="font-bold">Area yang diizinkan:</p><p class="text-[11px] mt-0.5">${allowedODCs.join(', ')}</p><p class="text-[10px] mt-1 text-orange-500">Pemasangan hanya boleh di area ODC di atas.</p></div>`;
+    field.insertBefore(banner, field.firstChild);
+  });
+
+  // Inject dropdown ODP untuk setiap field koordinat
+  // Ambil semua ODP yang ODC-nya diizinkan
+  try {
+    const { data: odpList } = await supa.from('odp')
+      .select('odp_id, odc, lokasi, kapasitas, terisi')
+      .in('odc', allowedODCs)
+      .order('odc').order('odp_id');
+
+    if(!odpList || !odpList.length) return;
+
+    // Inject dropdown di setiap input koordinat yang relevan
+    const koordFields = [
+      { inputId: 'wo-koordinat-instalasi', wrapId: 'wo-fields-instalasi' },
+      { inputId: 'wo-koordinat-reseller',  wrapId: 'wo-fields-reseller'  },
+      { inputId: 'wo-koordinat-perluasan', wrapId: 'wo-fields-perluasan' },
+    ];
+
+    koordFields.forEach(function(f) {
+      const input = document.getElementById(f.inputId);
+      if(!input) return;
+      // Hapus dropdown lama
+      const oldDrop = document.getElementById(f.inputId + '-odp-drop');
+      if(oldDrop) oldDrop.remove();
+      // Buat dropdown
+      const wrap = input.parentElement;
+      if(!wrap) return;
+      const select = document.createElement('select');
+      select.id = f.inputId + '-odp-drop';
+      select.className = 'w-full mt-1 px-3 py-2 bg-slate-50 dark:bg-slate-700 border border-orange-300 dark:border-orange-700 rounded-xl text-xs font-medium focus:outline-none focus:border-orange-500 transition-all';
+      select.innerHTML = '<option value="">-- Pilih ODP (isi koordinat otomatis) --</option>' +
+        odpList.map(function(o) {
+          const sisa = (o.kapasitas||0) - (o.terisi||0);
+          const disabled = sisa <= 0 ? 'disabled' : '';
+          return `<option value="${o.odp_id}" data-odc="${o.odc}" ${disabled}>${o.odp_id} — ${o.odc} | ${o.lokasi||'-'} (Sisa: ${sisa})</option>`;
+        }).join('');
+      select.addEventListener('change', function() {
+        if(!this.value) return;
+        // Isi input koordinat jika ODP dipilih
+        // Cari di odpMaster
+        const odp = typeof odpMaster !== 'undefined'
+          ? odpMaster.find(function(o) { return o.id === select.value; })
+          : null;
+        if(odp && odp.lat && odp.lng) {
+          input.value = odp.lat + ', ' + odp.lng;
+        }
+      });
+      wrap.appendChild(select);
+    });
+  } catch(err) {
+    console.warn('[MitraODP] Gagal load ODP:', err.message);
+  }
+}
 
 // Override addNewEmployee
 async function addNewEmployeeWithDB(e) {
@@ -626,7 +742,7 @@ async function showWODetail(woId) {
       +row('Alamat', d.alamat)
       +row('Tipe', d.tipe)
       +row('Dibuat', tgl)
-      +row('CS/Admin', d.cs_name)
+      +row(window.sinuResolveOperationalDivision(d.cs_name,'CS'), d.cs_name)
       +row('Teknisi', tek)
       +'<p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider mt-3 mb-1">Waktu</p>'
       +row('WA Masuk', d.t1)
