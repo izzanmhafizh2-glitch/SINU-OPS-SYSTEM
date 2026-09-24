@@ -22,7 +22,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <script>tailwind.config={darkMode:'class'}</script>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Supabase SDK dihapus — diganti db.js (MySQL REST API) -->
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs"></script>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/blazeface"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -2873,7 +2873,7 @@
 
   Mau ubah data/konfigurasi?   → edit js/config.js
   Mau ubah auth/navigasi?      → edit js/app.js
-  Mau ubah koneksi Supabase?   → edit js/supabase-init.js
+  Mau ubah koneksi DB?          → edit js/db.js (ganti API_BASE_URL)
   Mau ubah dashboard/chart?    → edit js/dashboard.js
   Mau ubah fitur tugas?        → edit js/tugas.js
   Mau ubah fitur material?     → edit js/material.js
@@ -2881,15 +2881,16 @@
   Mau ubah fitur admin?        → edit js/admin.js
   Mau ubah KPI/log?            → edit js/kpi.js
   Mau ubah rekap/export?       → edit js/rekap.js
-  Mau ubah fungsi DB lanjutan? → edit js/supabase-extended.js
+  Mau ubah fungsi DB lanjutan? → edit js/db-extended.js
   ================================================================
 -->
 
 <!-- 1. Data Master & Konfigurasi -->
 <script src="js/config.js?v=1000195"></script>
 
-<!-- 2. Supabase Client Initialization -->
-<script src="js/supabase-init.js?v=1000206"></script>
+<!-- 2. MySQL DB Layer (pengganti Supabase) -->
+<script src="js/db.js?v=2026092401"></script>
+<script src="js/db-init.js?v=2026092401"></script>
 
 <!-- 3. Core Application (Auth, Navigation, Init) -->
 <script src="js/app.js?v=1000223"></script>
@@ -2913,8 +2914,8 @@
 <script src="js/pelanggan.js?v=1000001"></script>
 <script src="js/baps-manager.js?v=1000001"></script>
 
-<!-- 5. Supabase Extended Functions -->
-<script src="js/supabase-extended.js?v=2026092301"></script>
+<!-- 5. DB Extended Functions (pengganti supabase-extended.js) -->
+<script src="js/db-extended.js?v=2026092401"></script>
 
 <!-- 6. Notification Center -->
 <script src="js/notifications.js?v=1000195"></script>

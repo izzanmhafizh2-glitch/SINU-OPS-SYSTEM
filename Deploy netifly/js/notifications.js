@@ -1,15 +1,17 @@
 // ===================== NOTIFICATION CENTER =====================
-// Notifikasi client-side real-time untuk tugas baru dan provisioning.
-// Riwayat disimpan lokal per user sampai tabel notifications/server push tersedia.
+// Notifikasi client-side — polling ke MySQL REST API.
+// Supabase Realtime diganti polling tiap 12 detik.
+// Riwayat disimpan lokal per user di localStorage.
 const SINU_NOTIFICATION_LIMIT = 60;
 let sinuNotifications = [];
-let sinuNotificationChannelWO = null;
-let sinuNotificationChannelProvisioning = null;
-let sinuNotificationChannelDismantle = null;
-let sinuNotificationChannelDismantleItems = null;
-let sinuNotificationChannelDeviceHistory = null;
 let sinuNotificationUserKey = '';
 let sinuNotificationTimer = null;
+// Polling state — simpan snapshot terakhir untuk deteksi perubahan
+let _sinuLastWOSnapshot = {};
+let _sinuLastProvSnapshot = {};
+let _sinuLastDismantleSnapshot = {};
+let _sinuLastDeviceSnapshot = 0;
+let _sinuPollingTimer = null;
 
 function sinuNotificationStorageKey() {
   const username = currentUser && (currentUser.username || currentUser.displayName);
@@ -463,57 +465,75 @@ function handleSinuRealtimeNotification(table, payload) {
   }
 }
 
+// ── POLLING PENGGANTI SUPABASE REALTIME ──────────────────────
+async function _sinuPollNotifications() {
+  if (!currentUser || typeof supa === 'undefined') return;
+  try {
+    // Poll work_orders (ambil 50 terbaru)
+    const { data: woData } = await supa.from('work_orders')
+      .select('wo_id,tipe,status,pelanggan,noc_name,teknisi,released_at,picked_up_at,completed_at,created_at,rl_radius_done,koordinat')
+      .order('created_at', { ascending: false }).limit(50);
+    (woData || []).forEach(row => {
+      const prev = _sinuLastWOSnapshot[row.wo_id] || {};
+      if (JSON.stringify(prev) !== JSON.stringify(row)) {
+        const payload = { new: row, old: prev, eventType: prev.wo_id ? 'UPDATE' : 'INSERT' };
+        handleSinuRealtimeNotification('work_orders', payload);
+        _sinuLastWOSnapshot[row.wo_id] = { ...row };
+      }
+    });
+
+    // Poll provisioning_requests
+    const { data: provData } = await supa.from('provisioning_requests')
+      .select('id,wo_id,status,teknisi_name,created_at').order('created_at', { ascending: false }).limit(30);
+    (provData || []).forEach(row => {
+      const prev = _sinuLastProvSnapshot[row.id] || {};
+      if (JSON.stringify(prev) !== JSON.stringify(row)) {
+        const payload = { new: row, old: prev, eventType: prev.id ? 'UPDATE' : 'INSERT' };
+        handleSinuRealtimeNotification('provisioning_requests', payload);
+        _sinuLastProvSnapshot[row.id] = { ...row };
+      }
+    });
+
+    // Poll tiket_dismantle
+    const { data: disData } = await supa.from('tiket_dismantle')
+      .select('id,wo_id,status,pelanggan,teknisi,created_at').order('created_at', { ascending: false }).limit(30);
+    (disData || []).forEach(row => {
+      const prev = _sinuLastDismantleSnapshot[row.id] || {};
+      if (JSON.stringify(prev) !== JSON.stringify(row)) {
+        const payload = { new: row, old: prev, eventType: prev.id ? 'UPDATE' : 'INSERT' };
+        handleSinuRealtimeNotification('tiket_dismantle', payload);
+        _sinuLastDismantleSnapshot[row.id] = { ...row };
+      }
+    });
+  } catch(e) { /* silent */ }
+}
+
 function destroySinuNotificationRealtime() {
-  if (typeof supa !== 'undefined') {
-    if (sinuNotificationChannelWO) supa.removeChannel(sinuNotificationChannelWO);
-    if (sinuNotificationChannelProvisioning) supa.removeChannel(sinuNotificationChannelProvisioning);
-    if (sinuNotificationChannelDismantle) supa.removeChannel(sinuNotificationChannelDismantle);
-    if (sinuNotificationChannelDismantleItems) supa.removeChannel(sinuNotificationChannelDismantleItems);
-    if (sinuNotificationChannelDeviceHistory) supa.removeChannel(sinuNotificationChannelDeviceHistory);
-  }
-  sinuNotificationChannelWO = null;
-  sinuNotificationChannelProvisioning = null;
-  sinuNotificationChannelDismantle = null;
-  sinuNotificationChannelDismantleItems = null;
-  sinuNotificationChannelDeviceHistory = null;
+  if (_sinuPollingTimer) { clearInterval(_sinuPollingTimer); _sinuPollingTimer = null; }
   sinuNotificationUserKey = '';
+  _sinuLastWOSnapshot = {};
+  _sinuLastProvSnapshot = {};
+  _sinuLastDismantleSnapshot = {};
 }
 
 function initNotificationSystem() {
-  if (typeof supa === 'undefined' || !currentUser) return;
+  if (!currentUser) return;
   const userKey = String(currentUser.username || currentUser.displayName || '').toLowerCase();
   if (!userKey) return;
-  if (sinuNotificationUserKey === userKey && sinuNotificationChannelWO && sinuNotificationChannelProvisioning
-      && sinuNotificationChannelDismantle && sinuNotificationChannelDismantleItems && sinuNotificationChannelDeviceHistory) {
+  if (sinuNotificationUserKey === userKey && _sinuPollingTimer) {
     sinuNotificationRender();
     return;
   }
 
   destroySinuNotificationRealtime();
   sinuNotificationUserKey = userKey;
-  const channelKey = userKey.replace(/[^a-z0-9_-]/g, '-').slice(0, 40);
   sinuNotificationLoad();
   sinuNotificationRender();
 
-  sinuNotificationChannelWO = supa.channel('sinu-notifications-wo-' + channelKey)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'work_orders' }, payload => handleSinuRealtimeNotification('work_orders', payload))
-    .subscribe(status => console.log('[Notification] Channel WO:', status));
-
-  sinuNotificationChannelProvisioning = supa.channel('sinu-notifications-provisioning-' + channelKey)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'provisioning_requests' }, payload => handleSinuRealtimeNotification('provisioning_requests', payload))
-    .subscribe(status => console.log('[Notification] Channel provisioning:', status));
-
-  sinuNotificationChannelDismantle = supa.channel('sinu-notifications-dismantle-' + channelKey)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'tiket_dismantle' }, payload => handleSinuRealtimeNotification('tiket_dismantle', payload))
-    .subscribe(status => console.log('[Notification] Channel dismantle:', status));
-
-  sinuNotificationChannelDismantleItems = supa.channel('sinu-notifications-dismantle-items-' + channelKey)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'dismantle_items' }, payload => handleSinuRealtimeNotification('dismantle_items', payload))
-    .subscribe(status => console.log('[Notification] Channel dismantle_items:', status));
-
-  sinuNotificationChannelDeviceHistory = supa.channel('sinu-notifications-device-history-' + channelKey)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'device_history' }, payload => handleSinuRealtimeNotification('device_history', payload))
-    .subscribe(status => console.log('[Notification] Channel device_history:', status));
+  // Jalankan polling pertama langsung, lalu tiap 12 detik
+  _sinuPollNotifications();
+  _sinuPollingTimer = setInterval(_sinuPollNotifications, 12000);
+  console.log('[Notification] Polling aktif — interval 12 detik (pengganti Supabase Realtime)');
 }
 
 function monitorSinuNotificationSession() {

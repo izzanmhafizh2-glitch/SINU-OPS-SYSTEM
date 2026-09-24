@@ -1,30 +1,33 @@
-// ===================== DATA MASTER =====================
-// ACCOUNTS lokal hanya sebagai fallback jika Supabase tidak tersedia
-// Data akun utama diambil dari tabel 'akun' di Supabase
-const ACCOUNTS = [];
+// ===================== CONFIG & DATA MASTER =====================
+// Database: MySQL via REST API (db.js)
+// Ganti API_BASE_URL di db.js sesuai alamat backend Node.js Anda
+// ================================================================
 
-// ODP — diambil dari Supabase tabel 'odp', array ini hanya default kosong
+// ODP — diambil dari tabel 'odp' via REST API
 let odpMaster = [];
 
-// Karyawan — diambil dari Supabase tabel 'karyawan'
+// Karyawan — diambil dari tabel 'karyawan' via REST API
 let employeeMaster = [];
 
 // State global aplikasi
 let currentUser = null, locationData = null, capturedImageData = null, faceModel = null;
 let mainChartInstance = null, donutChartInstance = null;
 let currentRoleFilter = 'All';
-let absensiRawData = []; // Raw data absensi untuk chart
+let absensiRawData = [];
 let activeCancelWOType = null, myPickedTasks = [];
 let sickHasDoc = true;
 
-// Release tickets — diambil dari Supabase tabel 'work_orders' status RELEASE
+// ACCOUNTS lokal — fallback darurat jika API tidak tersedia
+const ACCOUNTS = [];
+
+// Release tickets — diambil dari tabel 'work_orders' status RELEASE
 const releaseTickets = [];
 
-// KPI WO data — diambil dari Supabase tabel 'work_orders'
+// KPI WO data — diambil dari tabel 'work_orders'
 let kpiWOData = [];
 
-// Device histories — diambil dari Supabase tabel 'device_history'
+// Device histories — diambil dari tabel 'device_history'
 const deviceHistories = {};
 
-// Absensi points — diambil dari Supabase tabel 'absensi'
+// Absensi points — diambil dari tabel 'absensi'
 let absensiPoints = {};

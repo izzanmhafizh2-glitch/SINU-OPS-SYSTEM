@@ -1,6 +1,10 @@
 // =====================================================================
-// supabase-extended.js
-// Fungsi DB tambahan yang memperluas koneksi Supabase:
+// db-extended.js — MySQL via REST API
+// Pengganti supabase-extended.js
+// Semua supa.from() diteruskan ke db.js (MySQL REST API layer)
+// Pastikan db.js dimuat SEBELUM file ini di index.html
+// =====================================================================
+// Fungsi DB tambahan:
 //   - renderPickupListFromDB  : tampilkan tiket release dari DB
 //   - loadWaitingApproval     : antrian approval per teknisi
 //   - loadListPerangkatSaya   : perangkat approved per teknisi
@@ -936,98 +940,45 @@ function _sinuRefreshWorkOrderViews() {
   _sinuRefreshIfVisible('sub-adm-content-registrasi', 'loadProvisioningQueue');
 }
 
+// ── POLLING PENGGANTI SUPABASE REALTIME ──────────────────────────────
+// Supabase Realtime (postgres_changes) tidak tersedia di MySQL.
+// Diganti dengan setInterval polling setiap 10 detik.
+var _sinuPollingInterval = null;
+
 function initRealtimeListeners() {
-  if(typeof supa === 'undefined') return;
+  // Hentikan polling lama jika ada
+  if(_sinuPollingInterval) { clearInterval(_sinuPollingInterval); _sinuPollingInterval = null; }
 
-  // Channel: work_orders berubah → refresh semua view terkait yang aktif
-  supa.channel('realtime-wo')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'work_orders'
-    }, () => { _sinuRefreshWorkOrderViews(); })
-    .subscribe();
+  function _poll() {
+    if(!currentUser) return;
+    // Refresh work order views
+    _sinuRefreshWorkOrderViews();
+    // Provisioning
+    _sinuRefreshIfVisible('sub-adm-content-registrasi', 'loadProvisioningQueue');
+    _sinuRefreshIfVisible('sub-content-registrasi-noc', 'loadProvisioningQueueNOC');
+    // Dismantle
+    _sinuRefreshIfVisible('sub-content-pickup-dismantle', 'loadPickupDismantle');
+    _sinuRefreshIfVisible('sub-content-tugas-dismantle', 'loadTugasDismantle');
+    _sinuRefreshIfVisible('sub-content-checking-dismantle', 'loadCheckingDismantle');
+    if(typeof loadTiketDismantleAdmin === 'function' && _sinuIsVisible(document.getElementById('tiket-dismantle-admin-list'))) loadTiketDismantleAdmin();
+    _sinuRefreshIfVisible('sub-adm-content-list-tiket-dismantle', 'loadListTiketDismantle');
+    _sinuRefreshIfVisible('sub-adm-content-dismantle-items', 'loadDismantleItems');
+    // Pickup & material requests
+    if(typeof loadWaitingApproval === 'function') loadWaitingApproval();
+    if(typeof loadApprovalList === 'function') loadApprovalList();
+    if(typeof loadMaterialRequests === 'function') loadMaterialRequests();
+    // Perangkat
+    if(typeof loadAndRenderListPerangkat === 'function' && _sinuIsVisible(document.getElementById('admin-list-perangkat-tbody'))) loadAndRenderListPerangkat();
+    if(typeof loadListPerangkatSaya === 'function') loadListPerangkatSaya();
+  }
 
-  // Channel: provisioning_requests → admin & NOC
-  supa.channel('realtime-provisioning')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'provisioning_requests'
-    }, () => {
-      _sinuRefreshIfVisible('sub-adm-content-registrasi', 'loadProvisioningQueue');
-      _sinuRefreshIfVisible('sub-content-registrasi-noc', 'loadProvisioningQueueNOC');
-    })
-    .subscribe();
-
-  // Channel: tiket_dismantle berubah → refresh pickup/tugas dismantle + list admin
-  supa.channel('realtime-dismantle')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'tiket_dismantle'
-    }, () => {
-      _sinuRefreshIfVisible('sub-content-pickup-dismantle', 'loadPickupDismantle');
-      _sinuRefreshIfVisible('sub-content-tugas-dismantle', 'loadTugasDismantle');
-      _sinuRefreshIfVisible('sub-content-checking-dismantle', 'loadCheckingDismantle');
-      // Admin: list tiket dismantle aktif + list tiket dismantle
-      if(typeof loadTiketDismantleAdmin === 'function' && _sinuIsVisible(document.getElementById('tiket-dismantle-admin-list'))) loadTiketDismantleAdmin();
-      _sinuRefreshIfVisible('sub-adm-content-list-tiket-dismantle', 'loadListTiketDismantle');
-    })
-    .subscribe();
-
-  // Channel: dismantle_items berubah → refresh checking NOC + list item admin
-  supa.channel('realtime-dismantle-items')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'dismantle_items'
-    }, () => {
-      _sinuRefreshIfVisible('sub-content-checking-dismantle', 'loadCheckingDismantle');
-      _sinuRefreshIfVisible('sub-adm-content-dismantle-items', 'loadDismantleItems');
-    })
-    .subscribe();
-
-  // Channel: pickup_requests berubah → update waiting list teknisi + approval admin
-  supa.channel('realtime-pickup')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'pickup_requests'
-    }, (payload) => {
-      if(typeof loadWaitingApproval === 'function') loadWaitingApproval();
-      if(typeof loadApprovalList === 'function') loadApprovalList();
-      if(payload.eventType === 'INSERT' && currentUser && currentUser.role === 'admin') {
-        const r = payload.new;
-        if(typeof showToast === 'function')
-          showToast('📦 Request Pickup Masuk', `${r.teknisi_name} request SN ${r.sn}`, 'info', 6000);
-      }
-    })
-    .subscribe();
-
-  // Channel: material_requests berubah → update Send/Return status teknisi + admin
-  supa.channel('realtime-material')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'material_requests'
-    }, (payload) => {
-      if(typeof loadMaterialRequests === 'function') loadMaterialRequests();
-      if(payload.eventType === 'INSERT' && currentUser && currentUser.role === 'admin') {
-        const r = payload.new;
-        const typeLabel = r.type === 'SEND' ? '🔄 Request Send' : '↩️ Request Return';
-        if(typeof showToast === 'function')
-          showToast(typeLabel+' Masuk', `${r.dari_teknisi}: SN ${r.sn}`, 'info', 6000);
-      }
-    })
-    .subscribe();
-
-  // Channel: perangkat berubah → refresh list perangkat + rekap kabel + tracking
-  supa.channel('realtime-perangkat')
-    .on('postgres_changes', {
-      event: '*', schema: 'public', table: 'perangkat'
-    }, () => {
-      if(typeof loadAndRenderListPerangkat === 'function' && _sinuIsVisible(document.getElementById('admin-list-perangkat-tbody'))) loadAndRenderListPerangkat();
-      if(typeof loadRekapKabel === 'function') loadRekapKabel();
-      if(typeof loadLogPerangkat === 'function' && _sinuIsVisible(document.getElementById('logperangkat-table-body'))) loadLogPerangkat();
-      if(typeof loadListPerangkatSaya === 'function') loadListPerangkatSaya();
-    })
-    .subscribe();
-
-  console.log('[Realtime] Listeners aktif — 7 channels');
+  _sinuPollingInterval = setInterval(_poll, 10000); // poll tiap 10 detik
+  console.log('[Polling] Auto-refresh aktif — interval 10 detik (pengganti Supabase Realtime)');
 }
 
-// Panggil realtime saat app siap
+// Panggil polling saat app siap
 window.addEventListener('load', function() {
-  setTimeout(() => {
+  setTimeout(function() {
     if(currentUser) initRealtimeListeners();
   }, 2000);
 });

@@ -1,7 +1,8 @@
-// ===================== SUPABASE INTEGRATION =====================
-const SUPABASE_URL = 'https://pasmdewdganfgdnntwam.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc21kZXdkZ2FuZmdkbm50d2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Njc3OTgsImV4cCI6MjEwMzU0Mzc5OH0.3NKjbhz0IzVAjMGOGlnvyWptDyNPejzrbIYD1QNT-2U';
-const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ===================== DB INIT — MySQL via REST API =====================
+// Pengganti supabase-init.js
+// Semua supa.from() diteruskan ke db.js (MySQL REST API layer)
+// Pastikan db.js dimuat SEBELUM file ini di index.html
+// ========================================================================
 
 // ── LOGIN ─────────────────────────────────────────────────────
 async function handleLogin(e) {
