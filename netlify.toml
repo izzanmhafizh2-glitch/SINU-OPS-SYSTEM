@@ -1,0 +1,49 @@
+[build]
+  # Folder yang di-deploy ke Netlify (tidak ada build step)
+  publish = "Deploy netifly"
+
+[build.environment]
+  NODE_VERSION = "18"
+
+# Header keamanan & PWA
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(self)"
+
+# Cache panjang untuk aset statis
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/css/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+[[headers]]
+  for = "/js/*"
+  [headers.values]
+    Cache-Control = "public, max-age=86400"
+
+# Service worker harus selalu fresh (no cache)
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache, no-store, must-revalidate"
+
+# Service worker scope — izinkan di root
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Service-Worker-Allowed = "/"
+
+# SPA redirect: semua path ke index.html
+[[redirects]]
+  from = "/*"
+  to   = "/index.html"
+  status = 200
