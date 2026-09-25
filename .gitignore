@@ -1,3 +1,12 @@
 node_modules/
 .env
 *.log
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+test_*.html
+tools/
+semantic-review/
+Deploy netifly/supabase/.temp/
+backend/.env
