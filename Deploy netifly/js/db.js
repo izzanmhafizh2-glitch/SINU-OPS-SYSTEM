@@ -8,7 +8,7 @@
 // Untuk URL permanen, daftar akun Cloudflare dan buat named tunnel
 const API_BASE_URL = (typeof window !== 'undefined' && window.SINU_API_URL)
   ? window.SINU_API_URL
-  : 'https://measuring-races-education-antonio.trycloudflare.com';
+  : 'https://mysterious-inflation-ethics-related.trycloudflare.com';
 
 // ── AUTH TOKEN ────────────────────────────────────────────────
 function dbGetToken() {
