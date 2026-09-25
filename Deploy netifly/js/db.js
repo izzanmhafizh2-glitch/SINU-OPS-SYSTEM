@@ -3,11 +3,12 @@
 // Backend: Node.js/Express + MySQL (lihat /db/schema.sql)
 // ================================================================
 
-// URL backend Node.js/Express (server.js via Cloudflare Tunnel)
-// Quick tunnel URL — ganti jika tunnel di-restart (URL berubah)
+// URL backend Node.js/Express via Cloudflare Tunnel
+// CATATAN: Quick tunnel URL berubah setiap restart cloudflared
+// Untuk URL permanen, daftar akun Cloudflare dan buat named tunnel
 const API_BASE_URL = (typeof window !== 'undefined' && window.SINU_API_URL)
   ? window.SINU_API_URL
-  : 'https://commissions-spice-certain-jar.trycloudflare.com';
+  : 'https://measuring-races-education-antonio.trycloudflare.com';
 
 // ── AUTH TOKEN ────────────────────────────────────────────────
 function dbGetToken() {
