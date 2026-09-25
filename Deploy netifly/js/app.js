@@ -980,15 +980,19 @@ async function saveProfilePhoto(base64) {
   if(statusEl) statusEl.classList.remove('hidden');
 
   try {
-    if(typeof supa === 'undefined' || !currentUser) throw new Error('Tidak ada koneksi');
+    if(!currentUser) throw new Error('Tidak ada sesi login');
 
-    const { error } = await supa.from('akun')
-      .update({ avatar_url: base64 })
-      .eq('username', currentUser.username);
+    // Simpan ke MySQL via REST API
+    const res = await dbFetch('/api/akun?' + new URLSearchParams({
+      filters: JSON.stringify([{ op: 'eq', col: 'username', val: currentUser.username }])
+    }), {
+      method: 'PATCH',
+      body: JSON.stringify({ avatar_url: base64 })
+    });
 
-    if(error) throw error;
+    if(res.error) throw new Error(res.error.message);
 
-    // Simpan ke session dan localStorage
+    // Update session dan localStorage
     currentUser.photoUrl = base64;
     sinuSavePersistentSession(currentUser);
     localStorage.setItem('sinu_photo_' + currentUser.username, base64);

@@ -181,7 +181,7 @@ async function handleFormSubmit(event){
   const point=hitungPointKehadiran(statusKehadiran,mntLate,'',false);
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengirim...</span>';
   try {
-    if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({
+    if(typeof simpanAbsensiKeDB==='function') await simpanAbsensiKeDB({
       nama:empName,
       username:currentUser ? currentUser.username : '',
       role,

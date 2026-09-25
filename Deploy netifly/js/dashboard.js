@@ -275,7 +275,7 @@ function filterIndividualList(){updateRecapTable();}
 // Pastikan semua akun terdaftar masuk ke employeeMaster untuk rekapitulasi
 async function loadEmployeesFromAkun() {
   try {
-    var res = await supa.from('akun').select('username, display_name, role, division');
+    var res = await dbFetch('/api/akun?select=username,display_name,role,division');
     if(res.error || !res.data) return;
     var roleMap = {
       'admin':'Admin','teknisi':'Teknisi','noc':'NOC',

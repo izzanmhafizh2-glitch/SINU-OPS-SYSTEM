@@ -219,11 +219,13 @@ const dbRealtime = {
 };
 
 // ── GLOBAL ALIAS (kompatibilitas kode lama pakai 'supa') ──────
-// Kode yang masih pakai supa.from() / supa.storage / supa.channel()
-// akan otomatis diarahkan ke db layer ini.
-const supa = {
+// Expose ke window agar semua file JS bisa akses supa.from() tanpa import.
+// Semua query otomatis diarahkan ke MySQL REST API via dbFetch().
+window.supa = {
   from: (table) => db().from(table),
   storage: dbStorage,
   channel: (name) => dbRealtime.channel(name),
   removeChannel: (ch) => { /* no-op */ }
 };
+// Alias lokal juga agar kode di file ini sendiri bisa pakai
+const supa = window.supa;

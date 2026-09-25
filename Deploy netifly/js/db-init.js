@@ -13,6 +13,7 @@ async function handleLogin(e) {
   const btn = document.getElementById('btn-login');
   btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i><span>Masuk...</span>';
   btn.disabled = true;
+
   const doLogin = (acc) => {
     if (!acc) {
       document.getElementById('login-error-msg').textContent = 'Username atau password salah.';
@@ -28,36 +29,34 @@ async function handleLogin(e) {
     btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
     btn.disabled = false;
   };
+
   try {
-    const { data, error } = await supa.from('akun').select('*').ilike('username', u).maybeSingle();
-    console.log('LOGIN DEBUG:', { u, queryData: data, queryError: error });
-    if (!error && data) {
-      console.log('PASSWORD CHECK:', { input: p, stored: data.password, match: data.password === p });
-      if (data.password !== p) { doLogin(null); return; }
-      doLogin({
-        username: data.username,
-        role: data.role ? data.role.toLowerCase() : 'teknisi',
-        displayName: data.display_name || data.username,
-        avatar: data.avatar || data.username.substring(0,2).toUpperCase(),
-        division: data.division || '',
-        photoUrl: data.avatar_url || null,
-        accountType: data.account_type || 'internal',
-        mitraId: data.mitra_id || null
-      });
+    // Login via MySQL REST API
+    const res = await dbFetch('/api/login', {
+      method: 'POST',
+      body: JSON.stringify({ username: u, password: p })
+    });
+    if (res.data && !res.error) {
+      doLogin(res.data);
     } else {
-      console.log('Supabase no data, trying local...');
-      const acc = ACCOUNTS.find(a => a.username === u && a.password === p);
-      doLogin(acc || null);
+      const msg = res.error && res.error.message ? res.error.message : 'Username atau password salah.';
+      document.getElementById('login-error-msg').textContent = msg;
+      err.classList.remove('hidden');
+      document.getElementById('login-password').value = '';
+      btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
+      btn.disabled = false;
     }
-  } catch(e) {
-    console.error('Login error:', e);
-    const acc = ACCOUNTS.find(a => a.username === u && a.password === p);
-    doLogin(acc || null);
+  } catch(ex) {
+    console.error('[Login] Error:', ex);
+    document.getElementById('login-error-msg').textContent = 'Tidak dapat terhubung ke server. Coba lagi.';
+    err.classList.remove('hidden');
+    btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
+    btn.disabled = false;
   }
 }
 
-// ── LOAD DATA dari Supabase ───────────────────────────────────
-async function loadODPFromSupabase() {
+// ── LOAD DATA dari MySQL ───────────────────────────────────
+async function loadODPFromDB() {
   try {
     const { data, error } = await supa.from('odp').select('*').order('odp_id');
     if (!error && data && data.length) {
@@ -67,7 +66,7 @@ async function loadODPFromSupabase() {
   } catch(e) { console.warn('ODP load fallback'); }
 }
 
-async function loadKaryawanFromSupabase() {
+async function loadKaryawanFromDB() {
   try {
     const { data, error } = await supa.from('karyawan').select('*').order('nama');
     if (!error && data && data.length) {
@@ -77,7 +76,7 @@ async function loadKaryawanFromSupabase() {
   } catch(e) { console.warn('Karyawan load fallback'); }
 }
 
-async function loadWOFromSupabase() {
+async function loadWOFromDB() {
   try {
     const { data, error } = await supa.from('work_orders').select('*').order('created_at', { ascending: false });
     if (error) throw error;
@@ -99,8 +98,8 @@ async function loadWOFromSupabase() {
   }
 }
 
-// ── SIMPAN ke Supabase ────────────────────────────────────────
-async function simpanAbsensiKeSupabase(payload) {
+// ── SIMPAN ke MySQL ────────────────────────────────────────
+async function simpanAbsensiKeDB(payload) {
   const now = new Date();
   const tanggal = now.getFullYear()+'-'+String(now.getMonth()+1).padStart(2,'0')+'-'+String(now.getDate()).padStart(2,'0');
   const row = {
@@ -128,7 +127,7 @@ async function simpanAbsensiKeSupabase(payload) {
   if(result.error) throw result.error;
 }
 
-async function simpanWOKeSupabase(woData) {
+async function simpanWOKeDB(woData) {
   try {
     const row = { wo_id: woData.id, pelanggan: woData.pelanggan, tipe: woData.tipe, cs_name: woData.cs, teknisi: woData.teknisi || [], teknisi_1: woData.teknisi_1 || null, teknisi_2: woData.teknisi_2 || null, t1: woData.t1, t2: woData.t2, t4: woData.t4 || null, released_at: woData.released_at || new Date().toISOString(), picked_up_at: woData.picked_up_at || null, completed_at: woData.completed_at || null, status: woData.status || 'RELEASE', bulan: woData.bulan, tahun: woData.tahun, alamat: woData.alamat || '' };
     let result = await supa.from('work_orders').insert(row);
@@ -150,7 +149,7 @@ async function updateStatusWO(woId, status, t4 = null) {
   } catch(e) { console.warn('Update WO gagal:', e); }
 }
 
-async function simpanODPKeSupabase(odp) {
+async function simpanODPKeDB(odp) {
   try {
     const row = { odp_id: odp.id, odc: odp.odc || null, lokasi: odp.lokasi, kapasitas: odp.kapasitas, terisi: odp.terisi, lat: odp.lat, lng: odp.lng };
     let result = await supa.from('odp').upsert(row);
@@ -163,15 +162,15 @@ async function simpanODPKeSupabase(odp) {
   } catch(e) { console.warn('ODP tidak tersimpan:', e); }
 }
 
-async function simpanKaryawanKeSupabase(nama, role) {
+async function simpanKaryawanKeDB(nama, role) {
   try {
     await supa.from('karyawan').insert({ nama, role, avatar: nama.substring(0,2).toUpperCase() });
   } catch(e) { console.warn('Karyawan tidak tersimpan:', e); }
 }
 
 // ── LOAD SEMUA DATA ───────────────────────────────────────────
-async function loadAllDataFromSupabase() {
-  await Promise.all([loadODPFromSupabase(), loadKaryawanFromSupabase(), loadWOFromSupabase()]);
+async function loadAllDataFromDB() {
+  await Promise.all([loadODPFromDB(), loadKaryawanFromDB(), loadWOFromDB()]);
   // Sync karyawan dari tabel akun agar semua user masuk rekap
   if(typeof loadEmployeesFromAkun === 'function') await loadEmployeesFromAkun();
   updateDashboardStats();
@@ -183,9 +182,9 @@ async function loadAllDataFromSupabase() {
 }
 
 // ── LOAD & RENDER LIST PERANGKAT ──────────────────────────────
-// Versi lengkap dengan filter ONT/Kabel ada di supabase-extended.js
+// Versi lengkap dengan filter ONT/Kabel ada di db-extended.js
 
-// ── HOOK: panggil Supabase saat initApp ───────────────────────
+// ── HOOK: panggil saat initApp ───────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   var checkInterval = setInterval(function() {
     if (typeof currentUser !== 'undefined') { clearInterval(checkInterval); }
@@ -334,7 +333,7 @@ async function handleCreateTaskWithDB(e) {
     password_pppoe: fields.extra.password_pppoe||null
   };
 
-  console.log('[WO] Menyimpan ke Supabase:', insertData);
+  console.log('[WO] Menyimpan ke MySQL:', insertData);
   console.log('[WO] Status awal:', statusAwal, 'Tipe:', tipe);
   var res = await supa.from('work_orders').insert(insertData);
   // Kompatibilitas sementara bila migration timestamp belum dijalankan.
@@ -348,7 +347,7 @@ async function handleCreateTaskWithDB(e) {
   if(res.error) { console.error('[WO] Gagal simpan:', res.error); showAlert('Gagal simpan WO: '+res.error.message,'Error'); return; }
   console.log('[WO] Berhasil simpan dengan status:', statusAwal);
 
-  // Simpan foto/video kendala maintenance ke Supabase Storage
+  // Simpan foto/video kendala maintenance ke server
   if(tipe === 'MAINTENANCE') {
     showLoading('Mengupload media kendala...');
     var totalMedia = _mediaKendalaFiles.length;
@@ -372,7 +371,7 @@ async function handleCreateTaskWithDB(e) {
     clearMediaKendala();
     hideLoading();
     if(totalMedia > 0 && savedMedia < totalMedia) {
-      showAlert('Sebagian media kendala gagal disimpan ('+savedMedia+'/'+totalMedia+').\nPeriksa koneksi/bucket Supabase "wo-media".','Media Kendala');
+      showAlert('Sebagian media kendala gagal disimpan ('+savedMedia+'/'+totalMedia+').\nPeriksa koneksi server.','Media Kendala');
     }
   }
   document.dispatchEvent(new Event('wo-created'));
@@ -397,7 +396,7 @@ async function addODPWithDB(e) {
   if(terisi>kapasitas){showAlert('Jumlah terisi tidak boleh melebihi kapasitas.','Data Tidak Valid');return;}
   var newODP={id,odc,lokasi,kapasitas,terisi,lat,lng};
   odpMaster.push(newODP); renderODPGrid();
-  await simpanODPKeSupabase(newODP);
+  await simpanODPKeDB(newODP);
   document.getElementById('add-odp-modal').classList.add('hidden'); e.target.reset(); showAlert('ODP '+id+' berhasil ditambahkan.','ODP Tersimpan');
 }
 window.addODP = addODPWithDB;
@@ -693,14 +692,14 @@ async function addNewEmployeeWithDB(e) {
   btn.disabled=true; btn.innerText='Saving...';
   employeeMaster.push({id:generateInitials(name),name,role,daily:{hariKerja:1,hadir:0,tepatWaktu:0,terlambat:0,izinSakit:0,izinCuti:0},weekly:{hariKerja:7,hadir:0,tepatWaktu:0,terlambat:0,izinSakit:0,izinCuti:0},monthly:{hariKerja:30,hadir:0,tepatWaktu:0,terlambat:0,izinSakit:0,izinCuti:0}});
   populateEmployeeDropdowns(); updateRecapTable(); updateDashboardStats();
-  await simpanKaryawanKeSupabase(name, role);
+  await simpanKaryawanKeDB(name, role);
   btn.disabled=false; btn.innerText='Simpan'; closeAddEmployeeModal(); showAlert('Berhasil menambahkan: '+name);
 }
 window.addNewEmployee = addNewEmployeeWithDB;
 
 // Load data saat halaman pertama kali dibuka
 window.addEventListener('load', async function() {
-  await loadAllDataFromSupabase();
+  await loadAllDataFromDB();
 });
 
 // ── VERIFIKASI WO (Admin) ─────────────────────────────────────
@@ -990,7 +989,7 @@ async function importPerangkatExcel(event) {
       return;
     }
 
-    showLoading('Mengimport ' + dataRows.length + ' data ke Supabase...');
+    showLoading('Mengimport data ke MySQL...');
 
     var berhasil = 0, gagal = 0, duplikat = 0;
     var errors = [];
