@@ -3,10 +3,11 @@
 // Backend: Node.js/Express + MySQL (lihat /db/schema.sql)
 // ================================================================
 
-// Ganti URL ini sesuai alamat backend Node.js Anda
+// URL backend Node.js/Express (server.js via Cloudflare Tunnel)
+// Quick tunnel URL — ganti jika tunnel di-restart (URL berubah)
 const API_BASE_URL = (typeof window !== 'undefined' && window.SINU_API_URL)
   ? window.SINU_API_URL
-  : 'https://api.ptsinu.com';   // ← ubah ke URL backend Anda
+  : 'https://commissions-spice-certain-jar.trycloudflare.com';
 
 // ── AUTH TOKEN ────────────────────────────────────────────────
 function dbGetToken() {
