@@ -116,12 +116,13 @@ async function simpanAbsensiKeSupabase(payload) {
     point: payload.point || 0,
     lat: payload.lat || null,
     lng: payload.lng || null,
+    foto_url: payload.fotoUrl || null,
     tanggal
   };
   let result = await supa.from('absensi').insert(row);
   // Kompatibilitas sementara apabila kolom migrasi belum dijalankan.
-  if(result.error && /column|username|schedule_id|jam_masuk_aktual|alasan_keterlambatan|timezone/i.test(result.error.message || '')) {
-    ['username','schedule_id','alasan_keterlambatan','jam_masuk_aktual','timezone'].forEach(function(key){ delete row[key]; });
+  if(result.error && /column|username|schedule_id|jam_masuk_aktual|alasan_keterlambatan|timezone|foto_url/i.test(result.error.message || '')) {
+    ['username','schedule_id','alasan_keterlambatan','jam_masuk_aktual','timezone','foto_url'].forEach(function(key){ delete row[key]; });
     result = await supa.from('absensi').insert(row);
   }
   if(result.error) throw result.error;

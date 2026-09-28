@@ -181,6 +181,13 @@ async function handleFormSubmit(event){
   const point=hitungPointKehadiran(statusKehadiran,mntLate,'',false);
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengirim...</span>';
   try {
+    // Upload foto ke Supabase Storage (tidak blocking — gagal upload tidak gagalkan absensi)
+    let fotoUrl = null;
+    if(capturedImageData) {
+      btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengupload foto...</span>';
+      fotoUrl = await uploadFotoAbsensiKeStorage(capturedImageData, empName);
+    }
+    btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Menyimpan...</span>';
     if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({
       nama:empName,
       username:currentUser ? currentUser.username : '',
@@ -193,7 +200,8 @@ async function handleFormSubmit(event){
       mntTerlambat:mntLate,
       point,
       lat:locationData.lat,
-      lng:locationData.lng
+      lng:locationData.lng,
+      fotoUrl
     });
   } catch(error) {
     btn.disabled=false;btn.innerHTML=orig;
@@ -319,3 +327,93 @@ function resetFormCuti(){
   if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
 }
 function updateFileName(input,labelId){if(input.files&&input.files[0])document.getElementById(labelId).innerText='File: '+input.files[0].name;}
+
+// ── KOMPRESI FOTO ABSENSI ─────────────────────────────────────
+// Mengecilkan foto selfie ke max 800x800px dan kualitas JPEG ~80KB
+async function kompressFotoAbsensi(base64DataUrl, maxWidth=800, maxHeight=800, quality=0.65) {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.onload = function() {
+      let w = img.width, h = img.height;
+      // Scale down proporsional
+      if(w > maxWidth || h > maxHeight) {
+        const ratio = Math.min(maxWidth / w, maxHeight / h);
+        w = Math.round(w * ratio);
+        h = Math.round(h * ratio);
+      }
+      const canvas = document.createElement('canvas');
+      canvas.width = w; canvas.height = h;
+      const ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, w, h);
+      resolve(canvas.toDataURL('image/jpeg', quality));
+    };
+    img.onerror = () => resolve(base64DataUrl); // fallback pakai original
+    img.src = base64DataUrl;
+  });
+}
+
+// Konversi base64 DataURL ke Blob untuk upload
+function base64ToBlob(base64DataUrl) {
+  const [header, data] = base64DataUrl.split(',');
+  const mime = header.match(/:(.*?);/)[1];
+  const binary = atob(data);
+  const arr = new Uint8Array(binary.length);
+  for(let i = 0; i < binary.length; i++) arr[i] = binary.charCodeAt(i);
+  return new Blob([arr], { type: mime });
+}
+
+// ── UPLOAD FOTO KE SUPABASE STORAGE ──────────────────────────
+// Struktur: foto-absensi/2026/09 - September/28-Sep-2026/nama_28092026_0800.jpg
+async function uploadFotoAbsensiKeStorage(base64DataUrl, nama) {
+  try {
+    // Kompresi dulu
+    const compressed = await kompressFotoAbsensi(base64DataUrl);
+    const blob = base64ToBlob(compressed);
+
+    // Buat path folder dan nama file
+    const now = new Date();
+    const tahun = now.getFullYear();
+    const bulanIdx = now.getMonth();
+    const namaBulan = ['Januari','Februari','Maret','April','Mei','Juni',
+                       'Juli','Agustus','September','Oktober','November','Desember'][bulanIdx];
+    const bulanNum = String(bulanIdx + 1).padStart(2, '0');
+    const tgl = String(now.getDate()).padStart(2, '0');
+    const bln = String(bulanIdx + 1).padStart(2, '0');
+    const thn = String(tahun);
+    const jam = String(now.getHours()).padStart(2, '0');
+    const mnt = String(now.getMinutes()).padStart(2, '0');
+
+    // Format tanggal folder: 28-Sep-2026
+    const namaBulanPendek = ['Jan','Feb','Mar','Apr','Mei','Jun',
+                              'Jul','Agu','Sep','Okt','Nov','Des'][bulanIdx];
+    const folderTanggal = `${tgl}-${namaBulanPendek}-${tahun}`;
+
+    // Format nama file: wulan_28092026_0800.jpg
+    const namaFile = `${nama.toLowerCase().replace(/\s+/g,'_')}_${tgl}${bln}${thn}_${jam}${mnt}.jpg`;
+
+    // Path lengkap
+    const filePath = `${tahun}/${bulanNum} - ${namaBulan}/${folderTanggal}/${namaFile}`;
+
+    const { data, error } = await supa.storage
+      .from('foto-absensi')
+      .upload(filePath, blob, {
+        contentType: 'image/jpeg',
+        upsert: true  // overwrite jika sudah ada (absensi ulang hari sama)
+      });
+
+    if(error) {
+      console.warn('[Foto Absensi] Upload gagal:', error.message);
+      return null;
+    }
+
+    // Ambil public URL
+    const { data: urlData } = supa.storage
+      .from('foto-absensi')
+      .getPublicUrl(filePath);
+
+    return urlData ? urlData.publicUrl : null;
+  } catch(e) {
+    console.warn('[Foto Absensi] Error:', e.message);
+    return null;
+  }
+}
