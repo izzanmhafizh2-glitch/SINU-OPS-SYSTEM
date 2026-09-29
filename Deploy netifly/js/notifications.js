@@ -496,7 +496,7 @@ async function _sinuPollNotifications() {
 
     // Poll tiket_dismantle
     const { data: disData } = await supa.from('tiket_dismantle')
-      .select('id,wo_id,status,pelanggan,teknisi,created_at').order('created_at', { ascending: false }).limit(30);
+      .select('id,wo_id,status,nama_pelanggan,teknisi,created_at').order('created_at', { ascending: false }).limit(30);
     (disData || []).forEach(row => {
       const prev = _sinuLastDismantleSnapshot[row.id] || {};
       if (JSON.stringify(prev) !== JSON.stringify(row)) {
