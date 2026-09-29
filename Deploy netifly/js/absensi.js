@@ -630,90 +630,162 @@ function _doGenerateCutiPDF(logoBase64) {
   const isLainnya = !['Cuti Tahunan','Cuti Sakit','Cuti Melahirkan','Cuti Penting','Cuti di Luar Tanggungan'].includes(d.jenisCuti);
   const cb = v => d.jenisCuti === v ? '&#9745;' : '&#9744;';
 
-  const NAVY = '#1a3a5c';
-  const LBLUE = '#cce0f0';
-  const BORDER = '#8899aa';
+  const NAVY = '#2d5a8e';
+  const BORDER = '#aabbcc';
 
-  const secH = 'background-color:'+NAVY+';color:#fff;padding:4px 8px;font-weight:bold;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
-  const tdBase = 'padding:4px 7px;border:0.75px solid '+BORDER+';font-size:10pt;line-height:1.5;vertical-align:middle;';
-  const tdLbl = tdBase+'background-color:'+LBLUE+';font-weight:bold;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
+  // Sel tabel: label kiri (bold), nilai kanan
+  const tdBase = 'padding:4px 8px;border:0.5px solid '+BORDER+';font-size:10pt;line-height:1.5;vertical-align:middle;';
+  const tdLbl = tdBase+'font-weight:normal;'; // label tidak bold sesuai template
   const tdVal = tdBase;
-  const tdTall = tdBase+'vertical-align:top;padding-top:5px;min-height:36px;';
+  const tdTall = tdBase+'vertical-align:top;padding-top:5px;min-height:40px;';
+  const secH = 'background-color:'+NAVY+';color:#fff;padding:4px 8px;font-weight:bold;font-size:10pt;-webkit-print-color-adjust:exact;print-color-adjust:exact;';
 
   const logoHtml = logoBase64
-    ? '<img src="'+logoBase64+'" style="width:70px;height:70px;object-fit:contain;" alt="Logo">'
-    : '<div style="width:70px;height:70px;border-radius:50%;background:'+NAVY+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:bold;flex-shrink:0;">S</div>';
+    ? '<img src="'+logoBase64+'" style="width:55px;height:55px;object-fit:contain;" alt="Logo">'
+    : '<div style="width:55px;height:55px;border-radius:50%;background:'+NAVY+';display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:bold;">S</div>';
 
   var html = '<!DOCTYPE html><html lang="id"><head><meta charset="UTF-8">'
   + '<title>Formulir Permohonan Cuti - '+d.nama+'</title>'
-  + '<style>@page{size:A4;margin:15mm}*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}body{font-family:Arial,sans-serif;font-size:10pt;color:#000;background:#fff}table{width:100%;border-collapse:collapse}</style>'
+  + '<style>'
+  + '@page{size:A4;margin:15mm}'
+  + '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
+  + 'body{font-family:Arial,sans-serif;font-size:10pt;color:#000;background:#fff}'
+  + 'table{width:100%;border-collapse:collapse}'
+  + '</style>'
   + '</head><body>'
 
-  // HEADER
-  + '<div style="display:flex;align-items:center;gap:14px;padding-bottom:8px;border-bottom:3px solid '+NAVY+';margin-bottom:10px;">'
-  + logoHtml
-  + '<span style="font-size:16pt;font-weight:bold;color:'+NAVY+';">PT. Sinergi Internet Nusantara</span>'
+  // HEADER — logo kiri, nama perusahaan, banner hitam diagonal kanan
+  + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
+  +   '<div style="display:flex;align-items:center;gap:12px;">'
+  +     logoHtml
+  +     '<div>'
+  +       '<div style="font-size:14pt;font-weight:bold;color:#000;">PT. &nbsp;Sinergi Internet Nusantara</div>'
+  +     '</div>'
+  +   '</div>'
+  +   '<div style="width:120px;height:60px;background:linear-gradient(135deg,#1a1a2e 0%,#2d5a8e 50%,#aabbcc 100%);clip-path:polygon(20% 0%,100% 0%,100% 100%,0% 100%);"></div>'
   + '</div>'
+  + '<hr style="border:none;border-top:2px solid #000;margin-bottom:10px;">'
 
   // JUDUL
-  + '<div style="text-align:center;margin:6px 0 4px;">'
-  + '<h1 style="font-size:13pt;font-weight:bold;text-transform:uppercase;letter-spacing:1px;text-decoration:underline;">FORMULIR PERMOHONAN CUTI</h1>'
+  + '<div style="text-align:center;margin:6px 0 2px;">'
+  + '<b style="font-size:13pt;text-transform:uppercase;letter-spacing:1px;">FORMULIR PERMOHONAN CUTI</b>'
   + '</div>'
-  + '<div style="font-size:9pt;margin-bottom:8px;">No. Formulir: <b>'+d.nomorFormulir+'</b> &nbsp;&nbsp; Tanggal Pengajuan: <b>'+d.tanggalPengajuan+'</b></div>'
+  + '<div style="font-size:9pt;margin-bottom:8px;text-align:center;">'
+  + 'No. Formulir: &nbsp;<b>'+d.nomorFormulir+'</b> &nbsp;&nbsp;&nbsp;&nbsp; Tanggal Pengajuan: &nbsp;<b>'+d.tanggalPengajuan+'</b>'
+  + '</div>'
 
   // A. DATA KARYAWAN
   + '<div style="margin-bottom:6px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">A. &nbsp;Data Karyawan</div>'
+  + '<div style="'+secH+'">A. &nbsp;DATA KARYAWAN</div>'
   + '<table>'
-  + '<tr><td style="'+tdLbl+'width:22%">Nama</td><td style="'+tdVal+'width:28%">'+d.nama+'</td><td style="'+tdLbl+'width:22%">NIK / ID Karyawan</td><td style="'+tdVal+'width:28%">'+(d.nik||'')+'</td></tr>'
-  + '<tr><td style="'+tdLbl+'">Jabatan</td><td style="'+tdVal+'">'+(d.jabatan||'')+'</td><td style="'+tdLbl+'">Divisi / Bagian</td><td style="'+tdVal+'">'+(d.divisi||'')+'</td></tr>'
-  + '<tr><td style="'+tdLbl+'">Tgl. Mulai Kerja</td><td style="'+tdVal+'">&nbsp;</td><td style="'+tdLbl+'">No. HP / Email</td><td style="'+tdVal+'">'+(d.kontak||'')+'</td></tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'width:18%">Nama</td>'
+  +   '<td style="'+tdVal+'width:32%">'+d.nama+'</td>'
+  +   '<td style="'+tdLbl+'width:18%">NIK / ID Karyawan</td>'
+  +   '<td style="'+tdVal+'width:32%">'+(d.nik||'')+'</td>'
+  + '</tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'">Jabatan</td>'
+  +   '<td style="'+tdVal+'">'+(d.jabatan||'')+'</td>'
+  +   '<td style="'+tdLbl+'">Divisi / Bagian</td>'
+  +   '<td style="'+tdVal+'">'+(d.divisi||'')+'</td>'
+  + '</tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'">Tgl. Mulai Kerja</td>'
+  +   '<td style="'+tdVal+'">&nbsp;</td>'
+  +   '<td style="'+tdLbl+'">No. HP / Email</td>'
+  +   '<td style="'+tdVal+'">'+(d.kontak||'')+'</td>'
+  + '</tr>'
   + '</table></div>'
 
   // B. JENIS CUTI
   + '<div style="margin-bottom:6px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">B. &nbsp;Jenis Cuti &nbsp;<span style="font-weight:normal;font-size:8.5pt">(beri tanda ✓ pada kotak yang sesuai)</span></div>'
-  + '<div style="padding:5px 10px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px 8px;">'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+cb('Cuti Tahunan')+' Cuti Tahunan</div>'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+cb('Cuti Sakit')+' Cuti Sakit</div>'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+cb('Cuti Melahirkan')+' Cuti Melahirkan</div>'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+cb('Cuti Penting')+' Cuti Penting</div>'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+cb('Cuti di Luar Tanggungan')+' Cuti di Luar Tanggungan</div>'
-  + '<div style="display:flex;align-items:center;gap:6px;line-height:1.8;">'+(isLainnya?'&#9745;':'&#9744;')+' Lainnya: '+(isLainnya?'<u>'+d.jenisCuti+'</u>':'____________')+'</div>'
+  + '<div style="'+secH+'">B. &nbsp;JENIS CUTI &nbsp;<span style="font-weight:normal;font-size:8.5pt">(beri tanda ✓ pada kotak yang sesuai)</span></div>'
+  + '<div style="padding:5px 8px;">'
+  +   '<div style="display:flex;gap:20px;margin-bottom:3px;">'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+cb('Cuti Tahunan')+' Cuti Tahunan</span>'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+cb('Cuti Sakit')+' Cuti Sakit</span>'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+cb('Cuti Melahirkan')+' Cuti Melahirkan</span>'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+cb('Cuti Penting')+' Cuti Penting</span>'
+  +   '</div>'
+  +   '<div style="display:flex;gap:20px;">'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+cb('Cuti di Luar Tanggungan')+' Cuti di Luar Tanggungan</span>'
+  +     '<span style="display:flex;align-items:center;gap:4px;">'+(isLainnya?'&#9745;':'&#9744;')+' Lainnya: '+(isLainnya?'<u>'+d.jenisCuti+'</u>':'________________________________________________')+'</span>'
+  +   '</div>'
   + '</div></div>'
 
   // C. RINCIAN CUTI
   + '<div style="margin-bottom:6px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">C. &nbsp;Rincian Cuti</div>'
+  + '<div style="'+secH+'">C. &nbsp;RINCIAN CUTI</div>'
   + '<table>'
-  + '<tr><td style="'+tdLbl+'width:22%">Tanggal Mulai</td><td style="'+tdVal+'width:28%">'+fmtTgl(d.tglMulai)+'</td><td style="'+tdLbl+'width:22%">Tanggal Selesai</td><td style="'+tdVal+'width:28%">'+fmtTgl(d.tglSelesai)+'</td></tr>'
-  + '<tr><td style="'+tdLbl+'">Jumlah Hari Kerja</td><td style="'+tdVal+'">'+(d.jumlahHari||'')+'</td><td style="'+tdLbl+'">Masuk Kembali</td><td style="'+tdVal+'">'+(d.masukKembali||'')+'</td></tr>'
-  + '<tr><td style="'+tdLbl+'vertical-align:top;padding-top:5px;">Alasan / Keperluan</td><td colspan="3" style="'+tdTall+'">'+(d.alasan||'')+'</td></tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'width:18%">Tanggal Mulai</td>'
+  +   '<td style="'+tdVal+'width:32%">'+fmtTgl(d.tglMulai)+'</td>'
+  +   '<td style="'+tdLbl+'width:18%">Tanggal Selesai</td>'
+  +   '<td style="'+tdVal+'width:32%">'+fmtTgl(d.tglSelesai)+'</td>'
+  + '</tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'">Jumlah Hari Kerja</td>'
+  +   '<td style="'+tdVal+'">'+(d.jumlahHari||'')+'</td>'
+  +   '<td style="'+tdLbl+'">Masuk Kembali</td>'
+  +   '<td style="'+tdVal+'">'+(d.masukKembali||'')+'</td>'
+  + '</tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'vertical-align:top;padding-top:4px;">Alasan /<br>Keperluan</td>'
+  +   '<td colspan="3" style="'+tdTall+'">'+(d.alasan||'')+'</td>'
+  + '</tr>'
   + '</table></div>'
 
   // D. SALDO HAK CUTI
   + '<div style="margin-bottom:6px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">D. &nbsp;Saldo Hak Cuti Tahunan &nbsp;<span style="font-weight:normal;font-size:8.5pt">(diisi oleh HRD)</span></div>'
+  + '<div style="'+secH+'">D. &nbsp;SALDO HAK CUTI TAHUNAN &nbsp;<span style="font-weight:normal;font-size:8.5pt">(diisi oleh HRD)</span></div>'
   + '<table>'
-  + '<tr><td style="'+tdLbl+'width:25%">Hak Cuti Tahun Berjalan</td><td style="'+tdVal+'width:25%">&nbsp;</td><td style="'+tdLbl+'width:25%">Sudah Diambil</td><td style="'+tdVal+'width:25%">&nbsp;</td></tr>'
-  + '<tr><td style="'+tdLbl+'">Sisa Hak Cuti</td><td style="'+tdVal+'">&nbsp;</td><td style="'+tdLbl+'">Sisa Setelah Cuti Ini</td><td style="'+tdVal+'">&nbsp;</td></tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'width:25%">Hak Cuti Tahun Berjalan</td>'
+  +   '<td style="'+tdVal+'width:25%">&nbsp;</td>'
+  +   '<td style="'+tdLbl+'width:25%">Sudah Diambil</td>'
+  +   '<td style="'+tdVal+'width:25%">&nbsp;</td>'
+  + '</tr>'
+  + '<tr>'
+  +   '<td style="'+tdLbl+'">Sisa Hak Cuti</td>'
+  +   '<td style="'+tdVal+'">&nbsp;</td>'
+  +   '<td style="'+tdLbl+'">Sisa Setelah Cuti Ini</td>'
+  +   '<td style="'+tdVal+'">&nbsp;</td>'
+  + '</tr>'
   + '</table></div>'
 
   // E. DELEGASI TUGAS
   + '<div style="margin-bottom:6px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">E. &nbsp;Delegasi Tugas Selama Cuti</div>'
+  + '<div style="'+secH+'">E. &nbsp;DELEGASI TUGAS SELAMA CUTI</div>'
   + '<table><tr>'
-  + '<td style="'+tdLbl+'width:35%">Pekerjaan didelegasikan kepada</td><td style="'+tdVal+'width:15%">'+(d.delegasiNama||'')+'</td>'
-  + '<td style="'+tdLbl+'width:25%">Kontak saat cuti</td><td style="'+tdVal+'width:25%">'+(d.kontakCuti||'')+'</td>'
+  +   '<td style="'+tdLbl+'width:30%">Pekerjaan<br>didelegasikan kepada</td>'
+  +   '<td style="'+tdVal+'width:20%">'+(d.delegasiNama||'')+'</td>'
+  +   '<td style="'+tdLbl+'width:25%">Kontak saat<br>cuti</td>'
+  +   '<td style="'+tdVal+'width:25%">'+(d.kontakCuti||'')+'</td>'
   + '</tr></table></div>'
 
   // F. PERSETUJUAN
   + '<div style="margin-bottom:8px;border:1px solid '+BORDER+';">'
-  + '<div style="'+secH+'">F. &nbsp;Persetujuan</div>'
+  + '<div style="'+secH+'">F. &nbsp;PERSETUJUAN</div>'
   + '<table><tr>'
-  + '<td style="'+tdBase+'text-align:center;width:33%"><div>Pemohon,</div><div style="height:55px;"></div><div style="border-top:1px solid #333;padding-top:3px;">('+d.nama+')</div></td>'
-  + '<td style="'+tdBase+'text-align:center;width:33%"><div>Atasan Langsung,</div><div style="height:55px;"></div><div style="border-top:1px solid #333;padding-top:3px;">(________________________)</div></td>'
-  + '<td style="'+tdBase+'text-align:center;width:33%"><div>Menyetujui, HRD/Manajer,</div><div style="height:55px;"></div><div style="border-top:1px solid #333;padding-top:3px;">(________________________)</div></td>'
+  +   '<td style="'+tdBase+'text-align:center;width:33%;padding:8px 6px;">'
+  +     '<div>Pemohon,</div>'
+  +     '<div style="height:60px;"></div>'
+  +     '<div style="margin-bottom:20px;"></div>'
+  +     '<div>(________________________)</div>'
+  +   '</td>'
+  +   '<td style="'+tdBase+'text-align:center;width:33%;padding:8px 6px;">'
+  +     '<div>Atasan Langsung,</div>'
+  +     '<div style="height:60px;"></div>'
+  +     '<div style="margin-bottom:20px;"></div>'
+  +     '<div>(________________________)</div>'
+  +   '</td>'
+  +   '<td style="'+tdBase+'text-align:center;width:33%;padding:8px 6px;">'
+  +     '<div>Menyetujui, HRD/Manajer,</div>'
+  +     '<div style="height:60px;"></div>'
+  +     '<div style="margin-bottom:20px;"></div>'
+  +     '<div>(________________________)</div>'
+  +   '</td>'
   + '</tr></table></div>'
 
   // CATATAN
