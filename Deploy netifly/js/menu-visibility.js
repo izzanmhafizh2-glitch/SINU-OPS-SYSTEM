@@ -154,6 +154,14 @@ const MENU_TREE = {
         id: 'odp', label: 'ODP', icon: 'fa-tower-broadcast',
         submenus: []
       },
+      {
+        id: 'admin-konfirmasi-bayar', label: 'Konfirmasi Bayar', icon: 'fa-check-circle',
+        submenus: []
+      },
+      {
+        id: 'admin-area-mitra', label: 'Area Mitra', icon: 'fa-map-location-dot',
+        submenus: []
+      },
     ]
   },
 
@@ -261,15 +269,27 @@ function applyMenuVisibility() {
     // Untuk menu admin yang dipecah (admin-tugas, admin-asset, admin-jadwal)
     // mapping ke button di subnav admin
     const adminMenuMap = {
-      'admin-tugas':  'admin-menu-tugas',
-      'admin-asset':  'admin-menu-asset',
-      'admin-jadwal': 'admin-menu-jadwal',
-      'odp':          'admin-menu-odp',
-      'noc-asset':    'admin-menu-asset',
+      'admin-tugas':            'admin-menu-tugas',
+      'admin-asset':            'admin-menu-asset',
+      'admin-jadwal':           'admin-menu-jadwal',
+      'odp':                    'admin-menu-odp',
+      'noc-asset':              'admin-menu-asset',
+      'admin-konfirmasi-bayar': 'admin-menu-konfirmasi-bayar',
+      'admin-area-mitra':       'admin-menu-area-mitra',
     };
     if(adminMenuMap[menu.id]) {
       const btn = document.getElementById(adminMenuMap[menu.id]);
       if(btn) btn.style.display = visible ? '' : 'none';
+    }
+
+    // Sembunyikan content panel juga kalau menu di-hide
+    const adminContentMap = {
+      'admin-konfirmasi-bayar': 'admin-sub-konfirmasi-bayar',
+      'admin-area-mitra':       'admin-sub-area-mitra',
+    };
+    if(adminContentMap[menu.id] && !visible) {
+      const contentEl = document.getElementById(adminContentMap[menu.id]);
+      if(contentEl) contentEl.classList.add('hidden');
     }
 
     // 2. Sub menu
