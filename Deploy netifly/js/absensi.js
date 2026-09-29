@@ -655,16 +655,17 @@ function _doGenerateCutiPDF(logoBase64) {
   + '</head><body>'
 
   // HEADER — logo kiri, nama perusahaan, banner hitam diagonal kanan
-  + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">'
-  +   '<div style="display:flex;align-items:center;gap:12px;">'
+  + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">'
+  +   '<div style="display:flex;align-items:center;gap:12px;padding:6px 0;">'
   +     logoHtml
-  +     '<div>'
-  +       '<div style="font-size:14pt;font-weight:bold;color:#000;">PT. &nbsp;Sinergi Internet Nusantara</div>'
-  +     '</div>'
+  +     '<div style="font-size:14pt;font-weight:bold;color:#000;">PT. &nbsp;Sinergi Internet Nusantara</div>'
   +   '</div>'
-  +   '<div style="width:120px;height:60px;background:linear-gradient(135deg,#1a1a2e 0%,#2d5a8e 50%,#aabbcc 100%);clip-path:polygon(20% 0%,100% 0%,100% 100%,0% 100%);"></div>'
+  +   '<div style="width:160px;height:70px;overflow:hidden;position:relative;">'
+  +     '<div style="position:absolute;right:0;top:0;width:160px;height:70px;background:linear-gradient(135deg,transparent 30%,#2d5a8e 30%,#1a3a5c 60%,#0d1a2e 100%);-webkit-print-color-adjust:exact;print-color-adjust:exact;"></div>'
+  +     '<div style="position:absolute;right:0;top:0;width:130px;height:70px;background:linear-gradient(135deg,transparent 40%,#4a7faa 40%,#2d5a8e 70%,#1a3a5c 100%);opacity:0.6;-webkit-print-color-adjust:exact;print-color-adjust:exact;"></div>'
+  +   '</div>'
   + '</div>'
-  + '<hr style="border:none;border-top:2px solid #000;margin-bottom:10px;">'
+  + '<hr style="border:none;border-top:2.5px solid #000;margin-bottom:10px;">'
 
   // JUDUL
   + '<div style="text-align:center;margin:6px 0 2px;">'
