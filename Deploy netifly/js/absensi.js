@@ -611,6 +611,24 @@ function generateFormulirCutiPDF() {
     showAlert('Isi form cuti terlebih dahulu sebelum generate PDF.', 'Form Belum Diisi');
     return;
   }
+  // Fetch logo sebagai base64 dulu, baru generate PDF
+  const logoUrl = 'assets/logo-s.png?' + Date.now();
+  fetch(logoUrl)
+    .then(r => r.blob())
+    .then(blob => new Promise(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    }))
+    .then(logoBase64 => _doGenerateCutiPDF(logoBase64))
+    .catch(() => _doGenerateCutiPDF(null));
+}
+
+function _doGenerateCutiPDF(logoBase64) {
+  if(!_cutiData || !_cutiData.nama) {
+    showAlert('Isi form cuti terlebih dahulu sebelum generate PDF.', 'Form Belum Diisi');
+    return;
+  }
 
   const d = _cutiData;
   const fmtTgl = str => str ? new Date(str).toLocaleDateString('id-ID',{day:'2-digit',month:'long',year:'numeric'}) : '&nbsp;';
@@ -619,83 +637,65 @@ function generateFormulirCutiPDF() {
     ? '<span style="font-size:13px">&#9745;</span>'
     : '<span style="font-size:13px">&#9744;</span>';
 
+  // Logo: pakai gambar asli jika ada, fallback ke teks S
+  const logoHtml = logoBase64
+    ? `<img src="${logoBase64}" style="width:64px;height:64px;object-fit:contain;" alt="Logo PT SINu">`
+    : `<div style="width:64px;height:64px;border-radius:50%;background:#1a3a5c;display:flex;align-items:center;justify-content:center;color:white;font-weight:bold;font-size:24px;flex-shrink:0;">S</div>`;
+
   const html = `<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="UTF-8">
 <title>Formulir Permohonan Cuti - ${d.nama}</title>
 <style>
-  @page { size: A4; margin: 18mm 16mm 18mm 16mm; }
+  @page { size: A4; margin: 15mm 15mm 15mm 15mm; }
   * { margin:0; padding:0; box-sizing:border-box; }
-  body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #000; }
+  body { font-family: Arial, sans-serif; font-size: 10.5pt; color: #000; background:#fff; }
 
-  /* ── HEADER ── */
-  .header-wrap { display:flex; align-items:center; gap:14px; padding-bottom:10px; border-bottom:2.5px solid #1a3a5c; margin-bottom:10px; }
-  .logo-circle { width:56px; height:56px; border-radius:50%; background:#1a3a5c; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
-  .logo-circle svg { width:36px; height:36px; }
-  .company-info .company-name { font-size:14pt; font-weight:bold; color:#1a3a5c; letter-spacing:0.3px; }
-  .company-info .company-sub  { font-size:8.5pt; color:#555; margin-top:1px; }
+  .header-wrap { display:flex; align-items:center; gap:14px; padding-bottom:8px; border-bottom:3px solid #1a3a5c; margin-bottom:8px; }
+  .company-name { font-size:15pt; font-weight:bold; color:#1a3a5c; }
 
-  /* ── JUDUL ── */
-  .title-wrap { text-align:center; margin:6px 0 4px; }
-  .title-wrap h1 { font-size:13pt; font-weight:bold; text-transform:uppercase; letter-spacing:1px; }
-  .no-formulir { text-align:left; font-size:9pt; color:#333; margin-bottom:8px; display:flex; gap:32px; }
-  .no-formulir span { color:#000; }
+  .title-wrap { text-align:center; margin:6px 0 6px; }
+  .title-wrap h1 { font-size:13pt; font-weight:bold; text-transform:uppercase; letter-spacing:1px; text-decoration:underline; }
 
-  /* ── SECTION ── */
-  .section { margin-bottom:7px; border:1px solid #b0b8c4; }
-  .sec-header { background:#1a3a5c; color:#fff; padding:3.5px 8px; font-weight:bold; font-size:9.5pt; letter-spacing:0.3px; }
+  .no-line { font-size:9.5pt; color:#333; margin-bottom:8px; }
 
-  /* ── TABLE ── */
+  .section { margin-bottom:6px; border:1px solid #8899aa; }
+  .sec-header { background:#1a3a5c; color:#fff; padding:4px 8px; font-weight:bold; font-size:9.5pt; }
+
   table { width:100%; border-collapse:collapse; }
-  td { padding:4.5px 8px; border:0.5px solid #b0b8c4; vertical-align:middle; font-size:10pt; }
-  td.lbl { background:#e8eef5; font-weight:bold; white-space:nowrap; width:22%; }
-  td.val { background:#fff; min-height:22px; }
-  td.val-tall { background:#fff; min-height:40px; vertical-align:top; padding-top:5px; }
+  td { padding:4px 7px; border:0.75px solid #8899aa; vertical-align:middle; font-size:10pt; line-height:1.4; }
+  td.lbl { background:#cce0f0; font-weight:bold; white-space:nowrap; }
+  td.val { background:#fff; }
+  td.val-tall { background:#fff; min-height:36px; vertical-align:top; padding-top:4px; }
 
-  /* ── JENIS CUTI (checkbox grid) ── */
-  .jenis-wrap { padding:6px 10px; background:#fff; display:grid; grid-template-columns:1fr 1fr 1fr; gap:3px 10px; }
-  .jenis-item { display:flex; align-items:center; gap:5px; font-size:10pt; line-height:1.6; }
+  .jenis-wrap { padding:5px 8px; background:#fff; display:grid; grid-template-columns:1fr 1fr 1fr; gap:2px 8px; border-top:0; }
+  .jenis-item { display:flex; align-items:center; gap:5px; font-size:10pt; line-height:1.7; }
 
-  /* ── SALDO CUTI ── */
-  .saldo-grid { display:grid; grid-template-columns:1fr 1fr; }
-  .saldo-cell { padding:4.5px 8px; border:0.5px solid #b0b8c4; font-size:10pt; }
-  .saldo-cell.lbl { background:#e8eef5; font-weight:bold; }
-  .saldo-cell.val { background:#fff; }
+  .saldo-grid { display:grid; grid-template-columns:1fr 1fr; border-top:0; }
+  .saldo-cell { padding:4px 7px; border:0.75px solid #8899aa; font-size:10pt; line-height:1.4; }
+  .saldo-cell.lbl { background:#cce0f0; font-weight:bold; }
+  .saldo-cell.val { background:#fff; min-height:22px; }
 
-  /* ── TTD ── */
-  .ttd-wrap { display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; background:#fff; }
-  .ttd-cell { padding:8px 10px; border:0.5px solid #b0b8c4; text-align:center; }
-  .ttd-cell .role { font-size:9.5pt; margin-bottom:2px; }
-  .ttd-space { height:52px; }
-  .ttd-name  { border-top:1px solid #444; padding-top:3px; font-size:9.5pt; }
+  .ttd-wrap { display:grid; grid-template-columns:1fr 1fr 1fr; }
+  .ttd-cell { padding:7px 8px; border:0.75px solid #8899aa; text-align:center; background:#fff; }
+  .ttd-space { height:55px; }
+  .ttd-name { border-top:1px solid #333; padding-top:3px; font-size:9.5pt; margin-top:2px; }
 
-  /* ── CATATAN ── */
-  .catatan { margin-top:8px; font-size:8.5pt; font-style:italic; color:#333; border-top:1px solid #ccc; padding-top:5px; line-height:1.55; }
+  .catatan { margin-top:7px; font-size:8.5pt; font-style:italic; color:#333; line-height:1.5; }
 </style>
 </head>
 <body>
 
-<!-- HEADER -->
+<!-- HEADER: logo + nama perusahaan -->
 <div class="header-wrap">
-  <div class="logo-circle">
-    <!-- Logo S sederhana -->
-    <svg viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M26 10C24 7 20 6 16 7C11 8 8 13 10 17C11.5 20 15 21 18 22C21 23 23 25 22 28C21 31 17 32 13 31C10 30 8 28 8 26" stroke="white" stroke-width="3" stroke-linecap="round"/>
-    </svg>
-  </div>
-  <div class="company-info">
-    <div class="company-name">PT. Sinergi Internet Nusantara</div>
-    <div class="company-sub">Jl. Kantor PT SINu, Karawang</div>
-  </div>
+  ${logoHtml}
+  <div class="company-name">PT. Sinergi Internet Nusantara</div>
 </div>
 
 <!-- JUDUL -->
 <div class="title-wrap"><h1>Formulir Permohonan Cuti</h1></div>
-<div class="no-formulir">
-  <span>No. Formulir: <span>${d.nomorFormulir}</span></span>
-  <span>Tanggal Pengajuan: <span>${d.tanggalPengajuan}</span></span>
-</div>
+<div class="no-line">No. Formulir: <b>${d.nomorFormulir}</b> &nbsp;&nbsp;&nbsp; Tanggal Pengajuan: <b>${d.tanggalPengajuan}</b></div>
 
 <!-- A. DATA KARYAWAN -->
 <div class="section">
