@@ -648,6 +648,7 @@ function _doGenerateCutiPDF(logoBase64) {
   + '<title>Formulir Permohonan Cuti - '+d.nama+'</title>'
   + '<style>'
   + '@page{size:A4;margin:15mm}'
+  + '@media print{@page{margin:15mm}body{-webkit-print-color-adjust:exact;print-color-adjust:exact}}'
   + '*{margin:0;padding:0;box-sizing:border-box;-webkit-print-color-adjust:exact;print-color-adjust:exact}'
   + 'body{font-family:Arial,sans-serif;font-size:10pt;color:#000;background:#fff}'
   + 'table{width:100%;border-collapse:collapse}'
@@ -800,5 +801,15 @@ function _doGenerateCutiPDF(logoBase64) {
   win.document.write(html);
   win.document.close();
   win.focus();
-  setTimeout(function(){ win.print(); }, 600);
+  setTimeout(function(){
+    // Tampilkan petunjuk sebelum print dialog muncul
+    win.print();
+  }, 600);
+  // Tampilkan info ke user
+  setTimeout(function(){
+    showAlert(
+      'Di dialog Print:\n\n1. Klik "More settings" / "Pengaturan lainnya"\n2. Matikan "Headers and footers"\n3. Baru klik "Print / Save as PDF"',
+      'Tips: Hilangkan Header & Footer'
+    );
+  }, 200);
 }
