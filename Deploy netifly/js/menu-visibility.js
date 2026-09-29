@@ -312,105 +312,91 @@ async function saveMenuVisibilityItem(role, itemKey, visible) {
 // ── RENDER PANEL VISIBILITY DI SUPER ADMIN ───────────────────────────
 let _mvSelectedRole = 'teknisi';
 
+function _mvToggleHtml(role, key, visible, size) {
+  var sizeClass = size === 'sm' ? 'w-9 h-4' : size === 'xs' ? 'w-8 h-3.5' : 'w-10 h-5';
+  var thumbSize = size === 'sm' ? 'w-3 h-3' : size === 'xs' ? 'w-2.5 h-2.5' : 'w-4 h-4';
+  var translateClass = size === 'xs' ? 'translate-x-[18px]' : 'translate-x-5';
+  var safeId = 'mv-label-' + key.replace(/:/g,'-');
+  return '<label class="mv-toggle flex items-center gap-2 cursor-pointer">' +
+    '<span class="text-[10px] font-semibold ' + (visible ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500') + '" id="' + safeId + '">' + (visible ? 'Tampil' : 'Hidden') + '</span>' +
+    '<div class="relative">' +
+      '<input type="checkbox" class="sr-only mv-checkbox" data-role="' + role + '" data-key="' + key + '" data-level="' + key.split(':')[0] + '" ' + (visible ? 'checked' : '') + ' onchange="onMVToggleChange(this)">' +
+      '<div class="mv-track ' + sizeClass + ' rounded-full transition-colors ' + (visible ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600') + '"></div>' +
+      '<div class="mv-thumb absolute top-0.5 left-0.5 ' + thumbSize + ' bg-white rounded-full shadow transition-transform ' + (visible ? translateClass : '') + '"></div>' +
+    '</div>' +
+  '</label>';
+}
+
 function renderMenuVisibilityPanel() {
-  const container = document.getElementById('mv-panel-content');
+  var container = document.getElementById('mv-panel-content');
   if(!container) return;
 
-  const roleTree = MENU_TREE[_mvSelectedRole];
+  var roleTree = MENU_TREE[_mvSelectedRole];
   if(!roleTree) return;
 
-  const cfg = _menuVisibilityConfig[_mvSelectedRole] || {};
+  var cfg = _menuVisibilityConfig[_mvSelectedRole] || {};
+  var getVal = function(key) { var v = cfg[key]; return v === undefined ? true : v; };
+  var role = _mvSelectedRole;
 
-  const getVal = (key) => {
-    const v = cfg[key];
-    return v === undefined ? true : v;
-  };
+  var html = '';
 
-  let html = '';
+  roleTree.menus.forEach(function(menu) {
+    var menuKey = 'menu:' + menu.id;
+    var menuVisible = getVal(menuKey);
 
-  roleTree.menus.forEach(menu => {
-    const menuKey = `menu:${menu.id}`;
-    const menuVisible = getVal(menuKey);
+    html += '<div class="mv-menu-block border border-slate-200 dark:border-slate-600 rounded-2xl overflow-hidden mb-3">';
 
-    html += `
-    <div class="mv-menu-block border border-slate-200 dark:border-slate-600 rounded-2xl overflow-hidden mb-3">
-      <!-- Menu Utama Header -->
-      <div class="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700/60">
-        <div class="flex items-center gap-2">
-          <i class="fa-solid ${menu.icon} text-blue-600 dark:text-blue-400 text-sm w-4"></i>
-          <span class="text-xs font-extrabold text-slate-800 dark:text-slate-100">${menu.label}</span>
-          <span class="text-[10px] text-slate-400 font-medium">Menu Utama</span>
-        </div>
-        <label class="mv-toggle flex items-center gap-2 cursor-pointer">
-          <span class="text-[10px] font-semibold ${menuVisible ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}" id="mv-label-${menuKey.replace(/:/g,'-')}">${menuVisible ? 'Tampil' : 'Hidden'}</span>
-          <div class="relative">
-            <input type="checkbox" class="sr-only mv-checkbox"
-              data-role="${_mvSelectedRole}" data-key="${menuKey}" data-level="menu"
-              ${menuVisible ? 'checked' : ''}
-              onchange="onMVToggleChange(this)">
-            <div class="mv-track w-10 h-5 rounded-full transition-colors ${menuVisible ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}"></div>
-            <div class="mv-thumb absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow transition-transform ${menuVisible ? 'translate-x-5' : ''}"></div>
-          </div>
-        </label>
-      </div>
+    // Header menu utama
+    html += '<div class="flex items-center justify-between px-4 py-3 bg-slate-50 dark:bg-slate-700/60">';
+    html += '<div class="flex items-center gap-2">';
+    html += '<i class="fa-solid ' + menu.icon + ' text-blue-600 dark:text-blue-400 text-sm w-4"></i>';
+    html += '<span class="text-xs font-extrabold text-slate-800 dark:text-slate-100">' + menu.label + '</span>';
+    html += '<span class="text-[10px] text-slate-400 font-medium">Menu Utama</span>';
+    html += '</div>';
+    html += _mvToggleHtml(role, menuKey, menuVisible, 'md');
+    html += '</div>';
 
-      ${menu.submenus.length ? `
-      <!-- Sub menus -->
-      <div class="divide-y divide-slate-100 dark:divide-slate-700">
-        ${menu.submenus.map(sub => {
-          const subKey = `submenu:${menu.id}:${sub.id}`;
-          const subVisible = getVal(subKey);
-          return `
-          <div class="mv-sub-block">
-            <!-- Sub menu row -->
-            <div class="flex items-center justify-between px-4 py-2.5 pl-8 bg-white dark:bg-slate-800">
-              <div class="flex items-center gap-2">
-                <i class="fa-solid fa-chevron-right text-slate-300 text-[9px]"></i>
-                <span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">${sub.label}</span>
-                <span class="text-[10px] text-slate-400">Sub Menu</span>
-              </div>
-              <label class="mv-toggle flex items-center gap-2 cursor-pointer">
-                <span class="text-[10px] font-semibold ${subVisible ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}" id="mv-label-${subKey.replace(/:/g,'-')}">${subVisible ? 'Tampil' : 'Hidden'}</span>
-                <div class="relative">
-                  <input type="checkbox" class="sr-only mv-checkbox"
-                    data-role="${_mvSelectedRole}" data-key="${subKey}" data-level="submenu"
-                    ${subVisible ? 'checked' : ''}
-                    onchange="onMVToggleChange(this)">
-                  <div class="mv-track w-9 h-4 rounded-full transition-colors ${subVisible ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}"></div>
-                  <div class="mv-thumb absolute top-0.5 left-0.5 w-3 h-3 bg-white rounded-full shadow transition-transform ${subVisible ? 'translate-x-5' : ''}"></div>
-                </div>
-              </label>
-            </div>
+    if(menu.submenus.length) {
+      html += '<div class="divide-y divide-slate-100 dark:divide-slate-700">';
 
-            ${sub.konten.length ? `
-            <!-- Konten dalam sub menu -->
-            ${sub.konten.map(k => {
-              const kKey = `konten:${menu.id}:${sub.id}:${k.id}`;
-              const kVisible = getVal(kKey);
-              return `
-              <div class="flex items-center justify-between px-4 py-2 pl-14 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700">
-                <div class="flex items-center gap-2">
-                  <i class="fa-solid fa-minus text-slate-200 text-[9px]"></i>
-                  <span class="text-[10px] font-semibold text-slate-600 dark:text-slate-300">${k.label}</span>
-                  <span class="text-[9px] text-slate-400 italic">Konten</span>
-                </div>
-                <label class="mv-toggle flex items-center gap-2 cursor-pointer">
-                  <span class="text-[10px] font-semibold ${kVisible ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-500'}" id="mv-label-${kKey.replace(/:/g,'-')}">${kVisible ? 'Tampil' : 'Hidden'}</span>
-                  <div class="relative">
-                    <input type="checkbox" class="sr-only mv-checkbox"
-                      data-role="${_mvSelectedRole}" data-key="${kKey}" data-level="konten"
-                      ${kVisible ? 'checked' : ''}
-                      onchange="onMVToggleChange(this)">
-                    <div class="mv-track w-8 h-3.5 rounded-full transition-colors ${kVisible ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}"></div>
-                    <div class="mv-thumb absolute top-0.5 left-0.5 w-2.5 h-2.5 bg-white rounded-full shadow transition-transform ${kVisible ? 'translate-x-[18px]' : ''}"></div>
-                  </div>
-                </label>
-              </div>`;
-            }).join('')}` : ''}
-          </div>`;
-        }).join('')}
-      </div>` : ''}
-    </div>`;
+      menu.submenus.forEach(function(sub) {
+        var subKey = 'submenu:' + menu.id + ':' + sub.id;
+        var subVisible = getVal(subKey);
+
+        html += '<div class="mv-sub-block">';
+        // Sub menu row
+        html += '<div class="flex items-center justify-between px-4 py-2.5 pl-8 bg-white dark:bg-slate-800">';
+        html += '<div class="flex items-center gap-2">';
+        html += '<i class="fa-solid fa-chevron-right text-slate-300 text-[9px]"></i>';
+        html += '<span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">' + sub.label + '</span>';
+        html += '<span class="text-[10px] text-slate-400">Sub Menu</span>';
+        html += '</div>';
+        html += _mvToggleHtml(role, subKey, subVisible, 'sm');
+        html += '</div>';
+
+        if(sub.konten.length) {
+          sub.konten.forEach(function(k) {
+            var kKey = 'konten:' + menu.id + ':' + sub.id + ':' + k.id;
+            var kVisible = getVal(kKey);
+
+            html += '<div class="flex items-center justify-between px-4 py-2 pl-14 bg-slate-50/50 dark:bg-slate-800/50 border-t border-slate-100 dark:border-slate-700">';
+            html += '<div class="flex items-center gap-2">';
+            html += '<i class="fa-solid fa-minus text-slate-200 text-[9px]"></i>';
+            html += '<span class="text-[10px] font-semibold text-slate-600 dark:text-slate-300">' + k.label + '</span>';
+            html += '<span class="text-[9px] text-slate-400 italic">Konten</span>';
+            html += '</div>';
+            html += _mvToggleHtml(role, kKey, kVisible, 'xs');
+            html += '</div>';
+          });
+        }
+
+        html += '</div>'; // mv-sub-block
+      });
+
+      html += '</div>'; // divide-y
+    }
+
+    html += '</div>'; // mv-menu-block
   });
 
   container.innerHTML = html;

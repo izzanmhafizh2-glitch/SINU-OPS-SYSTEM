@@ -127,16 +127,20 @@ function loadMainApp(){
   document.getElementById('user-display-name').textContent=currentUser.displayName;
   const rLabel={owner:'Owner (Super Admin)',admin:'Admin',cs:'CS',teknisi:'Teknisi Field',supervisor:'Supervisor',spv:'Supervisor',noc:'NOC Engineer',finance:'Finance',manager:'Manager',koordinator:'Koordinator Mitra',teknisi_mitra:'Teknisi Mitra',noc_mitra:'NOC Mitra',cs_mitra:'CS Mitra'};
   document.getElementById('user-role-badge').textContent=rLabel[currentUser.role]||currentUser.role;
-  // Load menu visibility config dulu, baru build nav agar applyMenuVisibility bisa langsung jalan
+  // Load menu visibility config dulu, baru build nav + initApp semuanya setelah config siap
   if(typeof loadMenuVisibilityConfig === 'function') {
-    loadMenuVisibilityConfig().then(function(){ buildNavigation(); });
+    loadMenuVisibilityConfig().then(function(){
+      buildNavigation();
+      initApp();
+      loadProfilePhoto();
+      sinuScheduleMidnightLogout();
+    });
   } else {
     buildNavigation();
+    initApp();
+    loadProfilePhoto();
+    sinuScheduleMidnightLogout();
   }
-  initApp();
-  // Load foto profil kalau ada
-  loadProfilePhoto();
-  sinuScheduleMidnightLogout();
 }
 
 function buildNavigation(){
