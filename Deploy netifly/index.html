@@ -1377,16 +1377,109 @@
         </div>
 
         <!-- IZIN CUTI -->
-        <div id="sub-abs-content-izin-cuti" class="sub-abs-content hidden">
-          <form id="form-cuti" onsubmit="handleLeaveSubmit(event,'Izin Cuti')" class="bg-white dark:bg-slate-800 rounded-3xl p-6 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
-            <div class="border-b border-slate-100 dark:border-slate-700 pb-3"><h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-minus text-indigo-600"></i>Form Izin Cuti</h2></div>
-            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label><div class="relative"><div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400"><i class="fa-solid fa-user text-sm"></i></div><input type="text" id="izin-cuti-nama" name="nama" readonly class="w-full pl-10 pr-4 py-3 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div></div>
-            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Alasan Cuti <span class="text-rose-500">*</span></label><textarea name="keterangan" required rows="3" placeholder="Keperluan keluarga..." class="w-full p-3 bg-slate-50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-indigo-600 resize-none"></textarea></div>
-            <div class="space-y-1.5"><label class="block text-xs font-bold text-slate-500 uppercase">Surat Cuti (TTD Supervisor) <span class="text-rose-500">*</span></label><div class="border-2 border-dashed border-indigo-200 dark:border-indigo-800 rounded-2xl p-4 text-center relative bg-indigo-50/30 dark:bg-indigo-950/20"><i class="fa-solid fa-file-signature text-2xl text-indigo-500 mb-1"></i><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300" id="label-file-cuti">Upload Surat Cuti</p><p class="text-[10px] text-slate-400">Harus ada TTD Supervisor</p><input type="file" name="file" required accept="image/*,.pdf" class="absolute inset-0 opacity-0 cursor-pointer" onchange="updateFileName(this,'label-file-cuti')"></div></div>
-            <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-3"><p class="text-xs font-bold text-indigo-700 dark:text-indigo-300">Estimasi Point: <span class="text-lg font-black">50 poin</span></p></div>
-            <button type="submit" class="w-full py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2"><i class="fa-solid fa-paper-plane"></i>Kirim Pengajuan Cuti</button>
+        <div id="sub-abs-content-izin-cuti" class="sub-abs-content hidden space-y-4">
+          <!-- FORM PERMOHONAN CUTI -->
+          <form id="form-cuti" onsubmit="handleCutiSubmit(event)" class="bg-white dark:bg-slate-800 rounded-3xl p-5 shadow-sm border border-slate-100 dark:border-slate-700 space-y-4">
+            <div class="border-b border-slate-100 dark:border-slate-700 pb-3 flex items-center justify-between">
+              <h2 class="text-base font-extrabold text-slate-900 dark:text-white flex items-center gap-2"><i class="fa-solid fa-calendar-minus text-indigo-600"></i>Permohonan Cuti</h2>
+              <span class="text-[10px] text-slate-400">PT. Sinergi Internet Nusantara</span>
+            </div>
+
+            <!-- A. DATA KARYAWAN -->
+            <div class="bg-indigo-50 dark:bg-indigo-950/30 rounded-2xl p-4 space-y-3">
+              <p class="text-[10px] font-extrabold text-indigo-700 dark:text-indigo-300 uppercase tracking-wider">A. Data Karyawan</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Nama <span class="text-rose-500">*</span></label>
+                  <input type="text" id="cuti-nama" name="nama" readonly class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">NIK / ID Karyawan</label>
+                  <input type="text" id="cuti-nik" placeholder="Opsional" class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Jabatan</label>
+                  <input type="text" id="cuti-jabatan" readonly class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Divisi / Bagian</label>
+                  <input type="text" id="cuti-divisi" readonly class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 cursor-not-allowed"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">No. HP / Email</label>
+                  <input type="text" id="cuti-kontak" placeholder="08xxxxxxxxxx" class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+              </div>
+            </div>
+
+            <!-- B. JENIS CUTI -->
+            <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-4 space-y-3">
+              <p class="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">B. Jenis Cuti <span class="text-rose-500">*</span></p>
+              <div class="grid grid-cols-2 gap-2 text-xs">
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Cuti Tahunan" class="accent-indigo-600"> Cuti Tahunan</label>
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Cuti Sakit" class="accent-indigo-600"> Cuti Sakit</label>
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Cuti Melahirkan" class="accent-indigo-600"> Cuti Melahirkan</label>
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Cuti Penting" class="accent-indigo-600"> Cuti Penting</label>
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Cuti di Luar Tanggungan" class="accent-indigo-600"> Cuti di Luar Tanggungan</label>
+                <label class="flex items-center gap-2 cursor-pointer p-2.5 rounded-xl border border-slate-200 dark:border-slate-600 hover:border-indigo-400 transition-all">
+                  <input type="radio" name="jenis-cuti" value="Lainnya" class="accent-indigo-600"> Lainnya</label>
+              </div>
+              <input type="text" id="cuti-jenis-lainnya" placeholder="Isi jika pilih Lainnya..." class="hidden w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-indigo-300 dark:border-indigo-700 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500">
+            </div>
+
+            <!-- C. RINCIAN CUTI -->
+            <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-4 space-y-3">
+              <p class="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">C. Rincian Cuti</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Tanggal Mulai <span class="text-rose-500">*</span></label>
+                  <input type="date" id="cuti-tgl-mulai" required class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500" onchange="hitungJumlahHariCuti()"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Tanggal Selesai <span class="text-rose-500">*</span></label>
+                  <input type="date" id="cuti-tgl-selesai" required class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500" onchange="hitungJumlahHariCuti()"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Jumlah Hari Kerja</label>
+                  <input type="text" id="cuti-jumlah-hari" readonly placeholder="Otomatis dihitung" class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-indigo-600 dark:text-indigo-400 cursor-not-allowed"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Masuk Kembali</label>
+                  <input type="text" id="cuti-masuk-kembali" readonly placeholder="Otomatis dihitung" class="w-full px-3 py-2.5 bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 cursor-not-allowed"></div>
+              </div>
+              <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Alasan / Keperluan <span class="text-rose-500">*</span></label>
+                <textarea id="cuti-alasan" required rows="3" placeholder="Keperluan keluarga / acara penting..." class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500 resize-none"></textarea></div>
+            </div>
+
+            <!-- E. DELEGASI TUGAS -->
+            <div class="bg-slate-50 dark:bg-slate-700/40 rounded-2xl p-4 space-y-3">
+              <p class="text-[10px] font-extrabold text-slate-700 dark:text-slate-300 uppercase tracking-wider">D. Delegasi Tugas</p>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Didelegasikan Kepada</label>
+                  <input type="text" id="cuti-delegasi-nama" placeholder="Nama rekan" class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+                <div class="space-y-1"><label class="block text-[10px] font-extrabold text-slate-500 uppercase">Kontak Saat Cuti</label>
+                  <input type="text" id="cuti-kontak-cuti" placeholder="No. HP yang bisa dihubungi" class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl text-xs font-medium focus:outline-none focus:border-indigo-500"></div>
+              </div>
+            </div>
+
+            <!-- Info poin -->
+            <div class="bg-indigo-50 dark:bg-indigo-950/30 border border-indigo-100 dark:border-indigo-900 rounded-2xl p-3 flex items-center justify-between">
+              <p class="text-xs text-indigo-700 dark:text-indigo-300 font-bold">Estimasi Point Cuti</p>
+              <span class="text-lg font-black text-indigo-700 dark:text-indigo-300">50 poin</span>
+            </div>
+
+            <!-- Tombol -->
+            <div class="flex gap-3">
+              <button type="button" onclick="generateFormulirCutiPDF()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-file-pdf text-rose-500"></i>Generate Formulir PDF
+              </button>
+              <button type="submit" class="flex-1 py-3 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all">
+                <i class="fa-solid fa-paper-plane"></i>Kirim Pengajuan
+              </button>
+            </div>
           </form>
-          <div id="success-screen-cuti" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border text-center space-y-4"><div class="w-20 h-20 bg-indigo-100 dark:bg-indigo-950/60 rounded-full flex items-center justify-center mx-auto text-indigo-600"><i class="fa-solid fa-calendar-check text-4xl"></i></div><h2 class="text-2xl font-black text-slate-900 dark:text-white">CUTI DIAJUKAN</h2><button type="button" onclick="resetFormCuti()" class="w-full py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2"><i class="fa-solid fa-rotate-right"></i>Ajukan Lagi</button></div>
+
+          <div id="success-screen-cuti" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border text-center space-y-4">
+            <div class="w-20 h-20 bg-indigo-100 dark:bg-indigo-950/60 rounded-full flex items-center justify-center mx-auto text-indigo-600"><i class="fa-solid fa-calendar-check text-4xl"></i></div>
+            <h2 class="text-2xl font-black text-slate-900 dark:text-white">CUTI DIAJUKAN</h2>
+            <p class="text-sm text-slate-500">Pengajuan cuti Anda sudah terkirim. Menunggu persetujuan Supervisor.</p>
+            <div class="flex gap-2">
+              <button type="button" onclick="generateFormulirCutiPDF()" class="flex-1 py-3 bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+                <i class="fa-solid fa-file-pdf text-rose-500"></i>Download PDF
+              </button>
+              <button type="button" onclick="resetFormCuti()" class="flex-1 py-3 bg-indigo-600 text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+                <i class="fa-solid fa-rotate-right"></i>Ajukan Lagi
+              </button>
+            </div>
+          </div>
         </div>
 
         <!-- POINT ABSENSI SAYA -->
@@ -2996,7 +3089,7 @@
 <script src="js/tugas.js?v=1000210"></script>
 <script src="js/material.js?v=1000195"></script>
 <script src="js/noc.js?v=1000204"></script>
-<script src="js/absensi.js?v=2026092921"></script>
+<script src="js/absensi.js?v=2026092930"></script>
 <script src="js/jadwal.js?v=1000023"></script>
 <script src="js/tukar-shift.js?v=1000010"></script>
 <script src="js/shift-swap-approval.js?v=1000009"></script>

@@ -328,6 +328,8 @@ function autoFillNamaAbsensi(){
   // Form Izin Cuti
   const cutiEl = document.getElementById('izin-cuti-nama');
   if(cutiEl) cutiEl.value = nama;
+  // Auto-fill form cuti baru
+  if(typeof autoFillCutiForm === 'function') autoFillCutiForm();
 
   // Auto-set role di form absensi berdasarkan role akun
   const roleMap = {
@@ -395,9 +397,9 @@ function resetFormSakit(){
 }
 function resetFormCuti(){
   document.getElementById('form-cuti').reset();
-  document.getElementById('label-file-cuti').innerText='Upload Surat Cuti';
   document.getElementById('success-screen-cuti').classList.add('hidden');
   document.getElementById('form-cuti').classList.remove('hidden');
+  _cutiData = {};
   // Restore nama setelah reset
   if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
 }
@@ -490,4 +492,230 @@ async function uploadFotoAbsensiKeStorage(base64DataUrl, nama, subfolder='selfie
     console.warn('[Foto Absensi] Error:', e.message);
     return null;
   }
+}
+
+// ── FORM PERMOHONAN CUTI ─────────────────────────────────────────────
+
+// Data cuti untuk generate PDF
+let _cutiData = {};
+
+function autoFillCutiForm() {
+  const nama  = currentUser ? currentUser.displayName : '';
+  const role  = currentUser ? (currentUser.role || '') : '';
+  const roleLabel = { admin:'Admin', cs:'CS', noc:'NOC Engineer', teknisi:'Teknisi Field', supervisor:'Supervisor', spv:'Supervisor', finance:'Finance' };
+
+  const el = id => document.getElementById(id);
+  if(el('cuti-nama'))    el('cuti-nama').value    = nama;
+  if(el('cuti-jabatan')) el('cuti-jabatan').value  = roleLabel[role.toLowerCase()] || role;
+  if(el('cuti-divisi'))  el('cuti-divisi').value   = roleLabel[role.toLowerCase()] || role;
+
+  // Tampilkan/sembunyikan field "Lainnya" saat radio berubah
+  document.querySelectorAll('input[name="jenis-cuti"]').forEach(function(r) {
+    r.addEventListener('change', function() {
+      const el = document.getElementById('cuti-jenis-lainnya');
+      if(el) el.classList.toggle('hidden', r.value !== 'Lainnya');
+    });
+  });
+}
+
+function hitungJumlahHariCuti() {
+  const mulai   = document.getElementById('cuti-tgl-mulai')?.value;
+  const selesai = document.getElementById('cuti-tgl-selesai')?.value;
+  if(!mulai || !selesai) return;
+
+  const d1 = new Date(mulai), d2 = new Date(selesai);
+  if(d2 < d1) { showAlert('Tanggal selesai tidak boleh sebelum tanggal mulai.', 'Cek Tanggal'); return; }
+
+  // Hitung hari kerja (Senin–Sabtu, skip Minggu)
+  let hariKerja = 0, cur = new Date(d1);
+  while(cur <= d2) {
+    if(cur.getDay() !== 0) hariKerja++;
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  // Masuk kembali = hari kerja pertama setelah selesai
+  const kembali = new Date(d2);
+  kembali.setDate(kembali.getDate() + 1);
+  while(kembali.getDay() === 0) kembali.setDate(kembali.getDate() + 1);
+
+  const fmtDate = d => d.toLocaleDateString('id-ID', {day:'numeric', month:'long', year:'numeric'});
+
+  const elHari   = document.getElementById('cuti-jumlah-hari');
+  const elKembali = document.getElementById('cuti-masuk-kembali');
+  if(elHari)    elHari.value    = hariKerja + ' hari kerja';
+  if(elKembali) elKembali.value = fmtDate(kembali);
+}
+
+async function handleCutiSubmit(event) {
+  event.preventDefault();
+  const nama       = document.getElementById('cuti-nama')?.value || '';
+  const tglMulai   = document.getElementById('cuti-tgl-mulai')?.value;
+  const tglSelesai = document.getElementById('cuti-tgl-selesai')?.value;
+  const alasan     = document.getElementById('cuti-alasan')?.value?.trim();
+  const jenisCutiEl = document.querySelector('input[name="jenis-cuti"]:checked');
+
+  if(!jenisCutiEl) { showAlert('Pilih jenis cuti terlebih dahulu.', 'Jenis Cuti Wajib'); return; }
+  if(!tglMulai || !tglSelesai) { showAlert('Isi tanggal mulai dan selesai cuti.', 'Tanggal Wajib'); return; }
+  if(!alasan) { showAlert('Isi alasan / keperluan cuti.', 'Alasan Wajib'); return; }
+
+  const jenisCuti = jenisCutiEl.value === 'Lainnya'
+    ? (document.getElementById('cuti-jenis-lainnya')?.value || 'Lainnya')
+    : jenisCutiEl.value;
+
+  // Simpan data untuk generate PDF
+  _cutiData = {
+    nama,
+    nik:           document.getElementById('cuti-nik')?.value || '',
+    jabatan:       document.getElementById('cuti-jabatan')?.value || '',
+    divisi:        document.getElementById('cuti-divisi')?.value || '',
+    kontak:        document.getElementById('cuti-kontak')?.value || '',
+    jenisCuti,
+    tglMulai,
+    tglSelesai,
+    jumlahHari:    document.getElementById('cuti-jumlah-hari')?.value || '',
+    masukKembali:  document.getElementById('cuti-masuk-kembali')?.value || '',
+    alasan,
+    delegasiNama:  document.getElementById('cuti-delegasi-nama')?.value || '',
+    kontakCuti:    document.getElementById('cuti-kontak-cuti')?.value || '',
+    tanggalPengajuan: new Date().toLocaleDateString('id-ID', {day:'numeric',month:'long',year:'numeric'}),
+    nomorFormulir: 'HRD-SIN/' + new Date().getFullYear() + '/' + String(Math.floor(Math.random()*9000)+1000),
+  };
+
+  // Simpan ke Supabase
+  try {
+    if(typeof supa !== 'undefined') {
+      await supa.from('izin_cuti').insert({
+        nama:             _cutiData.nama,
+        username:         currentUser?.username || null,
+        jenis_cuti:       _cutiData.jenisCuti,
+        tanggal_mulai:    _cutiData.tglMulai,
+        tanggal_selesai:  _cutiData.tglSelesai,
+        jumlah_hari:      _cutiData.jumlahHari,
+        masuk_kembali:    _cutiData.masukKembali,
+        alasan:           _cutiData.alasan,
+        delegasi_nama:    _cutiData.delegasiNama || null,
+        kontak_cuti:      _cutiData.kontakCuti || null,
+        nomor_formulir:   _cutiData.nomorFormulir,
+        status:           'MENUNGGU',
+        created_at:       new Date().toISOString()
+      });
+    }
+  } catch(e) { console.warn('[Cuti] Gagal simpan:', e.message); }
+
+  document.getElementById('form-cuti').classList.add('hidden');
+  document.getElementById('success-screen-cuti').classList.remove('hidden');
+}
+
+function generateFormulirCutiPDF() {
+  if(!_cutiData || !_cutiData.nama) {
+    showAlert('Isi form cuti terlebih dahulu sebelum generate PDF.', 'Form Belum Diisi');
+    return;
+  }
+
+  const d = _cutiData;
+  const fmtTgl = str => str ? new Date(str).toLocaleDateString('id-ID',{day:'numeric',month:'long',year:'numeric'}) : '-';
+  const checked = val => d.jenisCuti === val ? '☑' : '☐';
+
+  const html = `<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: Arial, sans-serif; font-size: 11px; color: #000; padding: 20px 30px; }
+  .header { display:flex; align-items:center; gap:16px; margin-bottom:12px; border-bottom:2px solid #1e3a5f; padding-bottom:10px; }
+  .logo-placeholder { width:60px; height:60px; background:#1e3a5f; border-radius:50%; display:flex; align-items:center; justify-content:center; color:white; font-weight:bold; font-size:18px; flex-shrink:0; }
+  .company-name { font-size:16px; font-weight:bold; color:#1e3a5f; }
+  h1 { text-align:center; font-size:14px; font-weight:bold; margin:10px 0 4px; text-transform:uppercase; letter-spacing:1px; }
+  .subtitle { text-align:center; font-size:10px; color:#555; margin-bottom:14px; }
+  .section { margin-bottom:10px; }
+  .section-title { background:#1e3a5f; color:white; padding:4px 8px; font-weight:bold; font-size:10px; text-transform:uppercase; letter-spacing:0.5px; }
+  table { width:100%; border-collapse:collapse; }
+  td { padding:4px 8px; border:1px solid #ccc; vertical-align:top; }
+  td.label { width:30%; background:#f0f4f8; font-weight:bold; }
+  .jenis-grid { display:grid; grid-template-columns:1fr 1fr; gap:4px; padding:6px 8px; border:1px solid #ccc; border-top:none; }
+  .jenis-item { font-size:11px; }
+  .ttd-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; padding:10px 8px; border:1px solid #ccc; border-top:none; text-align:center; }
+  .ttd-box { border:1px solid #ccc; padding:6px; }
+  .ttd-space { height:50px; }
+  .ttd-name { border-top:1px solid #333; padding-top:4px; font-size:10px; }
+  .footer { margin-top:10px; font-size:9px; color:#555; font-style:italic; border-top:1px solid #ccc; padding-top:6px; }
+  .no-formulir { font-size:10px; color:#555; margin-bottom:8px; }
+</style>
+</head>
+<body>
+<div class="header">
+  <div class="logo-placeholder">S</div>
+  <div class="company-name">PT. Sinergi Internet Nusantara</div>
+</div>
+<h1>Formulir Permohonan Cuti</h1>
+<p class="subtitle">No. Formulir: ${d.nomorFormulir} &nbsp;|&nbsp; Tanggal Pengajuan: ${d.tanggalPengajuan}</p>
+
+<div class="section">
+  <div class="section-title">A. Data Karyawan</div>
+  <table>
+    <tr><td class="label">Nama</td><td>${d.nama}</td><td class="label">NIK / ID Karyawan</td><td>${d.nik||'-'}</td></tr>
+    <tr><td class="label">Jabatan</td><td>${d.jabatan||'-'}</td><td class="label">Divisi / Bagian</td><td>${d.divisi||'-'}</td></tr>
+    <tr><td class="label">No. HP / Email</td><td colspan="3">${d.kontak||'-'}</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">B. Jenis Cuti</div>
+  <div class="jenis-grid">
+    <div class="jenis-item">${checked('Cuti Tahunan')} Cuti Tahunan</div>
+    <div class="jenis-item">${checked('Cuti Sakit')} Cuti Sakit</div>
+    <div class="jenis-item">${checked('Cuti Melahirkan')} Cuti Melahirkan</div>
+    <div class="jenis-item">${checked('Cuti Penting')} Cuti Penting</div>
+    <div class="jenis-item">${checked('Cuti di Luar Tanggungan')} Cuti di Luar Tanggungan</div>
+    <div class="jenis-item">${!['Cuti Tahunan','Cuti Sakit','Cuti Melahirkan','Cuti Penting','Cuti di Luar Tanggungan'].includes(d.jenisCuti)?'☑':'☐'} Lainnya: ${!['Cuti Tahunan','Cuti Sakit','Cuti Melahirkan','Cuti Penting','Cuti di Luar Tanggungan'].includes(d.jenisCuti)?d.jenisCuti:''}</div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">C. Rincian Cuti</div>
+  <table>
+    <tr><td class="label">Tanggal Mulai</td><td>${fmtTgl(d.tglMulai)}</td><td class="label">Tanggal Selesai</td><td>${fmtTgl(d.tglSelesai)}</td></tr>
+    <tr><td class="label">Jumlah Hari Kerja</td><td>${d.jumlahHari||'-'}</td><td class="label">Masuk Kembali</td><td>${d.masukKembali||'-'}</td></tr>
+    <tr><td class="label">Alasan / Keperluan</td><td colspan="3" style="min-height:40px">${d.alasan||'-'}</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">D. Saldo Hak Cuti Tahunan (diisi oleh HRD)</div>
+  <table>
+    <tr><td class="label">Hak Cuti Tahun Berjalan</td><td></td><td class="label">Sudah Diambil</td><td></td></tr>
+    <tr><td class="label">Sisa Hak Cuti</td><td></td><td class="label">Sisa Setelah Cuti Ini</td><td></td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">E. Delegasi Tugas Selama Cuti</div>
+  <table>
+    <tr><td class="label">Pekerjaan didelegasikan kepada</td><td>${d.delegasiNama||'-'}</td><td class="label">Kontak saat cuti</td><td>${d.kontakCuti||'-'}</td></tr>
+  </table>
+</div>
+
+<div class="section">
+  <div class="section-title">F. Persetujuan</div>
+  <div class="ttd-grid">
+    <div class="ttd-box"><div>Pemohon,</div><div class="ttd-space"></div><div class="ttd-name">(${d.nama})</div></div>
+    <div class="ttd-box"><div>Atasan Langsung,</div><div class="ttd-space"></div><div class="ttd-name">(________________________)</div></div>
+    <div class="ttd-box"><div>Menyetujui, HRD/Manajer,</div><div class="ttd-space"></div><div class="ttd-name">(________________________)</div></div>
+  </div>
+</div>
+
+<div class="footer">
+  Catatan: Cuti sakit wajib melampirkan surat keterangan dokter. Cuti melahirkan melampirkan surat keterangan dokter/bidan.
+  Formulir diajukan minimal 3 hari kerja sebelum tanggal cuti (kecuali kondisi mendesak).
+</div>
+</body>
+</html>`;
+
+  // Buka di tab baru lalu print sebagai PDF
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.focus();
+  setTimeout(() => { win.print(); }, 500);
 }
