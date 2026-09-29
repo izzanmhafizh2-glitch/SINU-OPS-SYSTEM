@@ -246,14 +246,14 @@ async function handleFormSubmit(event){
     let fotoUrl = null;
     if(capturedImageData) {
       btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengupload foto...</span>';
-      fotoUrl = await uploadFotoAbsensiKeStorage(capturedImageData, empName);
+      fotoUrl = await uploadFotoAbsensiKeStorage(capturedImageData, empName, 'selfie');
     }
 
     // Upload foto lapangan jika ada
     let fotoLapanganUrl = null;
     if(locationData.lapangan && lapanganFotoData) {
       btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengupload foto lapangan...</span>';
-      fotoLapanganUrl = await uploadFotoAbsensiKeStorage(lapanganFotoData, empName + '_lapangan');
+      fotoLapanganUrl = await uploadFotoAbsensiKeStorage(lapanganFotoData, empName, 'lapangan');
     }
 
     btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Menyimpan...</span>';
@@ -438,8 +438,9 @@ function base64ToBlob(base64DataUrl) {
 }
 
 // ── UPLOAD FOTO KE SUPABASE STORAGE ──────────────────────────
-// Struktur: foto-absensi/2026/09 - September/28-Sep-2026/nama_28092026_0800.jpg
-async function uploadFotoAbsensiKeStorage(base64DataUrl, nama) {
+// Struktur: foto-absensi/2026/09 - September/28-Sep-2026/selfie/nama_28092026_0800.jpg
+//           foto-absensi/2026/09 - September/28-Sep-2026/lapangan/nama_28092026_0800.jpg
+async function uploadFotoAbsensiKeStorage(base64DataUrl, nama, subfolder='selfie') {
   try {
     // Kompresi dulu
     const compressed = await kompressFotoAbsensi(base64DataUrl);
@@ -458,22 +459,21 @@ async function uploadFotoAbsensiKeStorage(base64DataUrl, nama) {
     const jam = String(now.getHours()).padStart(2, '0');
     const mnt = String(now.getMinutes()).padStart(2, '0');
 
-    // Format tanggal folder: 28-Sep-2026
     const namaBulanPendek = ['Jan','Feb','Mar','Apr','Mei','Jun',
                               'Jul','Agu','Sep','Okt','Nov','Des'][bulanIdx];
     const folderTanggal = `${tgl}-${namaBulanPendek}-${tahun}`;
 
-    // Format nama file: wulan_28092026_0800.jpg
+    // Format nama file: nama_ddmmyyyy_hhmm.jpg
     const namaFile = `${nama.toLowerCase().replace(/\s+/g,'_')}_${tgl}${bln}${thn}_${jam}${mnt}.jpg`;
 
-    // Path lengkap
-    const filePath = `${tahun}/${bulanNum} - ${namaBulan}/${folderTanggal}/${namaFile}`;
+    // Path lengkap dengan subfolder selfie/lapangan
+    const filePath = `${tahun}/${bulanNum} - ${namaBulan}/${folderTanggal}/${subfolder}/${namaFile}`;
 
     const { data, error } = await supa.storage
       .from('foto-absensi')
       .upload(filePath, blob, {
         contentType: 'image/jpeg',
-        upsert: true  // overwrite jika sudah ada (absensi ulang hari sama)
+        upsert: true
       });
 
     if(error) {
@@ -481,7 +481,6 @@ async function uploadFotoAbsensiKeStorage(base64DataUrl, nama) {
       return null;
     }
 
-    // Ambil public URL
     const { data: urlData } = supa.storage
       .from('foto-absensi')
       .getPublicUrl(filePath);
