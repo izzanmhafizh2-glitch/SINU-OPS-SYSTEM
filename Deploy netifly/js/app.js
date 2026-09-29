@@ -186,9 +186,10 @@ function buildNavigation(){
     {id:'kelolaakun',icon:'fa-users-gear',         label:'Kelola Akun',show:isSupervisor}
   ];
   const visible=menus.filter(m=>m.show);
-  nav.className='bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 grid gap-1';
-  nav.style.cssText='grid-template-columns:repeat('+visible.length+',1fr);';
-  nav.innerHTML=visible.map((m,i)=>`<button type="button" onclick="switchMainTab('${m.id}')" id="main-tab-${m.id}" class="tab-btn ${i===0?'active':''} py-2 px-1 rounded-xl text-[9px] sm:text-[10px] lg:text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all flex flex-col items-center gap-1"><i class="fa-solid ${m.icon} text-sm lg:text-base"></i><span class="truncate w-full text-center">${m.label}</span></button>`).join('');
+  const cols=Math.min(visible.length,5);
+  nav.className='bg-white dark:bg-slate-800 rounded-2xl p-2 shadow-sm border border-slate-100 dark:border-slate-700 grid gap-1.5';
+  nav.style.cssText='grid-template-columns:repeat('+cols+',1fr);';
+  nav.innerHTML=visible.map((m,i)=>`<button type="button" onclick="switchMainTab('${m.id}')" id="main-tab-${m.id}" class="tab-btn ${i===0?'active':''} py-3 px-2 rounded-xl text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all flex flex-col items-center gap-1.5 w-full"><i class="fa-solid ${m.icon} text-base"></i><span class="truncate w-full text-center leading-tight">${m.label}</span></button>`).join('');
 
   // ── Kontrol visibilitas komponen per role ─────────────────
   const canViewEmployeeRecap=isSupervisor;
