@@ -88,14 +88,65 @@ function getLocation(){
   navigator.geolocation.getCurrentPosition(pos=>{
     const lat=pos.coords.latitude,lng=pos.coords.longitude;
     if(isWFH){
-      locationData={lat,lng,distance:0,wfh:true};
+      locationData={lat,lng,distance:0,wfh:true,lapangan:false};
       status.innerHTML="<span class='font-bold text-emerald-600 dark:text-emerald-400'>✓ Lokasi Terdeteksi (WFH/Kantor)</span><br>Lat: "+lat.toFixed(6)+", Lng: "+lng.toFixed(6);
+      toggleLapanganSection(false);
     } else {
       const dist=Math.round(calculateDistance(lat,lng,TARGET_LAT,TARGET_LNG));
-      if(dist<=MAX_RADIUS){locationData={lat,lng,distance:dist};status.innerHTML="<span class='font-bold text-emerald-600 dark:text-emerald-400'>✓ Lokasi Valid (Dalam Radius)</span><br>Lat: "+lat.toFixed(6)+", Lng: "+lng.toFixed(6)+"<br><span class='text-slate-400'>Jarak: "+dist+"m</span>";}
-      else{locationData=null;status.innerHTML="<span class='font-bold text-rose-600 dark:text-rose-400'>✕ Di Luar Jangkauan!</span><br><span class='text-rose-500'>Jarak: "+dist+"m (Maks. 30m)</span>";showAlert('Anda berada '+dist+'m dari kantor.','Di Luar Radius');}
+      if(dist<=MAX_RADIUS){
+        locationData={lat,lng,distance:dist,lapangan:false};
+        status.innerHTML="<span class='font-bold text-emerald-600 dark:text-emerald-400'>✓ Lokasi Valid (Dalam Radius)</span><br>Lat: "+lat.toFixed(6)+", Lng: "+lng.toFixed(6)+"<br><span class='text-slate-400'>Jarak: "+dist+"m</span>";
+        toggleLapanganSection(false);
+      } else {
+        locationData={lat,lng,distance:dist,lapangan:true};
+        status.innerHTML="<span class='font-bold text-amber-600 dark:text-amber-400'>⚡ Di Luar Radius — Mode Lapangan</span><br>"
+          +"<span class='text-[11px] text-amber-600/80 dark:text-amber-400/80'>Jarak: "+dist+"m dari kantor. Isi form lapangan di bawah.</span>";
+        toggleLapanganSection(true);
+      }
     }
   },()=>{locationData=null;status.innerHTML="<span class='text-rose-500 font-semibold'>Gagal ambil GPS.</span>";},{enableHighAccuracy:true,timeout:10000,maximumAge:0});
+}
+
+function toggleLapanganSection(show){
+  const sec=document.getElementById('lapangan-section');
+  if(sec) sec.classList.toggle('hidden',!show);
+  if(!show){
+    // Reset form lapangan saat disembunyikan
+    const woId=document.getElementById('lapangan-wo-id');
+    const ket=document.getElementById('lapangan-keterangan');
+    if(woId) woId.value='';
+    if(ket) ket.value='';
+    lapanganFotoData=null;
+    const prev=document.getElementById('lapangan-foto-preview');
+    const ph=document.getElementById('lapangan-foto-placeholder');
+    const btnTxt=document.getElementById('lapangan-foto-btn-text');
+    if(prev){prev.src='';prev.classList.add('hidden');}
+    if(ph) ph.classList.remove('hidden');
+    if(btnTxt) btnTxt.textContent='Ambil Foto Lokasi';
+  }
+}
+
+// Data foto lokasi lapangan
+let lapanganFotoData = null;
+
+async function handleLapanganFotoSelect(event){
+  const file=event.target.files[0];if(!file)return;
+  const preview=document.getElementById('lapangan-foto-preview');
+  const placeholder=document.getElementById('lapangan-foto-placeholder');
+  const btnTxt=document.getElementById('lapangan-foto-btn-text');
+  const reader=new FileReader();
+  reader.onload=async function(e){
+    // Kompresi foto lapangan
+    if(typeof kompressFotoAbsensi==='function'){
+      lapanganFotoData=await kompressFotoAbsensi(e.target.result,1200,1200,0.7);
+    } else {
+      lapanganFotoData=e.target.result;
+    }
+    if(preview){preview.src=lapanganFotoData;preview.classList.remove('hidden');}
+    if(placeholder) placeholder.classList.add('hidden');
+    if(btnTxt) btnTxt.textContent='Ganti Foto Lokasi';
+  };
+  reader.readAsDataURL(file);
 }
 
 // Hitung point kehadiran per hari (skala 100)
@@ -176,18 +227,38 @@ async function handleFormSubmit(event){
   if(!empName){showAlert('Silakan pilih Nama Karyawan.');return;}
   if(!locationData){showAlert('Silakan dapatkan lokasi GPS terlebih dahulu.');return;}
   if(!capturedImageData){showAlert('Silakan ambil foto selfie presensi.');return;}
+
+  // Validasi form lapangan jika di luar radius
+  if(locationData.lapangan){
+    const woIdVal=(document.getElementById('lapangan-wo-id')||{value:''}).value.trim();
+    const ketVal=(document.getElementById('lapangan-keterangan')||{value:''}).value.trim();
+    if(!woIdVal){showAlert('Isi ID Tiket WO untuk absensi lapangan.','Form Lapangan Wajib');return;}
+    if(!ketVal){showAlert('Isi keterangan lokasi untuk absensi lapangan.','Form Lapangan Wajib');return;}
+    if(!lapanganFotoData){showAlert('Ambil foto lokasi/rumah pelanggan untuk absensi lapangan.','Form Lapangan Wajib');return;}
+  }
+
   const{isLate,mntLate,statusKehadiran}=cekKeterlambatan();
   if(isLate&&!lateReason.trim()){showAlert('Anda terlambat! Isi alasan keterlambatan.');return;}
   const point=hitungPointKehadiran(statusKehadiran,mntLate,'',false);
   const orig=btn.innerHTML;btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengirim...</span>';
   try {
-    // Upload foto ke Supabase Storage (tidak blocking — gagal upload tidak gagalkan absensi)
+    // Upload foto selfie ke Supabase Storage
     let fotoUrl = null;
     if(capturedImageData) {
       btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengupload foto...</span>';
       fotoUrl = await uploadFotoAbsensiKeStorage(capturedImageData, empName);
     }
+
+    // Upload foto lapangan jika ada
+    let fotoLapanganUrl = null;
+    if(locationData.lapangan && lapanganFotoData) {
+      btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Mengupload foto lapangan...</span>';
+      fotoLapanganUrl = await uploadFotoAbsensiKeStorage(lapanganFotoData, empName + '_lapangan');
+    }
+
     btn.innerHTML='<i class="fa-solid fa-spinner animate-spin"></i><span>Menyimpan...</span>';
+    const woIdVal=(document.getElementById('lapangan-wo-id')||{value:''}).value.trim();
+    const ketVal=(document.getElementById('lapangan-keterangan')||{value:''}).value.trim();
     if(typeof simpanAbsensiKeSupabase==='function') await simpanAbsensiKeSupabase({
       nama:empName,
       username:currentUser ? currentUser.username : '',
@@ -201,7 +272,11 @@ async function handleFormSubmit(event){
       point,
       lat:locationData.lat,
       lng:locationData.lng,
-      fotoUrl
+      fotoUrl,
+      lapangan: locationData.lapangan || false,
+      lapanganWoId: woIdVal || null,
+      lapanganKeterangan: ketVal || null,
+      fotoLapanganUrl: fotoLapanganUrl || null
     });
   } catch(error) {
     btn.disabled=false;btn.innerHTML=orig;

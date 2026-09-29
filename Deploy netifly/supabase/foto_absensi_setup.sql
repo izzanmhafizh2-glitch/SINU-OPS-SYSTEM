@@ -64,3 +64,18 @@ create policy "Allow update foto absensi"
 -- Estimasi storage: 15 karyawan × 300 hari = ~450MB/tahun
 -- Free tier Supabase Storage: 1GB (cukup untuk ~2 tahun)
 -- ============================================================
+
+-- ============================================================
+-- MIGRATION: Kolom absensi lapangan
+-- Tambahkan ke tabel absensi yang sudah ada
+-- ============================================================
+alter table public.absensi
+  add column if not exists lapangan            boolean default false,
+  add column if not exists lapangan_wo_id      text default null,
+  add column if not exists lapangan_keterangan text default null,
+  add column if not exists foto_lapangan_url   text default null;
+
+comment on column public.absensi.lapangan            is 'True jika absensi dilakukan di luar radius kantor';
+comment on column public.absensi.lapangan_wo_id      is 'ID tiket WO yang sedang dikerjakan saat absensi lapangan';
+comment on column public.absensi.lapangan_keterangan is 'Keterangan lokasi lapangan dari karyawan';
+comment on column public.absensi.foto_lapangan_url   is 'URL foto lokasi/rumah pelanggan di Supabase Storage';

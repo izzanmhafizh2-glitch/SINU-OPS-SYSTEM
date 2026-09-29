@@ -1275,8 +1275,51 @@
               <div class="flex justify-between items-center"><label class="block text-xs font-bold text-slate-500 uppercase">Alasan Keterlambatan</label><span class="text-[10px] text-amber-700 font-semibold bg-amber-50 dark:bg-amber-950/40 px-2.5 py-0.5 rounded-full border border-amber-200 dark:border-amber-800">Isi jika terlambat</span></div>
               <textarea id="lateReason" rows="2" placeholder="Contoh: Ban bocor / kemacetan..." class="w-full p-3 bg-slate-50/50 dark:bg-slate-700/50 border border-slate-200 dark:border-slate-600 rounded-2xl text-xs font-medium focus:outline-none focus:border-amber-500 resize-none"></textarea>
             </div>
-            <button type="submit" id="btn-submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-[0.99]"><i class="fa-solid fa-paper-plane text-sm"></i><span>Kirim Absen Sekarang</span></button>
-          </form>
+            <!-- FORM LAPANGAN (muncul otomatis kalau di luar radius) -->
+            <div id="lapangan-section" class="hidden space-y-3 bg-amber-50 dark:bg-amber-950/30 border-2 border-amber-300 dark:border-amber-700 rounded-2xl p-4">
+              <div class="flex items-center gap-2 pb-2 border-b border-amber-200 dark:border-amber-800">
+                <div class="w-8 h-8 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
+                  <i class="fa-solid fa-location-arrow text-white text-sm"></i>
+                </div>
+                <div>
+                  <p class="text-xs font-extrabold text-amber-800 dark:text-amber-300">Absensi Lapangan</p>
+                  <p class="text-[10px] text-amber-600/80 dark:text-amber-400/80">Anda di luar radius kantor. Isi data di bawah sebagai bukti kehadiran lapangan.</p>
+                </div>
+              </div>
+              <!-- ID Tiket -->
+              <div class="space-y-1.5">
+                <label class="block text-[11px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wide">ID Tiket WO <span class="text-rose-500">*</span></label>
+                <input type="text" id="lapangan-wo-id" placeholder="Contoh: WO-260929-001"
+                  class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-bold text-slate-800 dark:text-slate-100 focus:outline-none focus:border-amber-500 uppercase"
+                  oninput="this.value=this.value.toUpperCase()">
+              </div>
+              <!-- Keterangan -->
+              <div class="space-y-1.5">
+                <label class="block text-[11px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Keterangan <span class="text-rose-500">*</span></label>
+                <textarea id="lapangan-keterangan" rows="2" placeholder="Contoh: Langsung ke lokasi instalasi pelanggan A di Jl. Merdeka No.5..."
+                  class="w-full px-3 py-2.5 bg-white dark:bg-slate-700 border border-amber-300 dark:border-amber-700 rounded-xl text-xs font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:border-amber-500 resize-none"></textarea>
+              </div>
+              <!-- Foto Lokasi -->
+              <div class="space-y-1.5">
+                <label class="block text-[11px] font-extrabold text-amber-800 dark:text-amber-300 uppercase tracking-wide">Foto Lokasi / Rumah Pelanggan <span class="text-rose-500">*</span></label>
+                <div class="relative bg-white dark:bg-slate-700 border-2 border-dashed border-amber-300 dark:border-amber-700 rounded-xl overflow-hidden">
+                  <img id="lapangan-foto-preview" src="" class="w-full h-36 object-cover hidden">
+                  <div id="lapangan-foto-placeholder" class="flex flex-col items-center justify-center py-5 gap-2">
+                    <div class="w-10 h-10 bg-amber-100 dark:bg-amber-900/50 rounded-full flex items-center justify-center">
+                      <i class="fa-solid fa-camera text-amber-600 dark:text-amber-400 text-lg"></i>
+                    </div>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">Foto depan rumah/lokasi pelanggan</p>
+                  </div>
+                  <input type="file" id="lapangan-foto-input" accept="image/*" capture="environment" class="hidden" onchange="handleLapanganFotoSelect(event)">
+                  <button type="button" onclick="document.getElementById('lapangan-foto-input').click()"
+                    class="w-full py-2 bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5">
+                    <i class="fa-solid fa-camera"></i><span id="lapangan-foto-btn-text">Ambil Foto Lokasi</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <button type="submit" id="btn-submit" class="w-full py-3.5 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-700 hover:to-teal-700 text-white font-bold text-sm rounded-2xl transition-all shadow-md shadow-emerald-600/25 flex items-center justify-center gap-2 active:scale-[0.99]"><i class="fa-solid fa-paper-plane text-sm"></i><span>Kirim Absen Sekarang</span></button>          </form>
           <div id="success-screen" class="hidden bg-white dark:bg-slate-800 rounded-3xl p-8 shadow-sm border border-slate-100 dark:border-slate-700 text-center space-y-5">
             <div class="w-20 h-20 bg-emerald-100 dark:bg-emerald-950/60 rounded-full flex items-center justify-center mx-auto text-emerald-600 dark:text-emerald-400 shadow-xl"><i class="fa-solid fa-circle-check text-4xl"></i></div>
             <div class="space-y-3"><h2 class="text-2xl font-extrabold text-slate-900 dark:text-white">BERHASIL TERKIRIM</h2><div id="screen-status-badge" class="inline-block px-4 py-2 rounded-2xl border text-sm font-extrabold tracking-wide">--</div>
@@ -2943,7 +2986,7 @@
 <script src="js/config.js?v=1000195"></script>
 
 <!-- 2. Supabase Client Initialization -->
-<script src="js/supabase-init.js?v=2026092903"></script>
+<script src="js/supabase-init.js?v=2026092920"></script>
 
 <!-- 3. Core Application (Auth, Navigation, Init) -->
 <script src="js/app.js?v=2026092906"></script>
@@ -2953,7 +2996,7 @@
 <script src="js/tugas.js?v=1000210"></script>
 <script src="js/material.js?v=1000195"></script>
 <script src="js/noc.js?v=1000204"></script>
-<script src="js/absensi.js?v=2026092305"></script>
+<script src="js/absensi.js?v=2026092920"></script>
 <script src="js/jadwal.js?v=1000023"></script>
 <script src="js/tukar-shift.js?v=1000010"></script>
 <script src="js/shift-swap-approval.js?v=1000009"></script>
