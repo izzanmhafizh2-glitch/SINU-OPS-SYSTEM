@@ -252,8 +252,48 @@ function getODPStatusLabel(pct){
 }
 function renderODPGrid(){
   const tbody=document.getElementById('odp-grid');if(!tbody)return;
-  if(!odpMaster.length){tbody.innerHTML='<tr><td colspan="9" class="text-center py-8 text-slate-400 text-xs">Belum ada data ODP.</td></tr>';return;}
-  tbody.innerHTML=odpMaster.map(o=>{const pct=Math.round((o.terisi/o.kapasitas)*100),sisa=o.kapasitas-o.terisi,color=getODPColor(pct),status=getODPStatusLabel(pct);return`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all"><td class="py-3 px-4"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full shrink-0" style="background-color:${color}"></span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${status.color}">${status.label}</span></div></td><td class="py-3 px-3 font-extrabold text-slate-700 dark:text-slate-200 font-mono text-xs">${o.odc||'--'}</td><td class="py-3 px-3 font-extrabold text-slate-900 dark:text-white font-mono text-xs">${o.id}</td><td class="py-3 px-3 text-slate-600 dark:text-slate-300 text-xs">${o.lokasi}</td><td class="py-3 px-3 text-center font-bold text-xs">${o.kapasitas}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${o.terisi}</td><td class="py-3 px-3 text-center font-black text-emerald-600 dark:text-emerald-400 text-xs">${sisa}</td><td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${pct}%</td><td class="py-3 px-3 w-28"><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full" style="width:${pct}%;background-color:${color}"></div></div></td></tr>`;}).join('');
+  if(!odpMaster.length){tbody.innerHTML='<tr><td colspan="10" class="text-center py-8 text-slate-400 text-xs">Belum ada data ODP.</td></tr>';return;}
+  const isAdmin = currentUser && ['admin','owner','supervisor'].includes((currentUser.role||'').toLowerCase());
+  tbody.innerHTML=odpMaster.map(o=>{
+    const pct=Math.round((o.terisi/o.kapasitas)*100),sisa=o.kapasitas-o.terisi,color=getODPColor(pct),status=getODPStatusLabel(pct);
+    const hapusBtn = isAdmin
+      ? `<button onclick="hapusODP('${o.id}')" class="px-2 py-1 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-600 dark:text-rose-400 border border-rose-200 dark:border-rose-800 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1"><i class="fa-solid fa-trash text-[9px]"></i>Hapus</button>`
+      : '<span class="text-slate-300 dark:text-slate-600 text-[10px]">—</span>';
+    return`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all">
+      <td class="py-3 px-4"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full shrink-0" style="background-color:${color}"></span><span class="px-2 py-0.5 rounded-full text-[10px] font-extrabold ${status.color}">${status.label}</span></div></td>
+      <td class="py-3 px-3 font-extrabold text-slate-700 dark:text-slate-200 font-mono text-xs">${o.odc||'--'}</td>
+      <td class="py-3 px-3 font-extrabold text-slate-900 dark:text-white font-mono text-xs">${o.id}</td>
+      <td class="py-3 px-3 text-slate-600 dark:text-slate-300 text-xs">${o.lokasi}</td>
+      <td class="py-3 px-3 text-center font-bold text-xs">${o.kapasitas}</td>
+      <td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${o.terisi}</td>
+      <td class="py-3 px-3 text-center font-black text-emerald-600 dark:text-emerald-400 text-xs">${sisa}</td>
+      <td class="py-3 px-3 text-center font-black text-xs" style="color:${color}">${pct}%</td>
+      <td class="py-3 px-3 w-28"><div class="w-full bg-slate-100 dark:bg-slate-700 rounded-full h-2 overflow-hidden"><div class="h-2 rounded-full" style="width:${pct}%;background-color:${color}"></div></div></td>
+      <td class="py-3 px-3 text-center">${hapusBtn}</td>
+    </tr>`;
+  }).join('');
+}
+
+async function hapusODP(odpId) {
+  if(!currentUser || !['admin','owner','supervisor'].includes((currentUser.role||'').toLowerCase())) {
+    showAlert('Hanya Admin/Owner yang dapat menghapus ODP.','Akses Ditolak'); return;
+  }
+  // Cek apakah ODP sedang terisi
+  const odp = odpMaster.find(o => o.id === odpId);
+  if(odp && odp.terisi > 0) {
+    showAlert(`ODP ${odpId} masih terisi ${odp.terisi} port. Kosongkan terlebih dahulu sebelum menghapus.`, 'Tidak Bisa Dihapus');
+    return;
+  }
+  if(!confirm(`Hapus ODP ${odpId}? Tindakan ini tidak bisa dibatalkan.`)) return;
+  try {
+    const { error } = await supa.from('odp').delete().eq('odp_id', odpId);
+    if(error) throw error;
+    odpMaster = odpMaster.filter(o => o.id !== odpId);
+    renderODPGrid();
+    showAlert(`ODP ${odpId} berhasil dihapus.`, 'ODP Dihapus');
+  } catch(e) {
+    showAlert('Gagal menghapus ODP: ' + (e.message || ''), 'Error');
+  }
 }
 let odpLocationLookupTimer=null;
 let odpLocationLookupController=null;

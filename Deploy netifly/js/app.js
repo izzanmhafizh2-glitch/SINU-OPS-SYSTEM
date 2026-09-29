@@ -127,7 +127,13 @@ function loadMainApp(){
   document.getElementById('user-display-name').textContent=currentUser.displayName;
   const rLabel={owner:'Owner (Super Admin)',admin:'Admin',cs:'CS',teknisi:'Teknisi Field',supervisor:'Supervisor',spv:'Supervisor',noc:'NOC Engineer',finance:'Finance',manager:'Manager',koordinator:'Koordinator Mitra',teknisi_mitra:'Teknisi Mitra',noc_mitra:'NOC Mitra',cs_mitra:'CS Mitra'};
   document.getElementById('user-role-badge').textContent=rLabel[currentUser.role]||currentUser.role;
-  buildNavigation();initApp();
+  // Load menu visibility config dulu, baru build nav agar applyMenuVisibility bisa langsung jalan
+  if(typeof loadMenuVisibilityConfig === 'function') {
+    loadMenuVisibilityConfig().then(function(){ buildNavigation(); });
+  } else {
+    buildNavigation();
+  }
+  initApp();
   // Load foto profil kalau ada
   loadProfilePhoto();
   sinuScheduleMidnightLogout();
@@ -241,6 +247,9 @@ function buildNavigation(){
       const el=document.getElementById(id); if(el)el.classList.add('hidden');
     });
   }
+
+  // Terapkan konfigurasi hide/show dari Super Admin
+  if(typeof applyMenuVisibility === 'function') applyMenuVisibility();
 }
 
 function handleLogout(){document.getElementById('logout-modal').classList.remove('hidden');}
@@ -530,6 +539,8 @@ function switchMainTab(tabName){
     const lastSub=sessionStorage.getItem('sinu_last_sub_manager')||'history-baps';
     switchSubManager(lastSub);
   }
+  // Re-apply visibility setelah setiap navigasi (konten baru muncul di DOM)
+  if(typeof applyMenuVisibility === 'function') setTimeout(applyMenuVisibility, 50);
 }
 function switchSubMitra(sub) {
   const validSubs = ['daftar-mitra','akun-mitra','perangkat-mitra','approval-perangkat-mitra','invoice-mitra'];

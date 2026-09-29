@@ -245,6 +245,12 @@ function renderOwnerControlVisibility() {
   if(show) {
     ownerLoadReleaseWO();
     ownerLoadDeviceMove();
+    // Init panel menu visibility
+    if(typeof loadMenuVisibilityConfig === 'function') {
+      loadMenuVisibilityConfig().then(function() {
+        if(typeof renderMenuVisibilityPanel === 'function') renderMenuVisibilityPanel();
+      });
+    }
   }
 }
 
