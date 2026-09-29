@@ -255,6 +255,16 @@ function buildNavigation(){
 
   // Terapkan konfigurasi hide/show dari Super Admin
   if(typeof applyMenuVisibility === 'function') applyMenuVisibility();
+
+  // Recalculate kolom grid setelah visibility diterapkan
+  // (beberapa tombol mungkin di-hide, kolom perlu disesuaikan)
+  setTimeout(function(){
+    const nav = document.getElementById('main-nav');
+    if(!nav) return;
+    const visibleBtns = nav.querySelectorAll('.tab-btn:not([style*="display: none"]):not([style*="display:none"])');
+    const newCols = Math.min(Math.max(visibleBtns.length, 1), 5);
+    nav.style.gridTemplateColumns = 'repeat(' + newCols + ', 1fr)';
+  }, 100);
 }
 
 function handleLogout(){document.getElementById('logout-modal').classList.remove('hidden');}
