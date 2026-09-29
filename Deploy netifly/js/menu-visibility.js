@@ -14,7 +14,14 @@ const MENU_TREE = {
     menus: [
       {
         id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie',
-        submenus: []
+        submenus: [],
+        konten: [
+          { id: 'dash-wo-section',         label: 'Work Order Hari Ini' },
+          { id: 'dash-komposisi-kehadiran', label: 'Komposisi Kehadiran' },
+          { id: 'dash-top3-employee',       label: 'Top 3 Employee of the Month' },
+          { id: 'dash-kpi-klasemen',        label: 'Klasemen KPI Singkat' },
+          { id: 'dash-tren-kehadiran',      label: 'Tren Kehadiran & Rekapitulasi' },
+        ]
       },
       {
         id: 'absensi', label: 'Absensi', icon: 'fa-user-check',
@@ -95,7 +102,14 @@ const MENU_TREE = {
     menus: [
       {
         id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie',
-        submenus: []
+        submenus: [],
+        konten: [
+          { id: 'dash-wo-section',         label: 'Work Order Hari Ini' },
+          { id: 'dash-komposisi-kehadiran', label: 'Komposisi Kehadiran' },
+          { id: 'dash-top3-employee',       label: 'Top 3 Employee of the Month' },
+          { id: 'dash-kpi-klasemen',        label: 'Klasemen KPI Singkat' },
+          { id: 'dash-tren-kehadiran',      label: 'Tren Kehadiran & Rekapitulasi' },
+        ]
       },
       {
         id: 'absensi', label: 'Absensi', icon: 'fa-user-check',
@@ -149,7 +163,14 @@ const MENU_TREE = {
     menus: [
       {
         id: 'dashboard', label: 'Dashboard', icon: 'fa-chart-pie',
-        submenus: []
+        submenus: [],
+        konten: [
+          { id: 'dash-wo-section',         label: 'Work Order Hari Ini' },
+          { id: 'dash-komposisi-kehadiran', label: 'Komposisi Kehadiran' },
+          { id: 'dash-top3-employee',       label: 'Top 3 Employee of the Month' },
+          { id: 'dash-kpi-klasemen',        label: 'Klasemen KPI Singkat' },
+          { id: 'dash-tren-kehadiran',      label: 'Tren Kehadiran & Rekapitulasi' },
+        ]
       },
       {
         id: 'absensi', label: 'Absensi', icon: 'fa-user-check',
@@ -290,6 +311,14 @@ function applyMenuVisibility() {
         if(kontenEl) kontenEl.style.display = kontenVisible ? '' : 'none';
       });
     });
+
+    // 4. Konten langsung di level menu (misal konten dashboard)
+    (menu.konten || []).forEach(function(konten) {
+      var kontenKey = 'konten:' + menu.id + ':' + konten.id;
+      var kontenVisible = isMenuItemVisible(role, kontenKey);
+      var kontenEl = document.getElementById(konten.id);
+      if(kontenEl) kontenEl.style.display = kontenVisible ? '' : 'none';
+    });
   });
 }
 
@@ -394,6 +423,24 @@ function renderMenuVisibilityPanel() {
       });
 
       html += '</div>'; // divide-y
+    }
+
+    // 4. Konten langsung di level menu (misal konten dashboard)
+    if((menu.konten || []).length) {
+      html += '<div class="divide-y divide-slate-100 dark:divide-slate-700">';
+      menu.konten.forEach(function(k) {
+        var kKey = 'konten:' + menu.id + ':' + k.id;
+        var kVisible = getVal(kKey);
+        html += '<div class="flex items-center justify-between px-4 py-2 pl-8 bg-white dark:bg-slate-800">';
+        html += '<div class="flex items-center gap-2">';
+        html += '<i class="fa-solid fa-minus text-slate-300 text-[9px]"></i>';
+        html += '<span class="text-[11px] font-bold text-slate-700 dark:text-slate-200">' + k.label + '</span>';
+        html += '<span class="text-[10px] text-slate-400 italic">Konten</span>';
+        html += '</div>';
+        html += _mvToggleHtml(role, kKey, kVisible, 'sm');
+        html += '</div>';
+      });
+      html += '</div>';
     }
 
     html += '</div>'; // mv-menu-block
