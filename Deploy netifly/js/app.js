@@ -1,4 +1,4 @@
-// ===================== AUTH =====================
+﻿// ===================== AUTH =====================
 // handleLogin versi Supabase ada di supabase-init.js
 // Fungsi ini sengaja dihapus agar tidak menimpa versi async Supabase
 
@@ -519,7 +519,7 @@ function switchMainTab(tabName){
     // Migrasi state lama: ODP dulu disimpan sebagai submenu Asset.
     if(storedSub==='odp') lastMenu='odp';
     if(storedSub==='logperangkat' && isAssetOnlyUser && role!=='noc') lastMenu='logperangkat';
-    if(!['tugas','asset','odp','logperangkat','jadwal'].includes(lastMenu)) lastMenu='tugas';
+    if(!['tugas','asset','odp','logperangkat'].includes(lastMenu)) lastMenu='tugas';
     if(isCSUser && !['tugas','asset'].includes(lastMenu)) lastMenu='tugas';
     if(isAssetOnlyUser && lastMenu!=='odp') lastMenu='asset';
     switchAdminMenu(lastMenu);
@@ -715,7 +715,7 @@ const _admMenuMap = {
   'list-tiket-dismantle':'tugas', 'rl-radius':'tugas', 'registrasi':'tugas',
   'tambah-perangkat':'asset', 'list-perangkat':'asset', 'list-rusak':'asset',
   'dismantle-items':'asset', 'approval-pickup':'asset', 'logperangkat':'asset',
-  'jadwal-shift':'jadwal', 'pengaturan-jam-kerja':'jadwal', 'approval-tukar-shift':'jadwal',
+  'jadwal-shift':'tugas', 'pengaturan-jam-kerja':'tugas', 'approval-tukar-shift':'tugas',
   'data-pelanggan':'tugas', 'pembayaran':'tugas'
 };
 
@@ -724,14 +724,12 @@ function switchAdminMenu(menu) {
   const isSupervisorOnlyUser=role==='supervisor'||role==='spv';
   const isAssetOnlyUser=role==='noc'||isSupervisorOnlyUser;
   const STANDALONE_MENUS = ['odp','logperangkat','konfirmasi-bayar','area-mitra'];
-  if(!['tugas','asset','odp','logperangkat','jadwal','konfirmasi-bayar','area-mitra'].includes(menu)) menu='tugas';
+  if(!['tugas','asset','odp','logperangkat','konfirmasi-bayar','area-mitra'].includes(menu)) menu='tugas';
   if(menu==='logperangkat' && !isSupervisorOnlyUser) menu='asset';
   if(isSupervisorOnlyUser && menu==='asset') menu='odp';
   if(role==='cs' && !['tugas','asset'].includes(menu)) menu='tugas';
   if(isAssetOnlyUser && menu==='tugas') menu='asset';
-  if(isAssetOnlyUser && menu==='jadwal') menu='asset';
   if(isAssetOnlyUser && (menu==='konfirmasi-bayar'||menu==='area-mitra')) menu='asset';
-  if(menu==='jadwal'         && role!=='admin') menu='tugas';
   if(menu==='konfirmasi-bayar'&& role!=='admin') menu='tugas';
   if(menu==='area-mitra'     && role!=='admin') menu='tugas';
 
@@ -739,7 +737,6 @@ function switchAdminMenu(menu) {
   const odpSection = document.getElementById('section-odp');
   const tugasNav  = document.getElementById('admin-sub-tugas');
   const assetNav  = document.getElementById('admin-sub-asset');
-  const jadwalNav = document.getElementById('admin-sub-jadwal');
   const logSection = document.getElementById('section-logperangkat');
   const konfirmasiPanel = document.getElementById('admin-sub-konfirmasi-bayar');
   const areaMitraPanel  = document.getElementById('admin-sub-area-mitra');
@@ -755,7 +752,6 @@ function switchAdminMenu(menu) {
   });
   if(tugasNav)  tugasNav.classList.toggle('hidden', menu !== 'tugas');
   if(assetNav)  assetNav.classList.toggle('hidden', menu !== 'asset');
-  if(jadwalNav) jadwalNav.classList.toggle('hidden', menu !== 'jadwal');
 
   document.querySelectorAll('#subnav-admin-main .snpill').forEach(b=>b.classList.remove('active'));
   const menuBtn = document.getElementById('admin-menu-'+menu);
@@ -785,7 +781,6 @@ function switchAdminMenu(menu) {
   }
   if(menu==='tugas')  switchSubAdmin(role==='admin' ? 'list-tiket' : 'buat-tugas');
   if(menu==='asset')  switchSubAdmin(isAssetOnlyUser ? 'list-perangkat' : 'tambah-perangkat');
-  if(menu==='jadwal') switchSubAdmin('jadwal-shift');
 }
 
 function switchSubAdmin(sub){
@@ -1130,3 +1125,5 @@ function loadProfilePhoto() {
     applyProfilePhoto(photoUrl);
   }
 }
+
+
