@@ -42,7 +42,7 @@ async function loadDashboardAttendanceMine(){
   const end=`${year}-${pad(month+1)}-${pad(endDate.getDate())}`;
   const next={tepat:0,terlambat:0,sakit:0,cuti:0,alpa:0};
   try{
-    const {data,error}=await supa.from('absensi').select('status_kehadiran,tanggal').eq('nama',userName).gte('tanggal',start).lte('tanggal',end);
+    const {data,error}=await supa.from('absensi').select('status_kehadiran,tanggal').ilike('nama',userName).gte('tanggal',start).lte('tanggal',end);
     if(error)throw error;
     (data||[]).forEach(row=>{
       const status=String(row.status_kehadiran||'').toUpperCase();
