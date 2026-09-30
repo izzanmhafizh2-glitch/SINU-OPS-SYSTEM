@@ -917,7 +917,7 @@ async function loadJadwalMonitoring() {
 
 async function remindAttendance(username, scheduleId, employeeName) {
   var role = currentUser ? String(currentUser.role || '').toLowerCase() : '';
-  if(role !== 'admin' && role !== 'owner') { showAlert('Hanya Admin/Owner yang dapat mengirim peringatan.', 'Akses Ditolak'); return; }
+  if(role !== 'admin' && role !== 'owner' && role !== 'supervisor' && role !== 'spv') { showAlert('Hanya Admin/Supervisor/Owner yang dapat mengirim peringatan.', 'Akses Ditolak'); return; }
   var date = monitoringDateValue();
   try {
     var logResult = await supa.from('attendance_reminder_log').insert({
