@@ -868,7 +868,24 @@ function monitoringDateValue() {
 }
 
 function monitoringStatus(row, attendance, now) {
-  if(attendance) return {key:'HADIR', label: attendance.status_kehadiran || 'HADIR', color:'text-emerald-600 dark:text-emerald-400', attendance:attendance};
+  if(attendance) {
+    var sk = String(attendance.status_kehadiran || '').toUpperCase();
+    var colorMap = {
+      'TEPAT WAKTU': 'text-emerald-600 dark:text-emerald-400',
+      'HADIR':       'text-emerald-600 dark:text-emerald-400',
+      'TERLAMBAT':   'text-amber-600 dark:text-amber-400',
+      'IZIN SAKIT':  'text-blue-600 dark:text-blue-400',
+      'IZIN CUTI':   'text-indigo-600 dark:text-indigo-400',
+      'ALPA':        'text-rose-600 dark:text-rose-400',
+    };
+    var key = (sk === 'ALPA') ? 'ALPA' : 'HADIR';
+    return {
+      key: key,
+      label: attendance.status_kehadiran || 'HADIR',
+      color: colorMap[sk] || 'text-emerald-600 dark:text-emerald-400',
+      attendance: attendance
+    };
+  }
   var start = String(row.jam_masuk).slice(0,5).split(':').map(Number);
   var startMinutes = start[0] * 60 + start[1];
   var currentMinutes = now.getHours() * 60 + now.getMinutes();
@@ -899,13 +916,13 @@ async function loadJadwalMonitoring() {
       var status = monitoringStatus(row, attendance, now);
       return {row:row, attendance:attendance, status:status};
     });
-    var countNotYet = rows.filter(function(item) { return item.status.key === 'BELUM_ABSEN'; }).length;
+    var countNotYet = rows.filter(function(item) { return item.status.key === 'BELUM_ABSEN' || item.status.key === 'ALPA'; }).length;
     var countEl = document.getElementById('monitoring-absen-count');
-    if(countEl) countEl.textContent = rows.length + ' terjadwal • ' + countNotYet + ' belum absen';
+    if(countEl) countEl.textContent = rows.length + ' terjadwal • ' + countNotYet + ' belum/alpha';
     if(!rows.length) { el.innerHTML = '<p class="text-xs text-slate-400 text-center py-6">Tidak ada jadwal kerja pada tanggal ini.</p>'; return; }
     el.innerHTML = rows.map(function(item) {
       var row = item.row, status = item.status;
-      var canRemind = status.key === 'BELUM_ABSEN';
+      var canRemind = status.key === 'BELUM_ABSEN' || status.key === 'ALPA';
       return '<div class="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl border border-slate-100 dark:border-slate-700 bg-white dark:bg-slate-800">' +
         '<div class="min-w-0"><p class="text-xs font-extrabold text-slate-800 dark:text-slate-100 truncate">' + jadwalText(row.employee_name) + '</p><p class="text-[10px] text-slate-400">' + jadwalText(row.role) + ' • ' + jadwalText(row.shift_code) + ' • masuk ' + jadwalText(String(row.jam_masuk).slice(0,5)) + '</p></div>' +
         '<div class="flex items-center gap-2"><span class="text-[10px] font-extrabold ' + status.color + '">' + jadwalText(status.label) + '</span>' +
