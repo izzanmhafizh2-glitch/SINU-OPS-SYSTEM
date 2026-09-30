@@ -1,5 +1,5 @@
 ﻿// ===================== ABSENSI =====================
-const TARGET_LAT=-6.234139,TARGET_LNG=107.360805,MAX_RADIUS=30;
+const TARGET_LAT=-6.234186062044638,TARGET_LNG=107.36085687321835,MAX_RADIUS=30;
 const NON_SHIFT_ROLES=['NOC','Admin','Finance','SPV','CS'];
 
 function selectRole(roleName,element){
