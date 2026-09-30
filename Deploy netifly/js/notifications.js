@@ -505,6 +505,32 @@ async function _sinuPollNotifications() {
         _sinuLastDismantleSnapshot[row.id] = { ...row };
       }
     });
+
+    // Poll tabel notifications (peringatan langsung ke user)
+    if(currentUser && currentUser.username) {
+      const { data: notifData } = await supa.from('notifications')
+        .select('id,title,body,type,is_read,created_at')
+        .eq('recipient_username', String(currentUser.username).toLowerCase())
+        .eq('is_read', false)
+        .order('created_at', { ascending: false })
+        .limit(20);
+      (notifData || []).forEach(row => {
+        const key = 'notif:' + row.id;
+        if(!_sinuLastWOSnapshot[key]) {
+          // Belum pernah ditampilkan — tampilkan sebagai toast notifikasi
+          sinuNotificationAdd({
+            id: key,
+            title: row.title || 'Notifikasi',
+            body: row.body || '',
+            icon: 'fa-bell',
+            color: 'text-amber-500'
+          });
+          // Tandai sudah dibaca
+          supa.from('notifications').update({ is_read: true }).eq('id', row.id).then(function(){});
+          _sinuLastWOSnapshot[key] = true;
+        }
+      });
+    }
   } catch(e) { /* silent */ }
 }
 
