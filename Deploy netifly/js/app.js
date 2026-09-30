@@ -147,7 +147,7 @@ function buildNavigation(){
   const nav=document.getElementById('main-nav');
   const r=(currentUser.role||'').toLowerCase();
 
-  // ── Klasifikasi role ──────────────────────────────────────
+  // ΓöÇΓöÇ Klasifikasi role ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const isOwner        = r==='owner';
   const isAdmin        = r==='admin'||r==='owner';
   const isSupervisor   = r==='supervisor'||r==='spv'||r==='owner';
@@ -160,14 +160,14 @@ function buildNavigation(){
   const isAssetOnly    = r==='noc'||r==='supervisor'||r==='spv';
   const canCreateSchedule = r==='admin';
 
-  // ── Role mitra ────────────────────────────────────────────
+  // ΓöÇΓöÇ Role mitra ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const isKoordinator  = r==='koordinator';
   const isTekMitra     = r==='teknisi_mitra';
   const isNOCMitra     = r==='noc_mitra';
   const isCSMitra      = r==='cs_mitra';
   const isMitraAny     = isKoordinator||isTekMitra||isNOCMitra||isCSMitra;
 
-  // ── Menu navigasi ─────────────────────────────────────────
+  // ΓöÇΓöÇ Menu navigasi ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const menus=[
     {id:'dashboard', icon:'fa-chart-pie',         label:'Dashboard',  show:(!isFinance&&!isMitraAny&&!isManager)||isOwner},
     {id:'absensi',   icon:'fa-user-check',         label:'Absensi',    show:!isMitraAny&&!isManager},
@@ -191,7 +191,7 @@ function buildNavigation(){
   nav.style.cssText='grid-template-columns:repeat('+cols+',1fr);';
   nav.innerHTML=visible.map((m,i)=>`<button type="button" onclick="switchMainTab('${m.id}')" id="main-tab-${m.id}" class="tab-btn ${i===0?'active':''} py-3 px-2 rounded-xl text-[10px] sm:text-[11px] font-bold text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white transition-all flex flex-col items-center gap-1.5 w-full"><i class="fa-solid ${m.icon} text-base"></i><span class="truncate w-full text-center leading-tight">${m.label}</span></button>`).join('');
 
-  // ── Kontrol visibilitas komponen per role ─────────────────
+  // ΓöÇΓöÇ Kontrol visibilitas komponen per role ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const canViewEmployeeRecap=isSupervisor;
   const recapHeader=document.getElementById('employee-recap-header');
   const recapTable=document.getElementById('employee-recap-table');
@@ -283,7 +283,7 @@ window.addEventListener('load',function(){
 });
 
 // ===================== CORE =====================
-// ── GPS KOORDINAT HELPER ─────────────────────────────
+// ΓöÇΓöÇ GPS KOORDINAT HELPER ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function pasteGPSKoordinat(inputId) {
   const el = document.getElementById(inputId);
   if(!el) return;
@@ -330,15 +330,15 @@ function showAlert(msg, title='Informasi'){
 
   // Tentukan tipe berdasarkan judul/pesan
   let type = 'info';
-  if(t.includes('berhasil') || t.includes('sukses') || t.includes('✅') || t.includes('selesai') || t.includes('tersimpan') || t.includes('dibuat') || t.includes('approved') || t.includes('disetujui') || m.includes('berhasil'))
+  if(t.includes('berhasil') || t.includes('sukses') || t.includes('Γ£à') || t.includes('selesai') || t.includes('tersimpan') || t.includes('dibuat') || t.includes('approved') || t.includes('disetujui') || m.includes('berhasil'))
     type = 'success';
-  else if(t.includes('gagal') || t.includes('error') || t.includes('❌') || t.includes('ditolak') || t.includes('rejected') || t.includes('tidak bisa') || t.includes('tidak boleh'))
+  else if(t.includes('gagal') || t.includes('error') || t.includes('Γ¥î') || t.includes('ditolak') || t.includes('rejected') || t.includes('tidak bisa') || t.includes('tidak boleh'))
     type = 'error';
-  else if(t.includes('peringatan') || t.includes('⚠') || t.includes('warning') || t.includes('wajib') || t.includes('harap') || t.includes('sudah ada') || t.includes('duplikat'))
+  else if(t.includes('peringatan') || t.includes('ΓÜá') || t.includes('warning') || t.includes('wajib') || t.includes('harap') || t.includes('sudah ada') || t.includes('duplikat'))
     type = 'warning';
   else if(t.includes('hapus') || t.includes('dihapus') || t.includes('dibatalkan') || t.includes('return') || t.includes('logout'))
     type = 'danger';
-  else if(t.includes('waiting') || t.includes('menunggu') || t.includes('⏳') || t.includes('on going'))
+  else if(t.includes('waiting') || t.includes('menunggu') || t.includes('ΓÅ│') || t.includes('on going'))
     type = 'waiting';
 
   const configs = {
@@ -357,7 +357,7 @@ function showAlert(msg, title='Informasi'){
   if(icon) icon.className = `fa-solid ${c.icon} text-3xl`;
 
   // Strip semua emoji dari judul
-  const stripEmoji = s => s.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|✅|❌|⚠️|⏳|📦|🔄|↩️|🗑️|⭐|🎉|💡|🔔|📋|🏆/gu, '').trim();
+  const stripEmoji = s => s.replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|Γ£à|Γ¥î|ΓÜá∩╕Å|ΓÅ│|≡ƒôª|≡ƒöä|Γå⌐∩╕Å|≡ƒùæ∩╕Å|Γ¡É|≡ƒÄë|≡ƒÆí|≡ƒöö|≡ƒôï|≡ƒÅå/gu, '').trim();
   document.getElementById('alert-title').innerText   = stripEmoji(title);
   document.getElementById('alert-message').innerText = msg;
   document.getElementById('alert-modal').classList.remove('hidden');
@@ -415,12 +415,12 @@ function switchMainTab(tabName){
   const MITRA_ROLES=['koordinator','teknisi_mitra','noc_mitra','cs_mitra'];
   const isMitraUser=MITRA_ROLES.includes(currentRole);
 
-  // ── Redirect role mitra dari tab yang tidak boleh ─────────
+  // ΓöÇΓöÇ Redirect role mitra dari tab yang tidak boleh ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   if(isMitraUser && tabName==='absensi') tabName = currentRole==='koordinator' ? 'invoice-mitra' : currentRole==='cs_mitra' ? 'baru' : currentRole==='noc_mitra' ? 'noc' : 'tugas';
   if(isMitraUser && tabName==='dashboard') tabName = currentRole==='koordinator' ? 'invoice-mitra' : currentRole==='cs_mitra' ? 'baru' : currentRole==='noc_mitra' ? 'noc' : 'tugas';
   if(currentRole==='manager' && (tabName==='dashboard'||tabName==='absensi')) tabName='manager';
 
-  // ── Migrasi state lama ────────────────────────────────────
+  // ΓöÇΓöÇ Migrasi state lama ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   if(isSupervisorOnlyUser && (tabName==='kpi'||tabName==='logtugas')){
     sessionStorage.setItem('sinu_last_sub_spv',tabName);
     tabName='spv';
@@ -441,7 +441,7 @@ function switchMainTab(tabName){
     tabName='admin';
   }
 
-  // ── Reset semua sub-content ───────────────────────────────
+  // ΓöÇΓöÇ Reset semua sub-content ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   var allSubIds = [
     'sub-content-pickup-tugas','sub-content-tugas-saya','sub-content-return-tugas',
     'sub-content-riwayat-tugas','sub-content-pickup-dismantle','sub-content-tugas-dismantle',
@@ -518,8 +518,9 @@ function switchMainTab(tabName){
     }
     // Migrasi state lama: ODP dulu disimpan sebagai submenu Asset.
     if(storedSub==='odp') lastMenu='odp';
+    if(['jadwal-shift','pengaturan-jam-kerja','approval-tukar-shift'].includes(storedSub)) lastMenu='jadwal';
     if(storedSub==='logperangkat' && isAssetOnlyUser && role!=='noc') lastMenu='logperangkat';
-    if(!['tugas','asset','odp','logperangkat'].includes(lastMenu)) lastMenu='tugas';
+    if(!['tugas','asset','odp','logperangkat','jadwal'].includes(lastMenu)) lastMenu='tugas';
     if(isCSUser && !['tugas','asset'].includes(lastMenu)) lastMenu='tugas';
     if(isAssetOnlyUser && lastMenu!=='odp') lastMenu='asset';
     switchAdminMenu(lastMenu);
@@ -715,7 +716,7 @@ const _admMenuMap = {
   'list-tiket-dismantle':'tugas', 'rl-radius':'tugas', 'registrasi':'tugas',
   'tambah-perangkat':'asset', 'list-perangkat':'asset', 'list-rusak':'asset',
   'dismantle-items':'asset', 'approval-pickup':'asset', 'logperangkat':'asset',
-  'jadwal-shift':'tugas', 'pengaturan-jam-kerja':'tugas', 'approval-tukar-shift':'tugas',
+  'jadwal-shift':'jadwal', 'pengaturan-jam-kerja':'jadwal', 'approval-tukar-shift':'jadwal',
   'data-pelanggan':'tugas', 'pembayaran':'tugas'
 };
 
@@ -724,12 +725,14 @@ function switchAdminMenu(menu) {
   const isSupervisorOnlyUser=role==='supervisor'||role==='spv';
   const isAssetOnlyUser=role==='noc'||isSupervisorOnlyUser;
   const STANDALONE_MENUS = ['odp','logperangkat','konfirmasi-bayar','area-mitra'];
-  if(!['tugas','asset','odp','logperangkat','konfirmasi-bayar','area-mitra'].includes(menu)) menu='tugas';
+  if(!['tugas','asset','odp','logperangkat','jadwal','konfirmasi-bayar','area-mitra'].includes(menu)) menu='tugas';
   if(menu==='logperangkat' && !isSupervisorOnlyUser) menu='asset';
   if(isSupervisorOnlyUser && menu==='asset') menu='odp';
   if(role==='cs' && !['tugas','asset'].includes(menu)) menu='tugas';
   if(isAssetOnlyUser && menu==='tugas') menu='asset';
+  if(isAssetOnlyUser && menu==='jadwal') menu='asset';
   if(isAssetOnlyUser && (menu==='konfirmasi-bayar'||menu==='area-mitra')) menu='asset';
+  if(menu==='jadwal'         && role!=='admin') menu='tugas';
   if(menu==='konfirmasi-bayar'&& role!=='admin') menu='tugas';
   if(menu==='area-mitra'     && role!=='admin') menu='tugas';
 
@@ -737,6 +740,7 @@ function switchAdminMenu(menu) {
   const odpSection = document.getElementById('section-odp');
   const tugasNav  = document.getElementById('admin-sub-tugas');
   const assetNav  = document.getElementById('admin-sub-asset');
+  const jadwalNav = document.getElementById('admin-sub-jadwal');
   const logSection = document.getElementById('section-logperangkat');
   const konfirmasiPanel = document.getElementById('admin-sub-konfirmasi-bayar');
   const areaMitraPanel  = document.getElementById('admin-sub-area-mitra');
@@ -752,6 +756,9 @@ function switchAdminMenu(menu) {
   });
   if(tugasNav)  tugasNav.classList.toggle('hidden', menu !== 'tugas');
   if(assetNav)  assetNav.classList.toggle('hidden', menu !== 'asset');
+  // Jadwal subnav selalu tampil untuk admin (tidak perlu tombol trigger terpisah)
+  var isAdmin = role === 'admin' || role === 'owner';
+  if(jadwalNav) jadwalNav.classList.toggle('hidden', !isAdmin || isStandalone);
 
   document.querySelectorAll('#subnav-admin-main .snpill').forEach(b=>b.classList.remove('active'));
   const menuBtn = document.getElementById('admin-menu-'+menu);
@@ -781,6 +788,7 @@ function switchAdminMenu(menu) {
   }
   if(menu==='tugas')  switchSubAdmin(role==='admin' ? 'list-tiket' : 'buat-tugas');
   if(menu==='asset')  switchSubAdmin(isAssetOnlyUser ? 'list-perangkat' : 'tambah-perangkat');
+  if(menu==='jadwal') switchSubAdmin('jadwal-shift');
 }
 
 function switchSubAdmin(sub){
@@ -809,7 +817,7 @@ function switchSubAdmin(sub){
   if(odpSection) odpSection.classList.add('hidden');
   if(logSection) logSection.classList.add('hidden');
   if(secAdm) secAdm.querySelectorAll('.sub-adm-content').forEach(el=>el.classList.add('hidden'));
-  // Jangan remove active dari SEMUA snpill — hanya dari sub-nav yang aktif
+  // Jangan remove active dari SEMUA snpill ΓÇö hanya dari sub-nav yang aktif
   const activeMenu = _admMenuMap[sub] || 'tugas';
   const activeSubNav = document.getElementById('admin-sub-'+activeMenu);
   if(activeSubNav) activeSubNav.querySelectorAll('.snpill').forEach(b=>b.classList.remove('active'));
@@ -853,7 +861,7 @@ function switchSubBuatTugas(sub) {
   if(sub==='list-tiket') refreshAdminTicketList();
 }
 
-// ── AUTO SET data-count untuk grid sub-nav simetris ──────────────────
+// ΓöÇΓöÇ AUTO SET data-count untuk grid sub-nav simetris ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function initSubnavGrid() {
   document.querySelectorAll('.subnav-wrap').forEach(nav => {
     const count = Array.from(nav.querySelectorAll('.snpill')).filter(el => !el.classList.contains('hidden')).length;
@@ -865,7 +873,7 @@ window.addEventListener('load', function() {
   setTimeout(initSubnavGrid, 200);
 });
 
-// ── TOAST NOTIFICATION (seperti notif WA) ───────────────────────────
+// ΓöÇΓöÇ TOAST NOTIFICATION (seperti notif WA) ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 // type: 'success' | 'info' | 'warning' | 'error'
 // duration: ms (default 4000)
 function showToast(title, msg, type, duration) {
@@ -873,7 +881,7 @@ function showToast(title, msg, type, duration) {
   duration = duration || 4000;
 
   // Strip emoji dari judul toast
-  const stripEmoji = s => (s||'').replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|✅|❌|⚠️|⏳|📦|🔄|↩️|🗑️|⭐|🎉|💡|🔔|📋|🏆/gu, '').trim();
+  const stripEmoji = s => (s||'').replace(/[\u{1F000}-\u{1FFFF}]|[\u{2600}-\u{27BF}]|[\u{FE00}-\u{FEFF}]|Γ£à|Γ¥î|ΓÜá∩╕Å|ΓÅ│|≡ƒôª|≡ƒöä|Γå⌐∩╕Å|≡ƒùæ∩╕Å|Γ¡É|≡ƒÄë|≡ƒÆí|≡ƒöö|≡ƒôï|≡ƒÅå/gu, '').trim();
   title = stripEmoji(title);
 
   const icons = {
@@ -895,7 +903,7 @@ function showToast(title, msg, type, duration) {
       ${msg ? '<div class="toast-msg">'+msg+'</div>' : ''}
       <div class="toast-progress" style="animation-duration:${duration}ms"></div>
     </div>
-    <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;opacity:.5;font-size:14px;padding:0;line-height:1;">✕</button>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;cursor:pointer;opacity:.5;font-size:14px;padding:0;line-height:1;">Γ£ò</button>
   `;
 
   // Klik untuk dismiss
@@ -912,7 +920,7 @@ function _dismissToast(el) {
   setTimeout(() => el.remove(), 350);
 }
 
-// ── PENGATURAN PROFIL ─────────────────────────────────────────────────
+// ΓöÇΓöÇ PENGATURAN PROFIL ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 function openProfileSettings() {
   const modal = document.getElementById('profile-settings-modal');
   if(!modal) return;
@@ -1025,7 +1033,7 @@ async function gantiPasswordAkun() {
       if(el) el.value = '';
     });
 
-    showAlert('Password berhasil diubah. Gunakan password baru saat login berikutnya.', 'Password Diperbarui ✅');
+    showAlert('Password berhasil diubah. Gunakan password baru saat login berikutnya.', 'Password Diperbarui Γ£à');
   } catch(e) {
     showAlert('Gagal mengubah password: ' + (e.message || ''), 'Error');
   }
@@ -1115,7 +1123,7 @@ async function saveProfilePhoto(base64) {
 
 function loadProfilePhoto() {
   if(!currentUser) return;
-  // Prioritas: dari session → localStorage → DB (sudah dihandle saat login)
+  // Prioritas: dari session ΓåÆ localStorage ΓåÆ DB (sudah dihandle saat login)
   let photoUrl = currentUser.photoUrl || null;
   if(!photoUrl && currentUser.username) {
     photoUrl = localStorage.getItem('sinu_photo_' + currentUser.username) || null;
