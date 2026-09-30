@@ -959,6 +959,27 @@ function closeProfileSettings() {
     var el = document.getElementById(id);
     if(el) el.value = '';
   });
+  // Sembunyikan form password lagi
+  var form = document.getElementById('form-ganti-password');
+  var icon = document.getElementById('icon-toggle-password');
+  if(form) form.classList.add('hidden');
+  if(icon) icon.classList.remove('rotate-180');
+}
+
+function toggleFormGantiPassword() {
+  var form = document.getElementById('form-ganti-password');
+  var icon = document.getElementById('icon-toggle-password');
+  if(!form) return;
+  var isHidden = form.classList.contains('hidden');
+  form.classList.toggle('hidden', !isHidden);
+  if(icon) icon.classList.toggle('rotate-180', isHidden);
+  // Reset field saat disembunyikan
+  if(!isHidden) {
+    ['profile-password-lama','profile-password-baru','profile-password-konfirm'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+  }
 }
 
 function toggleProfilePwd(inputId) {
