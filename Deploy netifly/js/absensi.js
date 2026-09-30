@@ -1,5 +1,5 @@
 ﻿// ===================== ABSENSI =====================
-const TARGET_LAT=-6.234186062044638,TARGET_LNG=107.36085687321835,MAX_RADIUS=30;
+const TARGET_LAT=-6.234186062044638,TARGET_LNG=107.36085687321835,MAX_RADIUS=50;
 const NON_SHIFT_ROLES=['NOC','Admin','Finance','SPV','CS'];
 
 function selectRole(roleName,element){
@@ -52,7 +52,7 @@ function updateShiftVisibility(role){
 
 function updateGPSLabel(role){
   const lbl=document.getElementById('gps-radius-label');
-  if(lbl){if(NON_SHIFT_ROLES.includes(role)){lbl.textContent='(tanpa batasan radius — WFH diizinkan)';}else{lbl.textContent='(Radius 30m dari kantor)';}}
+  if(lbl){if(NON_SHIFT_ROLES.includes(role)){lbl.textContent='(tanpa batasan radius — WFH diizinkan)';}else{lbl.textContent='(Radius 50m dari kantor)';}}
 }
 
 function autoSelectRoleByName(name){
