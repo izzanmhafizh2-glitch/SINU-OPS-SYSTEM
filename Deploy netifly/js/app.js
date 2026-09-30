@@ -954,6 +954,65 @@ function openProfileSettings() {
 function closeProfileSettings() {
   const modal = document.getElementById('profile-settings-modal');
   if(modal) modal.classList.add('hidden');
+  // Reset form password saat tutup
+  ['profile-password-lama','profile-password-baru','profile-password-konfirm'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+}
+
+function toggleProfilePwd(inputId) {
+  var inp = document.getElementById(inputId);
+  if(!inp) return;
+  var btn = inp.nextElementSibling;
+  if(inp.type === 'password') {
+    inp.type = 'text';
+    if(btn) btn.querySelector('i').className = 'fa-solid fa-eye-slash text-xs';
+  } else {
+    inp.type = 'password';
+    if(btn) btn.querySelector('i').className = 'fa-solid fa-eye text-xs';
+  }
+}
+
+async function gantiPasswordAkun() {
+  if(!currentUser) return;
+
+  var pwLama    = (document.getElementById('profile-password-lama')?.value || '').trim();
+  var pwBaru    = (document.getElementById('profile-password-baru')?.value || '').trim();
+  var pwKonfirm = (document.getElementById('profile-password-konfirm')?.value || '').trim();
+
+  if(!pwLama)    { showAlert('Masukkan password saat ini.', 'Password Wajib'); return; }
+  if(!pwBaru)    { showAlert('Masukkan password baru.', 'Password Wajib'); return; }
+  if(pwBaru.length < 6) { showAlert('Password baru minimal 6 karakter.', 'Password Terlalu Pendek'); return; }
+  if(pwBaru !== pwKonfirm) { showAlert('Konfirmasi password tidak cocok.', 'Password Tidak Cocok'); return; }
+
+  try {
+    // Verifikasi password lama
+    var { data, error } = await supa.from('akun')
+      .select('id, password')
+      .ilike('username', currentUser.username)
+      .maybeSingle();
+
+    if(error || !data) { showAlert('Gagal memverifikasi akun.', 'Error'); return; }
+    if(data.password !== pwLama) { showAlert('Password saat ini salah.', 'Password Salah'); return; }
+
+    // Update password baru
+    var { error: updateErr } = await supa.from('akun')
+      .update({ password: pwBaru })
+      .eq('id', data.id);
+
+    if(updateErr) throw updateErr;
+
+    // Reset field
+    ['profile-password-lama','profile-password-baru','profile-password-konfirm'].forEach(function(id){
+      var el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+
+    showAlert('Password berhasil diubah. Gunakan password baru saat login berikutnya.', 'Password Diperbarui ✅');
+  } catch(e) {
+    showAlert('Gagal mengubah password: ' + (e.message || ''), 'Error');
+  }
 }
 
 function onProfilePhotoChange(event) {

@@ -3004,6 +3004,42 @@
 
       <div class="border-t border-slate-100 dark:border-slate-700"></div>
 
+      <!-- GANTI PASSWORD -->
+      <div class="space-y-3">
+        <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider flex items-center gap-1.5">
+          <i class="fa-solid fa-lock text-slate-400"></i>Ganti Password
+        </p>
+        <div class="space-y-2">
+          <div class="relative">
+            <input type="password" id="profile-password-lama" placeholder="Password saat ini"
+              class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600 transition-all">
+            <button type="button" onclick="toggleProfilePwd('profile-password-lama')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+              <i class="fa-solid fa-eye text-xs"></i>
+            </button>
+          </div>
+          <div class="relative">
+            <input type="password" id="profile-password-baru" placeholder="Password baru"
+              class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600 transition-all">
+            <button type="button" onclick="toggleProfilePwd('profile-password-baru')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+              <i class="fa-solid fa-eye text-xs"></i>
+            </button>
+          </div>
+          <div class="relative">
+            <input type="password" id="profile-password-konfirm" placeholder="Konfirmasi password baru"
+              class="w-full pl-3.5 pr-10 py-2.5 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 text-slate-800 dark:text-slate-100 rounded-xl text-xs font-medium focus:outline-none focus:border-blue-600 transition-all">
+            <button type="button" onclick="toggleProfilePwd('profile-password-konfirm')" class="absolute right-3 top-2.5 text-slate-400 hover:text-slate-600">
+              <i class="fa-solid fa-eye text-xs"></i>
+            </button>
+          </div>
+          <button type="button" onclick="gantiPasswordAkun()"
+            class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-md">
+            <i class="fa-solid fa-key"></i>Simpan Password Baru
+          </button>
+        </div>
+      </div>
+
+      <div class="border-t border-slate-100 dark:border-slate-700"></div>
+
       <!-- INFO VERSI -->
       <div class="bg-slate-50 dark:bg-slate-700/50 rounded-2xl p-4 space-y-2.5">
         <p class="text-[10px] font-extrabold text-slate-400 uppercase tracking-wider">Info Aplikasi</p>
@@ -3082,7 +3118,7 @@
 <script src="js/supabase-init.js?v=2026092920"></script>
 
 <!-- 3. Core Application (Auth, Navigation, Init) -->
-<script src="js/app.js?v=2026092906"></script>
+<script src="js/app.js?v=2026092940"></script>
 
 <!-- 4. Feature Modules -->
 <script src="js/dashboard.js?v=2026092303"></script>
