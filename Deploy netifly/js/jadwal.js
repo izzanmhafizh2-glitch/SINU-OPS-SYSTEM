@@ -932,9 +932,16 @@ async function remindAttendance(username, scheduleId, employeeName) {
       if(String(logResult.error.code) === '23505') { showAlert('Peringatan untuk ' + employeeName + ' sudah pernah dikirim hari ini.', 'Sudah Dikirim'); return; }
       throw logResult.error;
     }
-    var pushResult = await supa.functions.invoke('send-push', {body:{usernames:[String(username).toLowerCase()], title:'Pengingat Absensi', body:'' + employeeName + ', jangan lupa melakukan absensi hari ini.', url:'/'}});
-    if(pushResult.error) throw pushResult.error;
-    showAlert('Peringatan absensi dikirim ke ' + employeeName + '.', 'Peringatan Terkirim');
+    // Kirim notifikasi in-app langsung ke tabel notifications (tidak butuh Edge Function)
+    await supa.from('notifications').insert({
+      recipient_username: String(username).toLowerCase(),
+      title: 'Pengingat Absensi',
+      body: employeeName + ', jangan lupa melakukan absensi hari ini.',
+      type: 'reminder',
+      is_read: false,
+      created_at: new Date().toISOString()
+    });
+    showAlert('Peringatan absensi berhasil dikirim ke ' + employeeName + '.', 'Peringatan Terkirim ✅');
   } catch(e) {
     await supa.from('attendance_reminder_log').update({status:'FAILED', error_message:e.message}).eq('schedule_id', scheduleId).eq('reminder_date', date).eq('reminder_type','MANUAL');
     showAlert('Gagal mengirim peringatan: ' + e.message, 'Error Notifikasi');
