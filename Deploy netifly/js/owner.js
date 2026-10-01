@@ -257,3 +257,25 @@ function renderOwnerControlVisibility() {
 window.addEventListener('load', function() {
   setTimeout(renderOwnerControlVisibility, 600);
 });
+
+// ── AUTO ALPHA MANUAL ─────────────────────────────────────────────────────
+async function ownerRunAutoAlpha() {
+  if(!sinuIsOwner()) { showAlert('Hanya Owner yang dapat menjalankan auto-alpha.', 'Akses Ditolak'); return; }
+
+  const btn = document.getElementById('btn-auto-alpha');
+  const statusEl = document.getElementById('auto-alpha-status');
+  if(btn) { btn.disabled = true; btn.innerHTML = '<i class="fa-solid fa-spinner animate-spin"></i> Memproses...'; }
+  if(statusEl) statusEl.textContent = '';
+
+  try {
+    const { error } = await supa.rpc('auto_insert_alpha_for_missing_attendance');
+    if(error) throw error;
+    if(statusEl) statusEl.textContent = '✅ Selesai — ALPA berhasil diisi untuk yang tidak absen hari ini.';
+    showAlert('Auto-alpha berhasil dijalankan.\nKaryawan yang terjadwal tapi tidak absen hari ini sudah diisi ALPA.', 'Auto-Alpha Selesai ✅');
+  } catch(e) {
+    if(statusEl) statusEl.textContent = '❌ Gagal: ' + (e.message || '');
+    showAlert('Gagal menjalankan auto-alpha: ' + (e.message || '') + '\n\nPastikan function auto_insert_alpha_for_missing_attendance sudah dibuat di Supabase SQL Editor.', 'Error');
+  } finally {
+    if(btn) { btn.disabled = false; btn.innerHTML = '<i class="fa-solid fa-play"></i> Jalankan Sekarang'; }
+  }
+}
