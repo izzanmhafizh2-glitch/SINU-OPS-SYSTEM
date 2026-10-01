@@ -1,4 +1,4 @@
--- =====================================================
+﻿-- =====================================================
 -- AUTO ALPHA SYSTEM v2
 -- Menggunakan attendance_schedule_rows (schema baru)
 -- =====================================================
@@ -59,7 +59,7 @@ BEGIN
     role,
     shift_code,
     v_today,
-    'ALPA',
+    'ALPHA',
     0,
     NOW()
   FROM missing_attendance;
@@ -83,7 +83,7 @@ GRANT EXECUTE ON FUNCTION auto_insert_alpha_for_missing_attendance() TO anon;
 
 -- Cek hasil:
 -- SELECT nama, status_kehadiran, tanggal FROM absensi
--- WHERE tanggal = CURRENT_DATE AND status_kehadiran = 'ALPA'
+-- WHERE tanggal = CURRENT_DATE AND status_kehadiran = 'ALPHA'
 -- ORDER BY nama;
 
 -- ══════════════════════════════════════════════════════
@@ -102,3 +102,4 @@ GRANT EXECUTE ON FUNCTION auto_insert_alpha_for_missing_attendance() TO anon;
 -- Fungsi ini bisa dipanggil dari browser via RPC:
 -- await supa.rpc('auto_insert_alpha_for_missing_attendance')
 -- ══════════════════════════════════════════════════════
+

@@ -1,4 +1,4 @@
-// ===================== DASHBOARD =====================
+﻿// ===================== DASHBOARD =====================
 let dashboardAttendanceMine={tepat:0,terlambat:0,sakit:0,cuti:0,alpa:0,loaded:false,error:false};
 let dashboardAttendanceRequest=0;
 
@@ -50,7 +50,7 @@ async function loadDashboardAttendanceMine(){
       else if(status==='TERLAMBAT')next.terlambat++;
       else if(status==='IZIN SAKIT')next.sakit++;
       else if(status==='IZIN CUTI')next.cuti++;
-      else if(status==='ALPA')next.alpa++;
+      else if(status==='ALPHA')next.alpa++;
     });
     if(request!==dashboardAttendanceRequest)return;
     dashboardAttendanceMine={...next,loaded:true,error:false};
@@ -311,3 +311,4 @@ async function loadEmployeesFromAkun() {
     updateRecapTable();
   } catch(e) { console.warn('[Dashboard] Gagal load dari akun:', e.message); }
 }
+
