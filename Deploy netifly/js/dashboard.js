@@ -68,8 +68,38 @@ async function fetchDashboardData(){
   await loadAbsensiRawData(); // Load raw data untuk chart
   // Load poin semua karyawan sesuai bulan/tahun filter
   if(typeof loadAllAbsensiPoints==='function') await loadAllAbsensiPoints(month, year);
+  // Isi monthly stats dari absensiRawData ke employeeMaster
+  _isiMonthlyStatsFromAbsensi(month, year);
   populateEmployeeDropdowns();updateDashboardStats();renderPodium();renderKPIKlasemen();updateRecapTable();renderMainChart();renderDonutChart();
   loadDashboardAttendanceMine();
+}
+
+function _isiMonthlyStatsFromAbsensi(month, year){
+  if(!absensiRawData || !absensiRawData.length) return;
+  const pad=n=>String(n).padStart(2,'0');
+  const start=`${year}-${pad(month+1)}-01`;
+  const daysInMonth=new Date(year,month+1,0).getDate();
+  const end=`${year}-${pad(month+1)}-${pad(daysInMonth)}`;
+
+  // Reset monthly untuk semua karyawan
+  employeeMaster.forEach(function(e){
+    e.monthly={hariKerja:daysInMonth,hadir:0,tepatWaktu:0,terlambat:0,izinSakit:0,izinCuti:0,alpa:0};
+  });
+
+  // Hitung dari absensiRawData
+  absensiRawData.forEach(function(row){
+    if(!row.tanggal||row.tanggal<start||row.tanggal>end) return;
+    var emp=employeeMaster.find(function(e){
+      return e.name.toLowerCase()===String(row.nama||'').toLowerCase();
+    });
+    if(!emp) return;
+    var status=String(row.status_kehadiran||'').toUpperCase();
+    if(status==='TEPAT WAKTU'){emp.monthly.hadir++;emp.monthly.tepatWaktu++;}
+    else if(status==='TERLAMBAT'){emp.monthly.hadir++;emp.monthly.terlambat++;}
+    else if(status==='IZIN SAKIT'){emp.monthly.izinSakit++;}
+    else if(status==='IZIN CUTI'){emp.monthly.izinCuti++;}
+    else if(status==='ALPHA'||status==='ALPA'){emp.monthly.alpa++;}
+  });
 }
 function onFilterPeriodChange(){fetchDashboardData();}
 
