@@ -158,7 +158,7 @@ function buildNavigation(){
   const isFinance      = r==='finance';
   const isManager      = r==='manager';
   const isAssetOnly    = r==='noc'||r==='supervisor'||r==='spv';
-  const canCreateSchedule = r==='owner';
+  const canCreateSchedule = r==='admin' || r==='owner';
 
   // ΓöÇΓöÇ Role mitra ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
   const isKoordinator  = r==='koordinator';
@@ -738,7 +738,7 @@ function switchAdminMenu(menu) {
   if(isAssetOnlyUser && menu==='tugas') menu='asset';
   if(isAssetOnlyUser && menu==='jadwal') menu='asset';
   if(isAssetOnlyUser && (menu==='konfirmasi-bayar'||menu==='area-mitra')) menu='asset';
-  if(menu==='jadwal' && role!=='owner') menu='tugas';
+  if(menu==='jadwal' && role!=='admin' && role!=='owner') menu='tugas';
   if(menu==='konfirmasi-bayar'&& role!=='admin') menu='tugas';
   if(menu==='area-mitra'     && role!=='admin') menu='tugas';
 
@@ -763,7 +763,7 @@ function switchAdminMenu(menu) {
   if(tugasNav)  tugasNav.classList.toggle('hidden', menu !== 'tugas');
   if(assetNav)  assetNav.classList.toggle('hidden', menu !== 'asset');
   // Jadwal subnav selalu tampil untuk admin (tidak perlu tombol trigger terpisah)
-  var isAdmin = role === 'owner';
+  var isAdmin = role === 'admin' || role === 'owner';
   if(jadwalNav) jadwalNav.classList.toggle('hidden', !isAdmin || isStandalone);
 
   document.querySelectorAll('#subnav-admin-main .snpill').forEach(b=>b.classList.remove('active'));
@@ -809,8 +809,8 @@ function switchSubAdmin(sub){
     switchSubAdmin('list-tiket');
     return;
   }
-  if(sub==='jadwal-shift' && role!=='owner') {
-    showAlert('Hanya Owner yang dapat membuka dan mengatur jadwal.', 'Akses Ditolak');
+  if(sub==='jadwal-shift' && role!=='admin' && role!=='owner') {
+    showAlert('Hanya Admin/Owner yang dapat membuka dan mengatur jadwal.', 'Akses Ditolak');
     return;
   }
   const isNocUser=role==='noc';
@@ -1139,6 +1139,7 @@ function loadProfilePhoto() {
     applyProfilePhoto(photoUrl);
   }
 }
+
 
 
 
