@@ -405,6 +405,10 @@ function initApp(){
   async function tryLoad(){try{if(typeof blazeface!=='undefined')faceModel=await blazeface.load();}catch(e){}}
   tryLoad();
   if(!isMitraAny) renderMyPointSection();
+  // Cek pengingat absensi 15 menit sebelum jam masuk saat app dibuka
+  setTimeout(function(){
+    if(typeof initAbsensiReminder==='function') initAbsensiReminder();
+  }, 3000); // Delay 3 detik agar jadwal sudah ter-load
 }
 
 // ===================== NAVIGATION =====================
@@ -540,6 +544,8 @@ function switchMainTab(tabName){
     if(typeof autoFillNamaAbsensi==='function') autoFillNamaAbsensi();
     const lastSub=sessionStorage.getItem('sinu_last_sub_absensi')||'absen-form';
     switchSubAbsensi(lastSub);
+    // Cek pengingat absensi 15 menit sebelum jam masuk
+    if(typeof initAbsensiReminder==='function') initAbsensiReminder();
   }
   if(tabName==='rekap-wo')renderRekapWO();
   if(tabName==='logtugas'){

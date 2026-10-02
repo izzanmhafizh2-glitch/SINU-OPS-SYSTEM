@@ -813,3 +813,64 @@ function _doGenerateCutiPDF(logoBase64) {
     );
   }, 200);
 }
+
+// ── PENGINGAT ABSENSI 15 MENIT SEBELUM JAM MASUK ────────────────────
+// Dipanggil saat tab Absensi dibuka atau saat app load
+// Cek jadwal hari ini, kalau 0-15 menit lagi → tampilkan reminder
+
+let _absensiReminderTimer = null;
+let _absensiReminderShown = false; // Supaya tidak muncul berulang
+
+async function cekPengingatAbsensi() {
+  if(!currentUser || typeof supa === 'undefined') return;
+
+  // Reset flag harian
+  const hariIni = new Date().toDateString();
+  const flagKey = 'absensi_reminder_' + (currentUser.username||'') + '_' + hariIni;
+  if(localStorage.getItem(flagKey)) return; // Sudah ditampilkan hari ini
+
+  // Ambil jadwal hari ini
+  const jadwal = typeof getJadwalAbsensiHariIni === 'function' ? getJadwalAbsensiHariIni() : null;
+  if(!jadwal || !jadwal.jam_masuk) return;
+
+  // Cek apakah sudah absen hari ini
+  const today = new Date().toISOString().slice(0,10);
+  try {
+    const { data } = await supa.from('absensi')
+      .select('id')
+      .ilike('nama', currentUser.displayName)
+      .eq('tanggal', today)
+      .limit(1);
+    if(data && data.length > 0) return; // Sudah absen, tidak perlu reminder
+  } catch(e) { return; }
+
+  // Hitung selisih menit
+  const now = new Date();
+  const parts = String(jadwal.jam_masuk).slice(0,5).split(':').map(Number);
+  const jamMasuk = new Date();
+  jamMasuk.setHours(parts[0], parts[1], 0, 0);
+  const selisihMenit = Math.round((jamMasuk - now) / 60000);
+
+  // Kalau 0-15 menit lagi → tampilkan notifikasi
+  if(selisihMenit >= 0 && selisihMenit <= 15) {
+    localStorage.setItem(flagKey, '1');
+    const pesan = selisihMenit === 0
+      ? 'Sekarang saatnya absen! Jam masuk Anda adalah ' + String(jadwal.jam_masuk).slice(0,5) + '.'
+      : selisihMenit + ' menit lagi waktu absen Anda (' + String(jadwal.jam_masuk).slice(0,5) + '). Jangan sampai terlambat!';
+    showAlert('⏰ ' + pesan, 'Pengingat Absensi');
+  }
+  // Kalau belum waktunya, set timer untuk cek ulang tiap menit
+  else if(selisihMenit > 0 && selisihMenit <= 30) {
+    if(_absensiReminderTimer) clearTimeout(_absensiReminderTimer);
+    _absensiReminderTimer = setTimeout(cekPengingatAbsensi, 60000); // Cek lagi 1 menit kemudian
+  }
+}
+
+// Panggil saat switchSubAbsensi ke form absensi
+// Otomatis dipanggil dari app.js saat tab absensi dibuka
+function initAbsensiReminder() {
+  // Clear timer lama
+  if(_absensiReminderTimer) clearTimeout(_absensiReminderTimer);
+  // Delay sedikit agar jadwal sudah ter-load
+  setTimeout(cekPengingatAbsensi, 1500);
+}
