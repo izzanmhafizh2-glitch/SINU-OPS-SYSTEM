@@ -286,6 +286,7 @@ function applyMenuVisibility() {
     const adminContentMap = {
       'admin-konfirmasi-bayar': 'admin-sub-konfirmasi-bayar',
       'admin-area-mitra':       'admin-sub-area-mitra',
+      'admin-jadwal':           'admin-sub-jadwal',
     };
     if(adminContentMap[menu.id] && !visible) {
       const contentEl = document.getElementById(adminContentMap[menu.id]);
