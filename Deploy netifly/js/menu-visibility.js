@@ -273,7 +273,7 @@ function applyMenuVisibility() {
       'admin-asset':            'admin-menu-asset',
       'admin-jadwal':           'admin-menu-jadwal',
       'odp':                    'admin-menu-odp',
-      'noc-asset':              'admin-menu-asset',
+      'noc-asset':              'main-tab-admin',   // NOC: tab Asset = main-tab-admin
       'admin-konfirmasi-bayar': 'admin-menu-konfirmasi-bayar',
       'admin-area-mitra':       'admin-menu-area-mitra',
     };
