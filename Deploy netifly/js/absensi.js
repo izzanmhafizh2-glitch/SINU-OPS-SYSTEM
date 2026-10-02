@@ -816,18 +816,17 @@ function _doGenerateCutiPDF(logoBase64) {
 
 // ── PENGINGAT ABSENSI 15 MENIT SEBELUM JAM MASUK ────────────────────
 // Dipanggil saat tab Absensi dibuka atau saat app load
-// Cek jadwal hari ini, kalau 0-15 menit lagi → tampilkan reminder
+// Cek jadwal hari ini, window 15 menit sebelum DAN 15 menit sesudah jam masuk
 
 let _absensiReminderTimer = null;
-let _absensiReminderShown = false; // Supaya tidak muncul berulang
 
 async function cekPengingatAbsensi() {
   if(!currentUser || typeof supa === 'undefined') return;
 
-  // Reset flag harian
+  // Flag per user per hari — hanya tampil sekali
   const hariIni = new Date().toDateString();
   const flagKey = 'absensi_reminder_' + (currentUser.username||'') + '_' + hariIni;
-  if(localStorage.getItem(flagKey)) return; // Sudah ditampilkan hari ini
+  if(localStorage.getItem(flagKey)) return;
 
   // Ambil jadwal hari ini
   const jadwal = typeof getJadwalAbsensiHariIni === 'function' ? getJadwalAbsensiHariIni() : null;
@@ -841,28 +840,37 @@ async function cekPengingatAbsensi() {
       .ilike('nama', currentUser.displayName)
       .eq('tanggal', today)
       .limit(1);
-    if(data && data.length > 0) return; // Sudah absen, tidak perlu reminder
+    if(data && data.length > 0) return; // Sudah absen
   } catch(e) { return; }
 
-  // Hitung selisih menit
+  // Hitung selisih menit (positif = masih sebelum jam masuk, negatif = sudah lewat)
   const now = new Date();
   const parts = String(jadwal.jam_masuk).slice(0,5).split(':').map(Number);
   const jamMasuk = new Date();
   jamMasuk.setHours(parts[0], parts[1], 0, 0);
-  const selisihMenit = Math.round((jamMasuk - now) / 60000);
+  const selisihMenit = Math.round((jamMasuk - now) / 60000); // positif = sebelum, negatif = sesudah
 
-  // Kalau 0-15 menit lagi → tampilkan notifikasi
+  const jamMasukStr = String(jadwal.jam_masuk).slice(0,5);
+
   if(selisihMenit >= 0 && selisihMenit <= 15) {
+    // 0–15 menit SEBELUM jam masuk
     localStorage.setItem(flagKey, '1');
     const pesan = selisihMenit === 0
-      ? 'Sekarang saatnya absen! Jam masuk Anda adalah ' + String(jadwal.jam_masuk).slice(0,5) + '.'
-      : selisihMenit + ' menit lagi waktu absen Anda (' + String(jadwal.jam_masuk).slice(0,5) + '). Jangan sampai terlambat!';
-    showAlert('⏰ ' + pesan, 'Pengingat Absensi');
-  }
-  // Kalau belum waktunya, set timer untuk cek ulang tiap menit
-  else if(selisihMenit > 0 && selisihMenit <= 30) {
+      ? '⏰ Sekarang tepat waktunya absen! Jam masuk: ' + jamMasukStr
+      : '⏰ ' + selisihMenit + ' menit lagi waktu absen Anda (' + jamMasukStr + '). Segera absen!';
+    showAlert(pesan, 'Pengingat Absensi');
+
+  } else if(selisihMenit < 0 && selisihMenit >= -15) {
+    // Sudah LEWAT 1–15 menit dari jam masuk, belum absen
+    localStorage.setItem(flagKey, '1');
+    const lewat = Math.abs(selisihMenit);
+    const pesan = '⚠️ Anda belum absen! Sudah ' + lewat + ' menit dari jam masuk (' + jamMasukStr + '). Absen sekarang sebelum terlambat lebih jauh!';
+    showAlert(pesan, 'Pengingat Absensi — Sudah Lewat!');
+
+  } else if(selisihMenit > 15) {
+    // Belum waktunya, cek ulang tiap menit
     if(_absensiReminderTimer) clearTimeout(_absensiReminderTimer);
-    _absensiReminderTimer = setTimeout(cekPengingatAbsensi, 60000); // Cek lagi 1 menit kemudian
+    _absensiReminderTimer = setTimeout(cekPengingatAbsensi, 60000);
   }
 }
 
