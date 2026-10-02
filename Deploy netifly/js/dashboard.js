@@ -63,7 +63,11 @@ async function loadDashboardAttendanceMine(){
 }
 
 async function fetchDashboardData(){
+  const month=Number((document.getElementById('recapMonthSelect')||{value:new Date().getMonth()}).value);
+  const year=Number((document.getElementById('recapYearSelect')||{value:new Date().getFullYear()}).value);
   await loadAbsensiRawData(); // Load raw data untuk chart
+  // Load poin semua karyawan sesuai bulan/tahun filter
+  if(typeof loadAllAbsensiPoints==='function') await loadAllAbsensiPoints(month, year);
   populateEmployeeDropdowns();updateDashboardStats();renderPodium();renderKPIKlasemen();updateRecapTable();renderMainChart();renderDonutChart();
   loadDashboardAttendanceMine();
 }
