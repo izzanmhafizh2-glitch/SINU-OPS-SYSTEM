@@ -3,6 +3,45 @@ const SUPABASE_URL = 'https://pasmdewdganfgdnntwam.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBhc21kZXdkZ2FuZmdkbm50d2FtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODc5Njc3OTgsImV4cCI6MjEwMzU0Mzc5OH0.3NKjbhz0IzVAjMGOGlnvyWptDyNPejzrbIYD1QNT-2U';
 const supa = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
+// ── REMEMBER ME ──────────────────────────────────────────────────────
+const REMEMBER_KEY = 'sinu_remember_credentials';
+
+function initRememberMe() {
+  try {
+    const saved = localStorage.getItem(REMEMBER_KEY);
+    if(!saved) return;
+    const { username, password } = JSON.parse(saved);
+    const uEl = document.getElementById('login-username');
+    const pEl = document.getElementById('login-password');
+    const cbEl = document.getElementById('login-remember');
+    if(uEl && username) uEl.value = username;
+    if(pEl && password) pEl.value = password;
+    if(cbEl) {
+      cbEl.checked = true;
+      updateRememberCheckIcon(true);
+    }
+  } catch(e) {}
+}
+
+function onRememberMeChange() {
+  const cbEl = document.getElementById('login-remember');
+  if(!cbEl) return;
+  updateRememberCheckIcon(cbEl.checked);
+  if(!cbEl.checked) {
+    localStorage.removeItem(REMEMBER_KEY);
+  }
+}
+
+function updateRememberCheckIcon(checked) {
+  const icon = document.getElementById('remember-check-icon');
+  if(icon) icon.classList.toggle('hidden', !checked);
+}
+
+// Auto-init saat halaman load
+document.addEventListener('DOMContentLoaded', function() {
+  initRememberMe();
+});
+
 // ΓöÇΓöÇ LOGIN ΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇΓöÇ
 async function handleLogin(e) {
   e.preventDefault();
@@ -21,6 +60,13 @@ async function handleLogin(e) {
       err.classList.add('hidden');
       currentUser = acc;
       sinuSavePersistentSession(acc);
+      // Simpan credentials jika remember me dicentang
+      const rememberEl = document.getElementById('login-remember');
+      if(rememberEl && rememberEl.checked) {
+        try { localStorage.setItem(REMEMBER_KEY, JSON.stringify({ username: u, password: p })); } catch(e) {}
+      } else {
+        localStorage.removeItem(REMEMBER_KEY);
+      }
       document.getElementById('login-form').reset();
       loadMainApp();
     }
