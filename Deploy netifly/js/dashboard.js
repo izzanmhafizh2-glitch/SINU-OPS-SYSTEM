@@ -262,7 +262,8 @@ function renderKPIKlasemen(){
   const el=document.getElementById('kpi-klasemen-list');if(!el)return;
   if(!employeeMaster.length){el.innerHTML='<p class="text-xs text-slate-400 text-center py-4">Belum ada data.</p>';return;}
   const sorted=[...employeeMaster].map(e=>{
-    const ap=absensiPoints[e.name]||{total:0,max:100,perfect:false};
+    const nameKey = String(e.name||'').trim().toLowerCase();
+    const ap=absensiPoints[e.name]||absensiPoints[nameKey]||{total:0,max:100,perfect:false};
     const pctH=Math.round((ap.total/ap.max)*100);
     const gradeH=pctH>=90?'A':pctH>=75?'B':pctH>=60?'C':'D';
     const tikets=kpiWOData.filter(d=>d.teknisi&&d.teknisi.includes(e.name)&&d.t4);
@@ -296,7 +297,8 @@ function updateRecapTable(){
   const hkMap={daily:1,weekly:7,monthly:30};
   tbody.innerHTML=f.map(e=>{
     const s=e[period]||{};const hk=s.hariKerja||hkMap[period]||30;const h=s.hadir||0,l=s.terlambat||0,tw=(s.tepatWaktu!=null)?s.tepatWaktu:Math.max(0,h-l);const alpha=s.alpa||s.alpha||0;const pct=Math.round((h/hk)*100);
-    const ap=absensiPoints[e.name]||{total:0,max:100};const ptHadir=ap.total;const pctPt=ap.max?Math.round((ap.total/ap.max)*100):0;
+    const nameKey = String(e.name||'').trim().toLowerCase();
+    const ap=absensiPoints[e.name]||absensiPoints[nameKey]||{total:0,max:100};const ptHadir=ap.total;const pctPt=ap.max?Math.round((ap.total/ap.max)*100):0;
     const grade=pctPt>=90?'A':pctPt>=75?'B':pctPt>=60?'C':'D';
     const gradeBg=pctPt>=90?'pt-badge-a':pctPt>=75?'pt-badge-b':pctPt>=60?'pt-badge-c':'pt-badge-d';
     return`<tr class="hover:bg-slate-50/80 dark:hover:bg-slate-700/50 transition-all border-b border-slate-100 dark:border-slate-700"><td class="py-3 px-4 font-bold text-slate-900 dark:text-white"><div class="flex items-center gap-2"><div class="w-7 h-7 rounded-xl bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300 font-extrabold text-[10px] flex items-center justify-center shrink-0">${e.id||'--'}</div><span class="text-xs font-extrabold">${e.name}</span></div></td><td class="py-3 px-3 text-center font-bold text-slate-600 dark:text-slate-300 text-xs">${e.role||''}</td><td class="py-3 px-3 text-center font-black text-emerald-600 dark:text-emerald-400">${h}</td><td class="py-3 px-3 text-center font-black text-blue-600 dark:text-blue-400">${tw}</td><td class="py-3 px-3 text-center font-black text-amber-600 dark:text-amber-400">${l}</td><td class="py-3 px-3 text-center font-black text-rose-600 dark:text-rose-400">${s.izinSakit||0}</td><td class="py-3 px-3 text-center font-black text-indigo-600 dark:text-indigo-400">${s.izinCuti||0}</td><td class="py-3 px-3 text-center font-black text-slate-700 dark:text-slate-300">${alpha}</td><td class="py-3 px-3 text-center font-black text-cyan-600 dark:text-cyan-400 text-sm">${pct}%</td><td class="py-3 px-3 text-center font-black text-amber-600">${ptHadir}</td><td class="py-3 px-3 text-center"><span class="text-[11px] font-extrabold px-2 py-0.5 rounded-lg ${gradeBg}">${grade}</span></td></tr>`;

@@ -371,18 +371,21 @@ async function loadAllAbsensiPoints(bulan, tahun, requestId) {
     });
     const grouped = {};
     bulanIniData.forEach(d => {
-      if(!grouped[d.nama]) grouped[d.nama] = {total:0, count:0, allTepat:true};
-      grouped[d.nama].total += Number(d.point)||0;
-      grouped[d.nama].count++;
-      if(d.status_kehadiran !== 'TEPAT WAKTU') grouped[d.nama].allTepat = false;
+      // Normalisasi nama ke lowercase agar tidak duplikat karena beda kapital
+      const namaKey = String(d.nama||'').trim().toLowerCase();
+      const namaAsli = String(d.nama||'').trim();
+      if(!grouped[namaKey]) grouped[namaKey] = {total:0, count:0, allTepat:true, namaAsli};
+      grouped[namaKey].total += Number(d.point)||0;
+      grouped[namaKey].count++;
+      if(d.status_kehadiran !== 'TEPAT WAKTU') grouped[namaKey].allTepat = false;
     });
     const hk = hitungHariKerja(tahun, bulan);
-    Object.entries(grouped).forEach(([nama, val]) => {
+    Object.entries(grouped).forEach(([namaKey, val]) => {
       const perfect = val.count>=hk && val.allTepat;
-      // total = jumlah raw poin semua hari hadir di bulan ini
-      // max = hk * 100 (maksimum jika hadir tepat waktu semua hari kerja)
       const max = hk * 100;
-      absensiPoints[nama] = {total: val.total, max, perfect};
+      // Simpan dengan key asli DAN key lowercase agar cocok dengan employeeMaster
+      absensiPoints[val.namaAsli] = {total: val.total, max, perfect};
+      absensiPoints[namaKey] = {total: val.total, max, perfect};
     });
   } catch(e) { console.warn('loadAllAbsensiPoints failed:', e); }
 }
