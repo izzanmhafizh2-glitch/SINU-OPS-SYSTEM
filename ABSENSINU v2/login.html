@@ -11,13 +11,17 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 </head>
 <body class="login-page">
+  
   <div class="login-container">
+    
+    <!-- LEFT SIDE - BRANDING -->
     <div class="login-left">
       <div class="login-brand">
         <div class="brand-logo">SN</div>
         <h1>ABSENSINU</h1>
         <p>Sistem Manajemen Operasional PT SINU</p>
       </div>
+      
       <div class="login-illustration">
         <div class="grid-lines">
           <div class="glow-dot d1"></div>
@@ -26,12 +30,16 @@
         </div>
       </div>
     </div>
+    
+    <!-- RIGHT SIDE - LOGIN FORM -->
     <div class="login-right">
+      
       <div class="login-form-header">
         <h2>Selamat Datang Kembali</h2>
         <p>Masuk ke akun Anda untuk melanjutkan</p>
       </div>
-            <!-- Demo Credentials untuk berbagai role -->
+      
+      <!-- Demo Credentials -->
       <div class="login-demo-badge">
         <strong><i class="fa-solid fa-circle-info"></i> Demo Credentials</strong>
         <div style="margin-top:8px; font-size:11px; line-height:1.6;">
@@ -42,40 +50,57 @@
           <div><strong>CS:</strong> cs / cs123</div>
         </div>
       </div>
-      </div>
+      
+      <!-- Error Alert -->
       <div id="login-error" class="hidden" style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:12.5px; color:#991b1b; display:flex; align-items:center; gap:8px;">
         <i class="fa-solid fa-circle-exclamation"></i>
         <span id="login-error-msg">Username atau password salah.</span>
       </div>
+      
+      <!-- Login Form -->
       <form id="login-form" onsubmit="handleLogin(event)">
+        
         <div class="form-group">
           <label class="form-label">Username</label>
           <div style="position:relative;">
             <i class="fa-solid fa-user" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
-            <input type="text" id="login-username" required placeholder="Masukkan username" autocomplete="username" class="form-control" style="padding-left:36px;">
+            <input type="text" id="login-username" required placeholder="Masukkan username" autocomplete="username"
+              class="form-control" style="padding-left:36px;">
           </div>
         </div>
+        
         <div class="form-group">
           <label class="form-label">Password</label>
           <div style="position:relative;">
             <i class="fa-solid fa-lock" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
-            <input type="password" id="login-password" required placeholder="Masukkan password" autocomplete="current-password" class="form-control" style="padding-left:36px; padding-right:36px;">
+            <input type="password" id="login-password" required placeholder="Masukkan password" autocomplete="current-password"
+              class="form-control" style="padding-left:36px; padding-right:36px;">
             <button type="button" onclick="togglePassword()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; padding:4px 6px;">
               <i class="fa-solid fa-eye" id="password-toggle-icon"></i>
             </button>
           </div>
         </div>
+        
         <label class="login-remember">
           <input type="checkbox" id="login-remember">
           <span>Ingat saya di perangkat ini</span>
         </label>
+        
         <button type="submit" id="btn-login" class="login-btn">
-          <i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk ke Sistem</span>
         </button>
+        
       </form>
-      <div class="login-footer">&copy; 2026 PT SINU. All rights reserved.</div>
+      
+      <div class="login-footer">
+        &copy; 2026 PT SINU. All rights reserved.
+      </div>
+      
     </div>
+    
   </div>
+  
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     function togglePassword() {
@@ -91,7 +116,8 @@
         icon.classList.add('fa-eye');
       }
     }
-        function handleLogin(e) {
+    
+    function handleLogin(e) {
       e.preventDefault();
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
@@ -129,6 +155,8 @@
         }
       }, 800);
     }
+    
+    // Auto-fill dari remember me
     window.addEventListener('DOMContentLoaded', () => {
       try {
         const saved = localStorage.getItem('sinu_v2_remember');
@@ -141,6 +169,6 @@
       } catch(e) {}
     });
   </script>
+  
 </body>
 </html>
-
