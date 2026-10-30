@@ -21,7 +21,7 @@
       position: relative;
     }
     
-    /* Animated 3D City Background (dari screenshot Billix) */
+    /* Animated 3D City Background */
     .login-bg {
       position: absolute;
       inset: 0;
@@ -58,59 +58,35 @@
     .glow-orb.g2 { width:300px; height:300px; background:rgba(59,130,246,0.1); bottom:15%; right:20%; animation-delay:3s; }
     @keyframes pulse { 0%,100%{opacity:0.4;transform:scale(1)} 50%{opacity:0.7;transform:scale(1.1)} }
     
-    /* Logo Billix di kiri atas */
+    /* Logo */
     .logo-corner {
       position: absolute;
-      top: 20px;
-      left: 30px;
+      top: 30px;
+      left: 40px;
       z-index: 10;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .logo-icon {
-      width: 40px;
-      height: 40px;
+      width: 48px;
+      height: 48px;
       background: rgba(255,255,255,0.08);
       backdrop-filter: blur(10px);
-      border-radius: 10px;
+      border-radius: 12px;
       display: flex;
       align-items: center;
       justify-content: center;
       border: 1px solid rgba(255,255,255,0.1);
     }
     .logo-text {
-      color: rgba(255,255,255,0.8);
-      font-size: 13px;
-      font-weight: 700;
+      color: rgba(255,255,255,0.9);
+      font-size: 16px;
+      font-weight: 800;
+      letter-spacing: -0.5px;
     }
     
-    /* Install & Menu di kanan atas */
-    .top-actions {
-      position: absolute;
-      top: 20px;
-      right: 30px;
-      z-index: 10;
-      display: flex;
-      gap: 12px;
-    }
-    .top-btn {
-      padding: 8px 16px;
-      background: rgba(255,255,255,0.05);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 8px;
-      color: rgba(255,255,255,0.8);
-      font-size: 12px;
-      font-weight: 600;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      transition: all 0.2s;
-    }
-    .top-btn:hover { background: rgba(255,255,255,0.1); }
-    
-    /* Login Container Tengah */
+    /* Login Container */
     .login-container {
       position: relative;
       z-index: 5;
@@ -118,82 +94,32 @@
       max-width: 90vw;
     }
     
-    /* Role Badge */
-    .role-badge {
-      background: rgba(249,115,22,0.15);
-      border: 1px solid rgba(249,115,22,0.3);
-      border-radius: 12px;
-      padding: 12px 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(10px);
-    }
-    .role-badge-icon {
-      width: 36px;
-      height: 36px;
-      background: #f97316;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: #fff;
-      font-size: 16px;
-      flex-shrink: 0;
-    }
-    .role-badge-info h3 {
-      font-size: 14px;
-      font-weight: 700;
-      color: #fff;
-      margin: 0 0 2px;
-    }
-    .role-badge-info p {
-      font-size: 11px;
-      color: rgba(255,255,255,0.6);
-      margin: 0;
-    }
-    
-    /* Demo Credentials Box */
-    .demo-cred {
-      background: rgba(251,191,36,0.12);
-      border: 1px solid rgba(251,191,36,0.25);
-      border-radius: 10px;
-      padding: 10px 14px;
-      margin-bottom: 16px;
-      backdrop-filter: blur(10px);
-    }
-    .demo-cred-title {
-      display: flex;
-      align-items: center;
-      gap: 6px;
-      color: #fbbf24;
-      font-size: 11px;
-      font-weight: 700;
-      margin-bottom: 6px;
-    }
-    .demo-cred-content {
-      font-size: 11px;
-      color: rgba(255,255,255,0.7);
-      line-height: 1.5;
-    }
-    .demo-cred-content span {
-      font-weight: 700;
-      color: #fbbf24;
-    }
-    
     /* Form Box */
     .form-box {
       background: rgba(15,23,42,0.6);
       backdrop-filter: blur(20px);
       border: 1px solid rgba(148,163,184,0.15);
-      border-radius: 12px;
-      padding: 24px;
+      border-radius: 16px;
+      padding: 32px;
       box-shadow: 0 20px 60px rgba(0,0,0,0.5);
     }
     
+    .form-title {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 8px;
+      text-align: center;
+    }
+    .form-subtitle {
+      font-size: 13px;
+      color: rgba(255,255,255,0.5);
+      margin: 0 0 28px;
+      text-align: center;
+    }
+    
     .form-group {
-      margin-bottom: 16px;
+      margin-bottom: 18px;
     }
     .form-label {
       display: block;
@@ -206,12 +132,12 @@
     }
     .form-input {
       width: 100%;
-      padding: 11px 14px 11px 38px;
+      padding: 12px 14px 12px 40px;
       background: rgba(15,23,42,0.8);
       border: 1px solid rgba(148,163,184,0.2);
-      border-radius: 8px;
+      border-radius: 10px;
       color: #fff;
-      font-size: 13px;
+      font-size: 14px;
       outline: none;
       transition: all 0.2s;
     }
@@ -226,64 +152,52 @@
     }
     .input-icon {
       position: absolute;
-      left: 12px;
+      left: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: #64748b;
-      font-size: 13px;
+      font-size: 14px;
     }
     .input-icon-right {
       position: absolute;
-      right: 12px;
+      right: 14px;
       top: 50%;
       transform: translateY(-50%);
       color: #64748b;
       cursor: pointer;
-      font-size: 14px;
+      font-size: 15px;
       padding: 4px;
     }
+    .input-icon-right:hover { color: #94a3b8; }
     
-    /* Captcha Box */
-    .captcha-box {
-      background: rgba(16,185,129,0.12);
-      border: 1px solid rgba(16,185,129,0.3);
-      border-radius: 8px;
-      padding: 10px 14px;
+    .remember-row {
       display: flex;
       align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
+      gap: 8px;
+      margin-bottom: 20px;
+      cursor: pointer;
+      user-select: none;
     }
-    .captcha-box i {
-      color: #10b981;
-      font-size: 18px;
+    .remember-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: #3b82f6;
+      cursor: pointer;
     }
-    .captcha-box span {
-      color: #10b981;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .captcha-logo {
-      margin-left: auto;
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      font-size: 9px;
-      color: rgba(255,255,255,0.4);
-      line-height: 1.2;
-    }
-    .captcha-logo strong {
-      color: rgba(255,255,255,0.6);
-      font-weight: 700;
+    .remember-row label {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      cursor: pointer;
+      font-weight: 500;
     }
     
     /* Login Button */
     .login-btn {
       width: 100%;
-      padding: 12px;
-      background: linear-gradient(135deg, #f97316, #ea580c);
+      padding: 13px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
       border: none;
-      border-radius: 8px;
+      border-radius: 10px;
       color: #fff;
       font-size: 14px;
       font-weight: 700;
@@ -293,17 +207,20 @@
       justify-content: center;
       gap: 8px;
       transition: all 0.2s;
-      box-shadow: 0 4px 14px rgba(249,115,22,0.4);
+      box-shadow: 0 4px 14px rgba(59,130,246,0.4);
     }
-    .login-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(249,115,22,0.5); }
+    .login-btn:hover { 
+      transform: translateY(-1px); 
+      box-shadow: 0 6px 20px rgba(59,130,246,0.5); 
+    }
     .login-btn:active { transform: translateY(0); }
     
     /* Footer */
     .login-footer {
       text-align: center;
-      margin-top: 16px;
+      margin-top: 20px;
       font-size: 11px;
-      color: rgba(255,255,255,0.4);
+      color: rgba(255,255,255,0.35);
     }
   </style>
 </head>
@@ -320,47 +237,19 @@
   <!-- Logo -->
   <div class="logo-corner">
     <div class="logo-icon">
-      <i class="fa-solid fa-fingerprint" style="color:#10b981; font-size:20px;"></i>
+      <i class="fa-solid fa-fingerprint" style="color:#10b981; font-size:22px;"></i>
     </div>
-    <div class="logo-text">Billix Demo</div>
-  </div>
-  
-  <!-- Top Actions -->
-  <div class="top-actions">
-    <button class="top-btn">
-      <i class="fa-solid fa-download"></i> Install
-    </button>
-    <button class="top-btn">
-      <i class="fa-solid fa-bars"></i> Menu
-    </button>
+    <div class="logo-text">ABSENSINU</div>
   </div>
   
   <!-- Login Container -->
   <div class="login-container">
     
-    <!-- Role Badge -->
-    <div class="role-badge">
-      <div class="role-badge-icon">
-        <i class="fa-solid fa-wrench"></i>
-      </div>
-      <div class="role-badge-info">
-        <h3>Portal Teknisi</h3>
-        <p>Masuk ke dashboard teknisi</p>
-      </div>
-    </div>
-    
-    <!-- Demo Credentials -->
-    <div class="demo-cred">
-      <div class="demo-cred-title">
-        <i class="fa-solid fa-key"></i> Demo Credentials
-      </div>
-      <div class="demo-cred-content">
-        Username: <span>teknisi</span> &nbsp;|&nbsp; Password: <span>teknisi123</span>
-      </div>
-    </div>
-    
     <!-- Form Box -->
     <div class="form-box">
+      <h2 class="form-title">Selamat Datang</h2>
+      <p class="form-subtitle">Masuk ke sistem manajemen operasional</p>
+      
       <form id="login-form" onsubmit="handleLogin(event)">
         
         <div class="form-group">
@@ -368,7 +257,7 @@
           <div class="input-wrap">
             <i class="input-icon fa-solid fa-user"></i>
             <input type="text" id="login-username" class="form-input" 
-                   placeholder="Masukkan username" value="teknisi" required>
+                   placeholder="Masukkan username" required>
           </div>
         </div>
         
@@ -377,30 +266,26 @@
           <div class="input-wrap">
             <i class="input-icon fa-solid fa-lock"></i>
             <input type="password" id="login-password" class="form-input" 
-                   placeholder="Masukkan password" value="teknisi123" required>
+                   placeholder="Masukkan password" required>
             <i class="input-icon-right fa-solid fa-eye" id="toggle-pwd" onclick="togglePassword()"></i>
           </div>
         </div>
         
-        <!-- Captcha -->
-        <div class="captcha-box">
-          <i class="fa-solid fa-circle-check"></i>
-          <span>Berhasil!</span>
-          <div class="captcha-logo">
-            <strong>CLOUDFLARE</strong>
-            <span>Turnstile</span>
-          </div>
+        <div class="remember-row">
+          <input type="checkbox" id="remember-me">
+          <label for="remember-me">Ingat saya di perangkat ini</label>
         </div>
         
         <button type="submit" id="btn-login" class="login-btn">
-          <span>Login</span>
+          <i class="fa-solid fa-right-to-bracket"></i>
+          <span>Masuk ke Sistem</span>
         </button>
         
       </form>
     </div>
     
     <div class="login-footer">
-      &copy; 2026 Billix Demo. All rights reserved.
+      &copy; 2026 PT SINU. All rights reserved.
     </div>
     
   </div>
@@ -424,9 +309,10 @@
       e.preventDefault();
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
+      const remember = document.getElementById('remember-me').checked;
       const btn = document.getElementById('btn-login');
       
-      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Masuk...</span>';
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Memproses...</span>';
       btn.disabled = true;
       
       const accounts = {
@@ -440,6 +326,9 @@
       setTimeout(() => {
         const account = accounts[username];
         if(account && password === account.password) {
+          if(remember) {
+            localStorage.setItem('sinu_v2_remember', JSON.stringify({username, password}));
+          }
           localStorage.setItem('sinu_v2_user', JSON.stringify({
             username: username,
             name: account.name,
@@ -448,11 +337,24 @@
           window.location.href = 'index.html';
         } else {
           alert('Username atau password salah');
-          btn.innerHTML = '<span>Login</span>';
+          btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
           btn.disabled = false;
         }
       }, 1000);
     }
+    
+    // Auto-fill dari remember me
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const saved = localStorage.getItem('sinu_v2_remember');
+        if(saved) {
+          const {username, password} = JSON.parse(saved);
+          document.getElementById('login-username').value = username || '';
+          document.getElementById('login-password').value = password || '';
+          document.getElementById('remember-me').checked = true;
+        }
+      } catch(e) {}
+    });
   </script>
   
 </body>
