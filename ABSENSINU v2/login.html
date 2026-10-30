@@ -9,164 +9,543 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-</head>
-<body class="login-page">
-  
-  <div class="login-container">
+  <style>
+    body.login-billix {
+      margin: 0;
+      font-family: 'Inter', sans-serif;
+      background: #0a1628;
+      overflow: hidden;
+      display: flex;
+      height: 100vh;
+    }
     
-    <!-- LEFT SIDE - BRANDING -->
-    <div class="login-left">
-      <div class="login-brand">
-        <div class="brand-logo">SN</div>
-        <h1>ABSENSINU</h1>
-        <p>Sistem Manajemen Operasional PT SINU</p>
+    /* Animated 3D City Background */
+    .login-bg {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #0a1628 0%, #1a2942 50%, #0f3460 100%);
+      overflow: hidden;
+    }
+    .city-grid {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        repeating-linear-gradient(0deg, transparent, transparent 40px, rgba(52, 211, 153, 0.03) 40px, rgba(52, 211, 153, 0.03) 41px),
+        repeating-linear-gradient(90deg, transparent, transparent 40px, rgba(52, 211, 153, 0.03) 40px, rgba(52, 211, 153, 0.03) 41px);
+      animation: gridMove 20s linear infinite;
+      transform: perspective(500px) rotateX(60deg);
+      transform-origin: center bottom;
+    }
+    @keyframes gridMove { 0% { background-position: 0 0; } 100% { background-position: 40px 40px; } }
+    
+    .city-buildings {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle at center, rgba(34,211,238,0.1), transparent 70%);
+    }
+    .city-buildings::before {
+      content: '';
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      top: -50%;
+      left: -50%;
+      background: 
+        radial-gradient(circle, rgba(16,185,129,0.4) 2px, transparent 2px),
+        radial-gradient(circle, rgba(59,130,246,0.3) 1px, transparent 1px);
+      background-size: 80px 80px, 50px 50px;
+      animation: floatDots 30s linear infinite;
+    }
+    @keyframes floatDots { 0% { transform: translate(0,0); } 100% { transform: translate(80px,80px); } }
+    
+    .login-glow {
+      position: absolute;
+      width: 600px;
+      height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(16,185,129,0.15), transparent 70%);
+      animation: pulse 4s ease-in-out infinite;
+      filter: blur(60px);
+    }
+    .login-glow.g1 { top: 10%; left: 20%; }
+    .login-glow.g2 { bottom: 20%; right: 25%; background: radial-gradient(circle, rgba(59,130,246,0.12), transparent 70%); animation-delay: 2s; }
+    
+    /* Logo Billix Style */
+    .login-logo {
+      position: absolute;
+      top: 30px;
+      left: 40px;
+      z-index: 10;
+    }
+    .logo-icon {
+      width: 48px;
+      height: 48px;
+      background: rgba(255,255,255,0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255,255,255,0.15);
+      margin-bottom: 8px;
+    }
+    .logo-text {
+      font-size: 11px;
+      color: rgba(255,255,255,0.5);
+      font-weight: 600;
+    }
+    
+    /* Title Tengah */
+    .login-title-center {
+      position: absolute;
+      top: 50%;
+      left: 30%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      z-index: 5;
+      max-width: 400px;
+    }
+    .login-title-center h1 {
+      font-size: 48px;
+      font-weight: 900;
+      color: #fff;
+      margin: 0 0 12px;
+      line-height: 1.1;
+    }
+    .login-title-center p {
+      font-size: 16px;
+      color: rgba(255,255,255,0.6);
+      margin: 0;
+    }
+    
+    /* Right Panel - Form */
+    .login-right-panel {
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 480px;
+      height: 100vh;
+      background: #1e293b;
+      display: flex;
+      flex-direction: column;
+      z-index: 10;
+      box-shadow: -10px 0 40px rgba(0,0,0,0.5);
+    }
+    
+    .login-right-header {
+      padding: 24px 32px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .login-right-header h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin: 0 0 4px;
+    }
+    .login-right-header p {
+      font-size: 13px;
+      color: #94a3b8;
+      margin: 0;
+    }
+    
+    .login-form-container {
+      flex: 1;
+      padding: 32px;
+      overflow-y: auto;
+    }
+    
+    .demo-cred-box {
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.2);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-bottom: 20px;
+    }
+    .demo-cred-box strong {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: #60a5fa;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    .demo-cred-box .cred-item {
+      font-size: 11px;
+      color: #cbd5e1;
+      margin: 3px 0;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .demo-cred-box .cred-item .phone {
+      color: #10b981;
+      font-weight: 600;
+    }
+    
+    .form-group-billix {
+      margin-bottom: 18px;
+    }
+    .form-label-billix {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .form-input-billix {
+      width: 100%;
+      padding: 11px 14px 11px 42px;
+      background: rgba(15,23,42,0.8);
+      border: 1px solid rgba(148,163,184,0.2);
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: all 0.2s;
+    }
+    .form-input-billix:focus {
+      border-color: #3b82f6;
+      background: rgba(15,23,42,1);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.1);
+    }
+    .form-input-billix::placeholder {
+      color: #475569;
+    }
+    .input-icon {
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: #64748b;
+      font-size: 14px;
+    }
+    
+    .captcha-box {
+      background: rgba(16,185,129,0.1);
+      border: 1px solid rgba(16,185,129,0.3);
+      border-radius: 8px;
+      padding: 10px 14px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 18px;
+    }
+    .captcha-box i {
+      color: #10b981;
+      font-size: 18px;
+    }
+    .captcha-box span {
+      color: #10b981;
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .captcha-badge {
+      margin-left: auto;
+      padding: 2px 8px;
+      background: rgba(255,255,255,0.1);
+      border-radius: 4px;
+      font-size: 9px;
+      color: rgba(255,255,255,0.5);
+    }
+    
+    .login-btn-billix {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #3b82f6, #1d4ed8);
+      border: none;
+      border-radius: 8px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      transition: transform 0.2s;
+      box-shadow: 0 4px 12px rgba(59,130,246,0.4);
+    }
+    .login-btn-billix:hover { transform: translateY(-1px); }
+    .login-btn-billix:active { transform: translateY(0); }
+    
+    .login-footer-link {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 12px;
+      color: #64748b;
+    }
+    .login-footer-link a {
+      color: #3b82f6;
+      text-decoration: none;
+    }
+    
+    /* Sidebar Role Selector */
+    .role-sidebar {
+      position: absolute;
+      top: 0;
+      right: 480px;
+      width: 280px;
+      height: 100vh;
+      background: rgba(15,23,42,0.95);
+      backdrop-filter: blur(20px);
+      border-left: 1px solid rgba(148,163,184,0.1);
+      padding: 24px 20px;
+      z-index: 9;
+      overflow-y: auto;
+    }
+    .role-sidebar-title {
+      font-size: 11px;
+      font-weight: 700;
+      color: #94a3b8;
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.8px;
+    }
+    .role-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 14px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(148,163,184,0.1);
+      border-radius: 10px;
+      margin-bottom: 8px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .role-item:hover {
+      background: rgba(59,130,246,0.1);
+      border-color: rgba(59,130,246,0.3);
+    }
+    .role-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      flex-shrink: 0;
+    }
+    .role-info {
+      flex: 1;
+    }
+    .role-name {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+    }
+    .role-desc {
+      font-size: 10.5px;
+      color: #64748b;
+      line-height: 1.3;
+    }
+    
+    .login-footer-bottom {
+      padding: 20px 32px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      text-align: center;
+      font-size: 11px;
+      color: #64748b;
+    }
+  </style>
+</head>
+<body class="login-billix">
+  
+  <!-- Animated Background -->
+  <div class="login-bg">
+    <div class="city-grid"></div>
+    <div class="city-buildings"></div>
+    <div class="login-glow g1"></div>
+    <div class="login-glow g2"></div>
+  </div>
+  
+  <!-- Logo -->
+  <div class="login-logo">
+    <div class="logo-icon">
+      <i class="fa-solid fa-fingerprint" style="color:#10b981; font-size:22px;"></i>
+    </div>
+    <div class="logo-text">ABSENSINU v2.0</div>
+  </div>
+  
+  <!-- Title Center -->
+  <div class="login-title-center">
+    <h1>ABSENSINU</h1>
+    <p>Sistem Manajemen Operasional PT SINU</p>
+  </div>
+  
+  <!-- Role Sidebar -->
+  <div class="role-sidebar">
+    <div class="role-sidebar-title">Login Sebagai</div>
+    
+    <div class="role-item" onclick="setRole('admin')">
+      <div class="role-icon" style="background:#3b82f6;">
+        <i class="fa-solid fa-user-shield" style="color:#fff;"></i>
       </div>
-      
-      <div class="login-illustration">
-        <div class="grid-lines">
-          <div class="glow-dot d1"></div>
-          <div class="glow-dot d2"></div>
-          <div class="glow-dot d3"></div>
-        </div>
+      <div class="role-info">
+        <div class="role-name">Admin</div>
+        <div class="role-desc">Panel administrator</div>
       </div>
     </div>
     
-    <!-- RIGHT SIDE - LOGIN FORM -->
-    <div class="login-right">
-      
-      <div class="login-form-header">
-        <h2>Selamat Datang Kembali</h2>
-        <p>Masuk ke akun Anda untuk melanjutkan</p>
+    <div class="role-item" onclick="setRole('teknisi')">
+      <div class="role-icon" style="background:#10b981;">
+        <i class="fa-solid fa-wrench" style="color:#fff;"></i>
       </div>
+      <div class="role-info">
+        <div class="role-name">Teknisi</div>
+        <div class="role-desc">Portal teknisi lapangan</div>
+      </div>
+    </div>
+    
+    <div class="role-item" onclick="setRole('noc')">
+      <div class="role-icon" style="background:#f59e0b;">
+        <i class="fa-solid fa-tower-cell" style="color:#fff;"></i>
+      </div>
+      <div class="role-info">
+        <div class="role-name">NOC</div>
+        <div class="role-desc">Network Operations Center</div>
+      </div>
+    </div>
+    
+    <div class="role-item" onclick="setRole('cs')">
+      <div class="role-icon" style="background:#8b5cf6;">
+        <i class="fa-solid fa-headset" style="color:#fff;"></i>
+      </div>
+      <div class="role-info">
+        <div class="role-name">CS</div>
+        <div class="role-desc">Customer Service</div>
+      </div>
+    </div>
+    
+    <div class="role-item" onclick="setRole('spv')">
+      <div class="role-icon" style="background:#06b6d4;">
+        <i class="fa-solid fa-user-tie" style="color:#fff;"></i>
+      </div>
+      <div class="role-info">
+        <div class="role-name">Supervisor</div>
+        <div class="role-desc">Portal supervisor</div>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Right Panel - Form -->
+  <div class="login-right-panel">
+    
+    <div class="login-right-header">
+      <h2>Login Pelanggan</h2>
+      <p>Masukkan nomor HP yang terdaftar</p>
+    </div>
+    
+    <div class="login-form-container">
       
       <!-- Demo Credentials -->
-      <div class="login-demo-badge">
+      <div class="demo-cred-box">
         <strong><i class="fa-solid fa-circle-info"></i> Demo Credentials</strong>
-        <div style="margin-top:8px; font-size:11px; line-height:1.6;">
-          <div><strong>Admin:</strong> admin / admin123</div>
-          <div><strong>Supervisor:</strong> spv / spv123</div>
-          <div><strong>Teknisi:</strong> teknisi / teknisi123</div>
-          <div><strong>NOC:</strong> noc / noc123</div>
-          <div><strong>CS:</strong> cs / cs123</div>
+        <div class="cred-item"><span>Nomor HP:</span> <span class="phone">081234567025</span></div>
+        <div style="font-size:10px; color:#64748b; margin-top:6px;">
+          Atau gunakan: admin, teknisi, noc, cs, spv
         </div>
       </div>
       
-      <!-- Error Alert -->
-      <div id="login-error" class="hidden" style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:12.5px; color:#991b1b; display:flex; align-items:center; gap:8px;">
-        <i class="fa-solid fa-circle-exclamation"></i>
-        <span id="login-error-msg">Username atau password salah.</span>
-      </div>
-      
-      <!-- Login Form -->
+      <!-- Form -->
       <form id="login-form" onsubmit="handleLogin(event)">
         
-        <div class="form-group">
-          <label class="form-label">Username</label>
-          <div style="position:relative;">
-            <i class="fa-solid fa-user" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
-            <input type="text" id="login-username" required placeholder="Masukkan username" autocomplete="username"
-              class="form-control" style="padding-left:36px;">
-          </div>
+        <div class="form-group-billix" style="position:relative;">
+          <label class="form-label-billix">Nomor HP / WhatsApp</label>
+          <i class="input-icon fa-solid fa-phone"></i>
+          <input type="text" id="login-phone" class="form-input-billix" 
+                 placeholder="08xx-xxxx-xxxx" required>
         </div>
         
-        <div class="form-group">
-          <label class="form-label">Password</label>
-          <div style="position:relative;">
-            <i class="fa-solid fa-lock" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
-            <input type="password" id="login-password" required placeholder="Masukkan password" autocomplete="current-password"
-              class="form-control" style="padding-left:36px; padding-right:36px;">
-            <button type="button" onclick="togglePassword()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; padding:4px 6px;">
-              <i class="fa-solid fa-eye" id="password-toggle-icon"></i>
-            </button>
-          </div>
+        <!-- Captcha Success -->
+        <div class="captcha-box">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Berhasil!</span>
+          <div class="captcha-badge">Cloudflare Turnstile</div>
         </div>
         
-        <label class="login-remember">
-          <input type="checkbox" id="login-remember">
-          <span>Ingat saya di perangkat ini</span>
-        </label>
-        
-        <button type="submit" id="btn-login" class="login-btn">
+        <button type="submit" id="btn-login" class="login-btn-billix">
           <i class="fa-solid fa-right-to-bracket"></i>
-          <span>Masuk ke Sistem</span>
+          <span>Login</span>
         </button>
         
       </form>
       
-      <div class="login-footer">
-        &copy; 2026 PT SINU. All rights reserved.
+      <div class="login-footer-link">
+        Belum berlangganan? <a href="#">Hubungi Kami</a>
       </div>
       
     </div>
     
+    <div class="login-footer-bottom">
+      &copy; 2026 Billix Demo. All rights reserved.
+    </div>
+    
   </div>
   
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
-    function togglePassword() {
-      const pwdInput = document.getElementById('login-password');
-      const icon = document.getElementById('password-toggle-icon');
-      if(pwdInput.type === 'password') {
-        pwdInput.type = 'text';
-        icon.classList.remove('fa-eye');
-        icon.classList.add('fa-eye-slash');
-      } else {
-        pwdInput.type = 'password';
-        icon.classList.remove('fa-eye-slash');
-        icon.classList.add('fa-eye');
-      }
+    let selectedRole = 'admin';
+    
+    function setRole(role) {
+      selectedRole = role;
+      document.querySelectorAll('.role-item').forEach(item => {
+        item.style.background = 'rgba(255,255,255,0.03)';
+        item.style.borderColor = 'rgba(148,163,184,0.1)';
+      });
+      event.currentTarget.style.background = 'rgba(59,130,246,0.15)';
+      event.currentTarget.style.borderColor = 'rgba(59,130,246,0.4)';
+      
+      // Auto-fill phone
+      const phoneMap = {
+        'admin': '081234567025',
+        'teknisi': 'teknisi',
+        'noc': 'noc',
+        'cs': 'cs',
+        'spv': 'spv'
+      };
+      document.getElementById('login-phone').value = phoneMap[role] || '';
     }
     
     function handleLogin(e) {
       e.preventDefault();
-      const username = document.getElementById('login-username').value.trim();
-      const password = document.getElementById('login-password').value;
-      const remember = document.getElementById('login-remember').checked;
+      const phone = document.getElementById('login-phone').value.trim();
       const btn = document.getElementById('btn-login');
-      const err = document.getElementById('login-error');
       
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Masuk...</span>';
       btn.disabled = true;
       
-      // Demo accounts dengan berbagai role
-      const demoAccounts = {
-        'admin': {password: 'admin123', name: 'Admin Demo', role: 'admin'},
-        'spv': {password: 'spv123', name: 'Supervisor Demo', role: 'supervisor'},
-        'teknisi': {password: 'teknisi123', name: 'Teknisi Demo', role: 'teknisi'},
-        'noc': {password: 'noc123', name: 'NOC Demo', role: 'noc'},
-        'cs': {password: 'cs123', name: 'CS Demo', role: 'cs'},
-        'demo': {password: 'demo123', name: 'Demo Admin', role: 'admin'}
-      };
-      
       setTimeout(() => {
-        const account = demoAccounts[username];
-        if(account && password === account.password) {
-          if(remember) localStorage.setItem('sinu_v2_remember', JSON.stringify({username, password}));
-          localStorage.setItem('sinu_v2_user', JSON.stringify({
-            username: username,
-            name: account.name,
-            role: account.role
-          }));
-          window.location.href = 'index.html';
-        } else {
-          err.classList.remove('hidden');
-          btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
-          btn.disabled = false;
-        }
-      }, 800);
+        const roleNames = {
+          'admin': 'Admin Demo',
+          'teknisi': 'Teknisi Demo',
+          'noc': 'NOC Demo',
+          'cs': 'CS Demo',
+          'spv': 'Supervisor Demo'
+        };
+        
+        // Accept phone or role name
+        let finalRole = selectedRole;
+        if(phone === '081234567025') finalRole = 'admin';
+        else if(['admin','teknisi','noc','cs','spv'].includes(phone)) finalRole = phone;
+        
+        localStorage.setItem('sinu_v2_user', JSON.stringify({
+          username: finalRole,
+          name: roleNames[finalRole] || 'Demo User',
+          role: finalRole
+        }));
+        window.location.href = 'index.html';
+      }, 1000);
     }
     
-    // Auto-fill dari remember me
+    // Set default role
     window.addEventListener('DOMContentLoaded', () => {
-      try {
-        const saved = localStorage.getItem('sinu_v2_remember');
-        if(saved) {
-          const {username, password} = JSON.parse(saved);
-          document.getElementById('login-username').value = username || '';
-          document.getElementById('login-password').value = password || '';
-          document.getElementById('login-remember').checked = true;
-        }
-      } catch(e) {}
+      document.querySelectorAll('.role-item')[0].click();
     });
   </script>
   
