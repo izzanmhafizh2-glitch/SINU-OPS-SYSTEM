@@ -31,11 +31,17 @@
         <h2>Selamat Datang Kembali</h2>
         <p>Masuk ke akun Anda untuk melanjutkan</p>
       </div>
+            <!-- Demo Credentials untuk berbagai role -->
       <div class="login-demo-badge">
         <strong><i class="fa-solid fa-circle-info"></i> Demo Credentials</strong>
-        <div style="margin-top:4px; font-size:11.5px;">
-          Username: <strong>demo</strong> &nbsp;|&nbsp; Password: <strong>demo123</strong>
+        <div style="margin-top:8px; font-size:11px; line-height:1.6;">
+          <div><strong>Admin:</strong> admin / admin123</div>
+          <div><strong>Supervisor:</strong> spv / spv123</div>
+          <div><strong>Teknisi:</strong> teknisi / teknisi123</div>
+          <div><strong>NOC:</strong> noc / noc123</div>
+          <div><strong>CS:</strong> cs / cs123</div>
         </div>
+      </div>
       </div>
       <div id="login-error" class="hidden" style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:12.5px; color:#991b1b; display:flex; align-items:center; gap:8px;">
         <i class="fa-solid fa-circle-exclamation"></i>
@@ -85,19 +91,36 @@
         icon.classList.add('fa-eye');
       }
     }
-    function handleLogin(e) {
+        function handleLogin(e) {
       e.preventDefault();
       const username = document.getElementById('login-username').value.trim();
       const password = document.getElementById('login-password').value;
       const remember = document.getElementById('login-remember').checked;
       const btn = document.getElementById('btn-login');
       const err = document.getElementById('login-error');
+      
       btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Masuk...</span>';
       btn.disabled = true;
+      
+      // Demo accounts dengan berbagai role
+      const demoAccounts = {
+        'admin': {password: 'admin123', name: 'Admin Demo', role: 'admin'},
+        'spv': {password: 'spv123', name: 'Supervisor Demo', role: 'supervisor'},
+        'teknisi': {password: 'teknisi123', name: 'Teknisi Demo', role: 'teknisi'},
+        'noc': {password: 'noc123', name: 'NOC Demo', role: 'noc'},
+        'cs': {password: 'cs123', name: 'CS Demo', role: 'cs'},
+        'demo': {password: 'demo123', name: 'Demo Admin', role: 'admin'}
+      };
+      
       setTimeout(() => {
-        if(username === 'demo' && password === 'demo123') {
+        const account = demoAccounts[username];
+        if(account && password === account.password) {
           if(remember) localStorage.setItem('sinu_v2_remember', JSON.stringify({username, password}));
-          localStorage.setItem('sinu_v2_user', JSON.stringify({username: 'demo', name: 'Demo Admin', role: 'admin'}));
+          localStorage.setItem('sinu_v2_user', JSON.stringify({
+            username: username,
+            name: account.name,
+            role: account.role
+          }));
           window.location.href = 'index.html';
         } else {
           err.classList.remove('hidden');
@@ -120,3 +143,4 @@
   </script>
 </body>
 </html>
+
