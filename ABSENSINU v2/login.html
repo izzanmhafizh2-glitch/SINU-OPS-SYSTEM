@@ -1,0 +1,122 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - ABSENSINU v2</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body class="login-page">
+  <div class="login-container">
+    <div class="login-left">
+      <div class="login-brand">
+        <div class="brand-logo">SN</div>
+        <h1>ABSENSINU</h1>
+        <p>Sistem Manajemen Operasional PT SINU</p>
+      </div>
+      <div class="login-illustration">
+        <div class="grid-lines">
+          <div class="glow-dot d1"></div>
+          <div class="glow-dot d2"></div>
+          <div class="glow-dot d3"></div>
+        </div>
+      </div>
+    </div>
+    <div class="login-right">
+      <div class="login-form-header">
+        <h2>Selamat Datang Kembali</h2>
+        <p>Masuk ke akun Anda untuk melanjutkan</p>
+      </div>
+      <div class="login-demo-badge">
+        <strong><i class="fa-solid fa-circle-info"></i> Demo Credentials</strong>
+        <div style="margin-top:4px; font-size:11.5px;">
+          Username: <strong>demo</strong> &nbsp;|&nbsp; Password: <strong>demo123</strong>
+        </div>
+      </div>
+      <div id="login-error" class="hidden" style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px; margin-bottom:16px; font-size:12.5px; color:#991b1b; display:flex; align-items:center; gap:8px;">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span id="login-error-msg">Username atau password salah.</span>
+      </div>
+      <form id="login-form" onsubmit="handleLogin(event)">
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <div style="position:relative;">
+            <i class="fa-solid fa-user" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
+            <input type="text" id="login-username" required placeholder="Masukkan username" autocomplete="username" class="form-control" style="padding-left:36px;">
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <div style="position:relative;">
+            <i class="fa-solid fa-lock" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); color:#94a3b8; font-size:13px;"></i>
+            <input type="password" id="login-password" required placeholder="Masukkan password" autocomplete="current-password" class="form-control" style="padding-left:36px; padding-right:36px;">
+            <button type="button" onclick="togglePassword()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; cursor:pointer; padding:4px 6px;">
+              <i class="fa-solid fa-eye" id="password-toggle-icon"></i>
+            </button>
+          </div>
+        </div>
+        <label class="login-remember">
+          <input type="checkbox" id="login-remember">
+          <span>Ingat saya di perangkat ini</span>
+        </label>
+        <button type="submit" id="btn-login" class="login-btn">
+          <i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>
+        </button>
+      </form>
+      <div class="login-footer">&copy; 2026 PT SINU. All rights reserved.</div>
+    </div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    function togglePassword() {
+      const pwdInput = document.getElementById('login-password');
+      const icon = document.getElementById('password-toggle-icon');
+      if(pwdInput.type === 'password') {
+        pwdInput.type = 'text';
+        icon.classList.remove('fa-eye');
+        icon.classList.add('fa-eye-slash');
+      } else {
+        pwdInput.type = 'password';
+        icon.classList.remove('fa-eye-slash');
+        icon.classList.add('fa-eye');
+      }
+    }
+    function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('login-username').value.trim();
+      const password = document.getElementById('login-password').value;
+      const remember = document.getElementById('login-remember').checked;
+      const btn = document.getElementById('btn-login');
+      const err = document.getElementById('login-error');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i><span>Masuk...</span>';
+      btn.disabled = true;
+      setTimeout(() => {
+        if(username === 'demo' && password === 'demo123') {
+          if(remember) localStorage.setItem('sinu_v2_remember', JSON.stringify({username, password}));
+          localStorage.setItem('sinu_v2_user', JSON.stringify({username: 'demo', name: 'Demo Admin', role: 'admin'}));
+          window.location.href = 'index.html';
+        } else {
+          err.classList.remove('hidden');
+          btn.innerHTML = '<i class="fa-solid fa-right-to-bracket"></i><span>Masuk ke Sistem</span>';
+          btn.disabled = false;
+        }
+      }, 800);
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      try {
+        const saved = localStorage.getItem('sinu_v2_remember');
+        if(saved) {
+          const {username, password} = JSON.parse(saved);
+          document.getElementById('login-username').value = username || '';
+          document.getElementById('login-password').value = password || '';
+          document.getElementById('login-remember').checked = true;
+        }
+      } catch(e) {}
+    });
+  </script>
+</body>
+</html>

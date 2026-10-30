@@ -1,0 +1,366 @@
+﻿<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - ABSENSINU v2</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- SIDEBAR -->
+  <nav id="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">SN</div>
+      <div class="logo-text">
+        ABSENSINU
+        <div class="logo-sub">v2.0</div>
+      </div>
+    </div>
+    
+    <div class="sidebar-nav">
+      
+      <div class="nav-section-label">UTAMA</div>
+      <a href="#" class="nav-item active" onclick="switchSection('dashboard'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-house"></i></span>
+        <span class="nav-label">Dashboard</span>
+      </a>
+      
+      <div class="nav-section-label">OPERASIONAL</div>
+      <a href="#" class="nav-item" onclick="switchSection('absensi'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-calendar-check"></i></span>
+        <span class="nav-label">Absensi</span>
+      </a>
+      <a href="#" class="nav-item" onclick="switchSection('tugas'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-list-check"></i></span>
+        <span class="nav-label">Tugas</span>
+        <span class="nav-badge">3</span>
+      </a>
+      <a href="#" class="nav-item" onclick="switchSection('kpi'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-chart-line"></i></span>
+        <span class="nav-label">KPI</span>
+      </a>
+      
+      <div class="nav-section-label">ADMIN</div>
+      <a href="#" class="nav-item" onclick="toggleSubMenu(this); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-boxes-packing"></i></span>
+        <span class="nav-label">Asset</span>
+        <span class="nav-arrow"><i class="fa-solid fa-chevron-right"></i></span>
+      </a>
+      <div class="nav-submenu">
+        <a href="#" class="nav-item">
+          <span class="nav-icon"><i class="fa-solid fa-plus"></i></span>
+          <span class="nav-label">Tambah Perangkat</span>
+        </a>
+        <a href="#" class="nav-item">
+          <span class="nav-icon"><i class="fa-solid fa-list"></i></span>
+          <span class="nav-label">List Perangkat</span>
+        </a>
+      </div>
+      
+      <a href="#" class="nav-item" onclick="switchSection('jadwal'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-calendar-days"></i></span>
+        <span class="nav-label">Atur Jadwal</span>
+      </a>
+      
+      <a href="#" class="nav-item" onclick="switchSection('pelanggan'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-users"></i></span>
+        <span class="nav-label">Pelanggan</span>
+      </a>
+      
+      <div class="nav-section-label">SISTEM</div>
+      <a href="#" class="nav-item" onclick="switchSection('notifikasi'); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-bell"></i></span>
+        <span class="nav-label">Notifikasi</span>
+      </a>
+      <a href="#" class="nav-item" onclick="logout(); return false;">
+        <span class="nav-icon"><i class="fa-solid fa-right-from-bracket"></i></span>
+        <span class="nav-label">Keluar</span>
+      </a>
+      
+    </div>
+  </nav>
+
+  <!-- MAIN WRAPPER -->
+  <div id="main-wrapper">
+    
+    <!-- TOPBAR -->
+    <header id="topbar">
+      <button class="topbar-toggle" onclick="toggleSidebar()">
+        <i class="fa-solid fa-bars"></i>
+      </button>
+      
+      <div class="topbar-server-time">
+        <i class="fa-solid fa-clock"></i>
+        <span id="server-time">29-Oktober-2026 15:08:46</span>
+      </div>
+      
+      <div class="topbar-search">
+        <div class="topbar-search-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input type="text" placeholder="Cari...">
+        </div>
+      </div>
+      
+      <div class="topbar-spacer"></div>
+      
+      <div class="topbar-actions">
+        <button class="topbar-btn">
+          <i class="fa-solid fa-bell"></i>
+          <span class="topbar-badge">3</span>
+        </button>
+        <button class="topbar-btn">
+          <i class="fa-solid fa-envelope"></i>
+        </button>
+        <div class="topbar-divider"></div>
+        <button class="topbar-btn">
+          <i class="fa-solid fa-moon"></i>
+        </button>
+        <button class="topbar-btn">
+          <i class="fa-solid fa-expand"></i>
+        </button>
+      </div>
+      
+      <div class="topbar-divider"></div>
+      
+      <div class="topbar-user">
+        <div class="topbar-user-avatar">DA</div>
+        <span class="topbar-user-name" id="topbar-username">Demo Admin</span>
+      </div>
+    </header>
+
+    <!-- PAGE CONTENT -->
+    <main id="page-content">
+      
+      <!-- DASHBOARD SECTION -->
+      <section id="section-dashboard" class="section active">
+        
+        <div class="page-header">
+          <h1 class="page-greeting">Selamat sore, demo!</h1>
+          <p class="page-subtitle">Bagaimana operasional hari ini?</p>
+        </div>
+        
+        <!-- STAT CARDS -->
+        <div class="stats-grid">
+          
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-label">Hadir Hari Ini</span>
+              <div class="stat-card-icon" style="background:#eff6ff; color:#1d4ed8;">
+                <i class="fa-solid fa-user-check"></i>
+              </div>
+            </div>
+            <div class="stat-card-value">24</div>
+            <div class="stat-card-meta">
+              <span class="up"><i class="fa-solid fa-arrow-up"></i> 12%</span> dari kemarin
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-label">Tugas Aktif</span>
+              <div class="stat-card-icon" style="background:#fef3c7; color:#f59e0b;">
+                <i class="fa-solid fa-tasks"></i>
+              </div>
+            </div>
+            <div class="stat-card-value">8</div>
+            <div class="stat-card-meta">
+              <span class="down"><i class="fa-solid fa-arrow-down"></i> 3</span> dari minggu lalu
+            </div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-label">WO Selesai</span>
+              <div class="stat-card-icon" style="background:#d1fae5; color:#10b981;">
+                <i class="fa-solid fa-check-circle"></i>
+              </div>
+            </div>
+            <div class="stat-card-value">142</div>
+            <div class="stat-card-meta">Bulan ini</div>
+          </div>
+          
+          <div class="stat-card">
+            <div class="stat-card-header">
+              <span class="stat-card-label">Pelanggan</span>
+              <div class="stat-card-icon" style="background:#e0e7ff; color:#6366f1;">
+                <i class="fa-solid fa-users"></i>
+              </div>
+            </div>
+            <div class="stat-card-value">1,284</div>
+            <div class="stat-card-meta">
+              <span class="up"><i class="fa-solid fa-arrow-up"></i> 8</span> pelanggan baru
+            </div>
+          </div>
+          
+        </div>
+        
+        <!-- CONTENT GRID -->
+        <div class="content-grid">
+          
+          <!-- LEFT COLUMN -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-chart-pie"></i>
+                  Rekapitulasi Kehadiran
+                </h3>
+                <button class="btn btn-sm btn-outline">Detail</button>
+              </div>
+              <div class="card-body">
+                <div class="table-wrap">
+                  <table class="data-table">
+                    <thead>
+                      <tr>
+                        <th>Nama</th>
+                        <th>Peran</th>
+                        <th style="text-align:center;">Hadir</th>
+                        <th style="text-align:center;">Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td style="font-weight:600;">Izzan Muhammad Hafizh</td>
+                        <td>Supervisor</td>
+                        <td style="text-align:center; font-weight:700; color:#10b981;">28</td>
+                        <td style="text-align:center;"><span class="badge badge-green">Excellent</span></td>
+                      </tr>
+                      <tr>
+                        <td style="font-weight:600;">Deni Rusdiana</td>
+                        <td>Teknisi</td>
+                        <td style="text-align:center; font-weight:700; color:#10b981;">26</td>
+                        <td style="text-align:center;"><span class="badge badge-blue">Good</span></td>
+                      </tr>
+                      <tr>
+                        <td style="font-weight:600;">Inyang safitri</td>
+                        <td>CS</td>
+                        <td style="text-align:center; font-weight:700; color:#10b981;">25</td>
+                        <td style="text-align:center;"><span class="badge badge-blue">Good</span></td>
+                      </tr>
+                      <tr>
+                        <td style="font-weight:600;">Wulan</td>
+                        <td>Admin</td>
+                        <td style="text-align:center; font-weight:700; color:#f59e0b;">18</td>
+                        <td style="text-align:center;"><span class="badge badge-amber">Fair</span></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+          <!-- RIGHT COLUMN - ACTIONS -->
+          <div style="display:flex; flex-direction:column; gap:16px;">
+            
+            <div class="card">
+              <div class="card-header">
+                <h3 class="card-title">
+                  <i class="fa-solid fa-bolt"></i>
+                  Aksi Cepat
+                </h3>
+              </div>
+              <div class="card-body" style="padding:0;">
+                <div class="action-list">
+                  <div class="action-item" onclick="switchSection('absensi')">
+                    <div class="action-item-left">
+                      <div class="action-item-label">Absen Sekarang</div>
+                      <div class="action-item-sub">Catat kehadiran Anda</div>
+                    </div>
+                    <div class="action-item-right">
+                      <div class="avatar" style="background:#eff6ff; color:#1d4ed8;">
+                        <i class="fa-solid fa-fingerprint"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="action-item" onclick="switchSection('tugas')">
+                    <div class="action-item-left">
+                      <div class="action-item-label">Pickup Tugas</div>
+                      <div class="action-item-sub">3 tugas menunggu</div>
+                    </div>
+                    <div class="action-item-right">
+                      <span class="badge badge-amber">3</span>
+                      <div class="avatar" style="background:#fef3c7; color:#f59e0b;">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="action-item">
+                    <div class="action-item-left">
+                      <div class="action-item-label">Lihat KPI</div>
+                      <div class="action-item-sub">Poin: 1250</div>
+                    </div>
+                    <div class="action-item-right">
+                      <div class="avatar" style="background:#d1fae5; color:#10b981;">
+                        <i class="fa-solid fa-trophy"></i>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+          </div>
+          
+        </div>
+        
+      </section>
+      
+      <!-- ABSENSI SECTION -->
+      <section id="section-absensi" class="section">
+        <div class="page-header">
+          <h1 class="page-greeting">Absensi</h1>
+          <p class="page-subtitle">Catat kehadiran dan kelola izin</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="text-align:center; padding:60px 20px;">
+            <i class="fa-solid fa-calendar-check" style="font-size:48px; color:#94a3b8; margin-bottom:16px;"></i>
+            <p style="color:#64748b;">Halaman Absensi akan diintegrasikan dari versi lama</p>
+          </div>
+        </div>
+      </section>
+      
+      <!-- TUGAS SECTION -->
+      <section id="section-tugas" class="section">
+        <div class="page-header">
+          <h1 class="page-greeting">Tugas</h1>
+          <p class="page-subtitle">Work Order dan penugasan teknisi</p>
+        </div>
+        <div class="card">
+          <div class="card-body" style="text-align:center; padding:60px 20px;">
+            <i class="fa-solid fa-list-check" style="font-size:48px; color:#94a3b8; margin-bottom:16px;"></i>
+            <p style="color:#64748b;">Halaman Tugas akan diintegrasikan dari versi lama</p>
+          </div>
+        </div>
+      </section>
+      
+    </main>
+    
+  </div>
+
+      <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  
+  <!-- Core JS -->
+  <script src="js/supabase-init.js"></script>
+  <script src="js/supabase-extended.js"></script>
+  <script src="js/dashboard.js"></script>
+  <script src="js/absensi.js"></script>
+  <script src="js/tugas.js"></script>
+  
+  <!-- V2 Helpers -->
+  <script src="js/absensi-helper.js"></script>
+  <script src="js/tugas-helper.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
+
+
+
